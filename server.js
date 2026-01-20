@@ -10,6 +10,9 @@ const { supabase, initializeDatabase } = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy is required for secure cookies on Render/Heroku
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors());
 app.use(express.json());

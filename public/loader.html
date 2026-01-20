@@ -280,72 +280,73 @@
                         </div>
                     </div>
                 </div>
-    </div>
 
-    <!-- Section 7: Comments -->
-    <div class="form-card">
-        <div class="form-card-header">
-            <div class="form-card-icon">💬</div>
-            <div class="form-card-title">
-                <h2>Yorumlar</h2>
-                <p>Comments</p>
-            </div>
-        </div>
-        <div class="form-group">
-            <textarea id="comments" name="comments" placeholder="Ek yorumlarınızı buraya ekleyin..."></textarea>
-        </div>
-    </div>
 
-    <!-- Submit Section -->
-    <div class="submit-section">
-        <button type="submit" class="submit-btn" id="submitBtn">
-            <span>Yükleme Verilerini Gönder</span>
-            <span>📤</span>
-        </button>
-    </div>
-
-    </form>
-
-    <!-- History Section -->
-    <div id="historySection" style="display: none;">
-        <div class="table-card">
-            <div class="table-header">
-                <div class="table-title">
-                    <h2>Gönderilen Raporlar</h2>
+                <!-- Section 7: Comments -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-icon">💬</div>
+                        <div class="form-card-title">
+                            <h2>Yorumlar</h2>
+                            <p>Comments</p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="comments" name="comments"
+                            placeholder="Ek yorumlarınızı buraya ekleyin..."></textarea>
+                    </div>
                 </div>
-                <button class="refresh-btn" onclick="fetchHistory()">
-                    <span>🔄</span> Yenile
-                </button>
+
+                <!-- Submit Section -->
+                <div class="submit-section">
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <span>Yükleme Verilerini Gönder</span>
+                        <span>📤</span>
+                    </button>
+                </div>
+
+            </form>
+
+            <!-- History Section -->
+            <div id="historySection" style="display: none;">
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <h2>Gönderilen Raporlar</h2>
+                        </div>
+                        <button class="refresh-btn" onclick="fetchHistory()">
+                            <span>🔄</span> Yenile
+                        </button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="loadings-table">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Plaka</th>
+                                    <th>Sürücü</th>
+                                    <th>Durum</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="historyEmptyState" class="empty-state" style="display: none;">
+                        <div class="empty-state-icon">📂</div>
+                        <h3>Henüz rapor bulunmuyor</h3>
+                        <p>Gönderdiğiniz raporlar burada listelenecektir.</p>
+                    </div>
+                    <div id="historyLoading" class="empty-state" style="display: none;">
+                        <div class="spinner"
+                            style="margin: 0 auto; border-color: var(--primary); border-top-color: transparent;"></div>
+                        <p style="margin-top: 16px;">Yükleniyor...</p>
+                    </div>
+                </div>
             </div>
-            <div style="overflow-x: auto;">
-                <table class="loadings-table">
-                    <thead>
-                        <tr>
-                            <th>Tarih</th>
-                            <th>Plaka</th>
-                            <th>Sürücü</th>
-                            <th>Durum</th>
-                            <th>İşlem</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTableBody">
-                        <!-- Populated by JS -->
-                    </tbody>
-                </table>
-            </div>
-            <div id="historyEmptyState" class="empty-state" style="display: none;">
-                <div class="empty-state-icon">📂</div>
-                <h3>Henüz rapor bulunmuyor</h3>
-                <p>Gönderdiğiniz raporlar burada listelenecektir.</p>
-            </div>
-            <div id="historyLoading" class="empty-state" style="display: none;">
-                <div class="spinner"
-                    style="margin: 0 auto; border-color: var(--primary); border-top-color: transparent;"></div>
-                <p style="margin-top: 16px;">Yükleniyor...</p>
-            </div>
-        </div>
-    </div>
-    </main>
+        </main>
     </div>
 
     <!-- Success Message -->

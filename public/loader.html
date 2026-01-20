@@ -373,7 +373,6 @@
         <img id="imageModalContent" src="" style="max-width: 90%; max-height: 90vh; object-fit: contain;">
     </div>
 
-    <script src="script.js"></script>
     <script>
         // Check authentication
         async function checkAuth() {
@@ -647,6 +646,9 @@
                     emptyState.style.display = 'block';
                     return;
                 }
+
+                // Debug: Show count
+                // alert('System found ' + data.length + ' reports for you.');
 
                 // Store data globally
                 myLoadingsData = data;

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="tr" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Üretim Müdürü Paneli | Yükleme Yönetim Sistemi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <div class="header-logo">🚛</div>
+                    <div class="header-title">
+                        <h1>Yükleme Yönetim Sistemi</h1>
+                        <span>Yükleme Belgesi</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="header-user">
+                        <div class="header-user-avatar">👔</div>
+                        <div class="header-user-info">
+                            <span class="header-user-name" id="userName">Üretim Müdürü</span>
+                            <span class="header-user-role">Manager</span>
+                        </div>
+                    </div>
+                    <button class="logout-btn" id="logoutBtn">
+                        <span>Çıkış Yap</span>
+                        <span>🚪</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">📊</div>
+                    <div class="stat-info">
+                        <h3 id="totalLoadings">0</h3>
+                        <p>Toplam Yüklemeler</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">📅</div>
+                    <div class="stat-info">
+                        <h3 id="todayLoadings">0</h3>
+                        <p>Bugünkü Yüklemeler</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon secondary">🕐</div>
+                    <div class="stat-info">
+                        <h3 id="lastUpdate">--</h3>
+                        <p>Son Güncelleme</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loadings Table -->
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">
+                        <span style="font-size: 24px;">📋</span>
+                        <h2>Yükleme Kayıtları</h2>
+                    </div>
+                    <button class="refresh-btn" id="refreshBtn">
+                        <span>🔄</span>
+                        <span>Yenile</span>
+                    </button>
+                </div>
+
+                <div id="tableContainer">
+                    <table class="loadings-table">
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Araç Plakası</th>
+                                <th>Varış Yeri</th>
+                                <th>Sürücü</th>
+                                <th>Sisteme Giriş (Loader)</th>
+                                <th>Onay Tarihi (Manager)</th>
+                                <th>Kayıt Durumu</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loadingsTableBody">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="empty-state hidden" id="emptyState">
+                    <div class="empty-state-icon">📭</div>
+                    <h3>Yükleme kaydı bulunamadı</h3>
+                    <p>Yükleme sorumlusu kayıt gönderdiğinde burada görünecektir</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Yükleme Detayları</h2>
+                <button class="modal-close" id="closeModal">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let loadingsData = [];
+
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/check-auth');
+                const data = await response.json();
+
+                if (!data.authenticated || data.user.role !== 'manager') {
+                    window.location.href = '/';
+                    return;
+                }
+
+                document.getElementById('userName').textContent = data.user.username;
+                loadLoadings();
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        });
+
+        // Load loadings
+        async function loadLoadings() {
+            try {
+                const response = await fetch('/api/loadings');
+                const data = await response.json();
+
+                if (response.ok) {
+                    loadingsData = data;
+                    renderLoadings(data);
+                    updateStats(data);
+                } else {
+                    console.error('Error loading data:', data.error);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+            }
+        }
+
+        function renderLoadings(loadings) {
+            const tbody = document.getElementById('loadingsTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const tableContainer = document.getElementById('tableContainer');
+
+            if (loadings.length === 0) {
+                emptyState.classList.remove('hidden');
+                tableContainer.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tableContainer.classList.remove('hidden');
+
+            tbody.innerHTML = loadings.map(loading => `
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${formatDate(loading.loading_date)}
+                            ${!loading.viewed_at ? '<span class="new-badge">YENİ</span>' : ''}
+                        </div>
+                    </td>
+                    <td>${loading.plate1 || '-'} ${loading.plate2 ? '/ ' + loading.plate2 : ''}</td>
+                    <td>${loading.destination_company || '-'} - ${loading.destination_country || '-'}</td>
+                    <td>${loading.driver_name || '-'}</td>
+                    <td><span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.created_at)}</span></td>
+                    <td><span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.recorded_at)}</span></td>
+                    <td>${loading.is_recorded
+                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
+                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>'}</td>
+                    <td><button class="view-btn" onclick="viewDetails('${loading.id}')">Detayları Gör</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats(loadings) {
+            document.getElementById('totalLoadings').textContent = loadings.length;
+
+            const today = new Date().toISOString().split('T')[0];
+            const todayCount = loadings.filter(l => l.loading_date === today).length;
+            document.getElementById('todayLoadings').textContent = todayCount;
+
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent =
+                now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleString('tr-TR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        let currentVersions = [];
+        let currentLoadingId = null;
+
+        async function viewDetails(id) {
+            currentLoadingId = id;
+            const loading = loadingsData.find(l => l.id === id);
+            if (!loading) return;
+
+            // Mark as viewed in background
+            if (!loading.viewed_at) {
+                fetch(`/api/loadings/${id}/view`, { method: 'PATCH' })
+                    .then(res => res.json())
+                    .then(data => {
+                        // Update local state
+                        loading.viewed_at = new Date().toISOString();
+                    })
+                    .catch(err => console.error('Error marking as viewed:', err));
+            }
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = '<div class="spinner" style="margin: 50px auto;"></div>';
+            document.getElementById('detailModal').classList.add('show');
+
+            try {
+                // Fetch versions
+                const response = await fetch(`/api/loadings/${id}/versions`);
+                let versions = [];
+
+                if (response.ok) {
+                    try {
+                        const data = await response.json();
+                        if (Array.isArray(data)) {
+                            versions = data;
+                        } else {
+                            console.warn('Versions API returned non-array:', data);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing versions JSON:', e);
+                    }
+                } else {
+                    console.warn('Versions API returned error status:', response.status);
+                }
+
+                currentVersions = [
+                    { version_number: 'current', data: loading, created_at: loading.created_at },
+                    ...versions.map(v => ({ ...v, version_number: v.version_number, data: v.data, created_at: v.archived_at }))
+                ];
+
+                renderVersionTabs(0); // Show current version (index 0)
+            } catch (error) {
+                console.error('Critical Error in viewDetails:', error);
+                modalBody.innerHTML = `
+                    <div style="padding: 20px; color: #dc2626; text-align: center;">
+                        <h3>Hata Oluştu</h3>
+                        <p>${error.message}</p>
+                        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px;">Sayfayı Yenile</button>
+                    </div>
+                `;
+            }
+        }
+
+        function renderVersionTabs(activeIndex) {
+            const modalBody = document.getElementById('modalBody');
+
+            // Generate Tabs HTML
+            let tabsHtml = '<div class="version-tabs">';
+            currentVersions.forEach((v, index) => {
+                const isCurrent = index === 0;
+                const label = isCurrent ? 'Mevcut Sürüm' : `Versiyon ${v.version_number}`;
+                const activeClass = index === activeIndex ? 'active' : '';
+                tabsHtml += `
+                    <button class="version-tab ${activeClass}" onclick="switchVersion(${index})">
+                        ${label}
+                    </button>
+                `;
+            });
+            tabsHtml += '</div>';
+
+            const activeVersionData = currentVersions[activeIndex].data;
+            const isArchived = activeIndex > 0;
+            const archivedDate = currentVersions[activeIndex].created_at;
+
+            // Warning for archived versions
+            let contentHtml = '';
+            if (isArchived) {
+                contentHtml += `
+                    <div class="archive-warning">
+                        ⚠️ Bu, ${formatDateTime(archivedDate)} tarihinde arşivlenmiş eski bir sürümdür.
+                    </div>
+                `;
+            }
+
+            contentHtml += renderLoadingDetails(activeVersionData, !isArchived); // Pass isEditable=false for archived
+
+            modalBody.innerHTML = tabsHtml + '<div class="version-content">' + contentHtml + '</div>';
+        }
+
+        function switchVersion(index) {
+            renderVersionTabs(index);
+        }
+
+        function renderLoadingDetails(loading, isCurrentVersion = true) {
+            let products = loading.products || [];
+            if (!Array.isArray(products)) {
+                // Try to parse if string
+                try { products = JSON.parse(products); } catch (e) { products = []; }
+                // Use empty array if still not array
+                if (!Array.isArray(products)) products = [];
+            }
+
+
+            return `
+                <!-- Team Info -->
+                <div class="detail-section">
+                    <h3>👥 Ekip Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Yönetici</label>
+                            <span>${loading.manager || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Birinci Eleman</label>
+                            <span>${loading.worker1 || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>İkinci Eleman</label>
+                            <span>${loading.worker2 || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Üçüncü Eleman</label>
+                            <span>${loading.worker3 || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Dördüncü Eleman</label>
+                            <span>${loading.worker4 || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicle Info -->
+                <div class="detail-section">
+                    <h3>🚚 Araç Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Araç Plakası 1</label>
+                            <span>${loading.plate1 || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Araç Plakası 2</label>
+                            <span>${loading.plate2 || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Tarih</label>
+                            <span>${formatDate(loading.loading_date)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weight & Destination -->
+                <div class="detail-section">
+                    <h3>⚖️ Ağırlık ve Varış Yeri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Ürün Ağırlığı</label>
+                            <span>${loading.product_weight || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Tartıdan Sonra Araç Ağırlığı</label>
+                            <span>${loading.vehicle_weight_after || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Şirket</label>
+                            <span>${loading.destination_company || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Ülke</label>
+                            <span>${loading.destination_country || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Müşteri</label>
+                            <span>${loading.destination_customer || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Info -->
+                <div class="detail-section">
+                    <h3>🧑 Sürücü Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Sürücü Adı</label>
+                            <span>${loading.driver_name || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Sürücü Telefonu</label>
+                            <span>${loading.driver_phone || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Forklift Sürücüsü</label>
+                            <span>${loading.forklift_operator || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products -->
+                <div class="detail-section">
+                    <h3>📦 Yüklenen Mallar</h3>
+                    ${products.length > 0 ? `
+                        <table class="products-table" style="margin-top: 12px;">
+                            <thead>
+                                <tr>
+                                    <th>Mal Adı</th>
+                                    <th>Sayı</th>
+                                    <th>Pallet Sayısı</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${products.map(p => `
+                                    <tr>
+                                        <td>${p.name || '-'}</td>
+                                        <td>${p.quantity || '-'}</td>
+                                        <td>${p.pallets || '-'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
+                </div>
+
+                <!-- Times -->
+                <div class="detail-section">
+                    <h3>🕐 Zamanlar</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Giriş Zamanı</label>
+                            <span>${loading.entry_time || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Çıkış Zamanı</label>
+                            <span>${loading.exit_time || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comments -->
+                ${loading.comments ? `
+                    <div class="detail-section">
+                        <h3>💬 Yorumlar</h3>
+                        <p style="color: var(--gray-200); line-height: 1.8;">${loading.comments}</p>
+                    </div>
+                ` : ''}
+
+                <!-- Record Button - Only show for current version -->
+                ${isCurrentVersion ? `
+                <div class="detail-section record-section">
+                    <h3>📝 Sistem Kayıt Durumu</h3>
+                    ${loading.is_recorded ? `
+                        <div class="recorded-status">
+                            <span class="status-badge status-recorded large">✓ Kaydedildi</span>
+                            <p class="recorded-info">Kayıt tarihi: ${loading.recorded_at ? new Date(loading.recorded_at).toLocaleString('tr-TR') : '-'}</p>
+                            <button class="unrecord-btn" id="unrecordBtn" onclick="cancelRecording('${loading.id}')">
+                                <span>✕</span>
+                                <span>Kaydı İptal Et</span>
+                            </button>
+                        </div>
+                    ` : `
+                        <button class="record-btn" id="recordBtn" onclick="markAsRecorded('${loading.id}')">
+                            <span>✓</span>
+                            <span>Kaydedildi</span>
+                        </button>
+                        <p class="record-hint">Bu bilgileri sisteme kaydettikten sonra buraya tıklayın</p>
+                    `}
+                </div>
+                ` : ''}
+            `;
+        }
+
+
+
+        // Mark as recorded
+        async function markAsRecorded(id) {
+            const btn = document.getElementById('recordBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div><span>Kaydediliyor...</span>';
+            }
+
+            try {
+                const response = await fetch(`/api/loadings/${id}/record`, {
+                    method: 'PATCH'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update local data
+                    const index = loadingsData.findIndex(l => l.id === id);
+                    if (index !== -1) {
+                        loadingsData[index] = data.loading;
+                    }
+                    // Refresh table and modal
+                    renderLoadings(loadingsData);
+                    viewDetails(id);
+                } else {
+                    alert(data.error || 'Bir hata oluştu');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>✓</span><span>Kaydedildi</span>';
+                    }
+                }
+            } catch (error) {
+                console.error('Record error:', error);
+                alert('Bağlantı hatası');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>✓</span><span>Kaydedildi</span>';
+                }
+            }
+        }
+
+        // Cancel recording
+        async function cancelRecording(id) {
+            const btn = document.getElementById('unrecordBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner"></div><span>İptal ediliyor...</span>';
+            }
+
+            try {
+                const response = await fetch(`/api/loadings/${id}/unrecord`, {
+                    method: 'PATCH'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update local data
+                    const index = loadingsData.findIndex(l => l.id === id);
+                    if (index !== -1) {
+                        loadingsData[index] = data.loading;
+                    }
+                    // Refresh table and modal
+                    renderLoadings(loadingsData);
+                    viewDetails(id);
+                } else {
+                    alert(data.error || 'Bir hata oluştu');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>✕</span><span>Kaydı İptal Et</span>';
+                    }
+                }
+            } catch (error) {
+                console.error('Unrecord error:', error);
+                alert('Bağlantı hatası');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>✕</span><span>Kaydı İptal Et</span>';
+                }
+            }
+        }
+
+        // Close modal
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('detailModal').classList.remove('show');
+        });
+
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailModal') {
+                document.getElementById('detailModal').classList.remove('show');
+            }
+        });
+
+        // Refresh
+        document.getElementById('refreshBtn').addEventListener('click', loadLoadings);
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadLoadings, 30000);
+
+        // Check auth on load
+        checkAuth();
+    </script>
+</body>
+
+</html>

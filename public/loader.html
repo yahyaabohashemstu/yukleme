@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="tr" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yükleme Sorumlusu Paneli | Yükleme Yönetim Sistemi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <div class="header-logo">🚛</div>
+                    <div class="header-title">
+                        <h1>Yükleme Yönetim Sistemi</h1>
+                        <span>Yükleme Belgesi</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="header-user">
+                        <div class="header-user-avatar">👷</div>
+                        <div class="header-user-info">
+                            <span class="header-user-name" id="userName">Yükleme Sorumlusu</span>
+                            <span class="header-user-role">Loader</span>
+                        </div>
+                    </div>
+                    <button class="logout-btn" id="logoutBtn">
+                        <span>Çıkış Yap</span>
+                        <span>🚪</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <button class="tab-btn active" id="tabForm" onclick="switchTab('form')">
+                    <span class="tab-icon">📝</span>
+                    Yeni Form
+                </button>
+                <button class="tab-btn" id="tabHistory" onclick="switchTab('history')">
+                    <span class="tab-icon">🕒</span>
+                    Geçmiş Raporlarım
+                </button>
+            </div>
+
+            <form id="loadingForm" enctype="multipart/form-data">
+
+                <!-- Section 1: Team Info -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-icon">👥</div>
+                        <div class="form-card-title">
+                            <h2>Ekip Bilgileri</h2>
+                            <p>Team Information</p>
+                        </div>
+                    </div>
+                    <div class="form-grid form-grid-2">
+                        <div class="form-group">
+                            <label for="manager">Yönetici</label>
+                            <input type="text" id="manager" name="manager" placeholder="Yönetici adı">
+                        </div>
+                        <div class="form-group">
+                            <label for="worker1">Birinci Eleman</label>
+                            <input type="text" id="worker1" name="worker1" placeholder="Birinci eleman adı">
+                        </div>
+                        <div class="form-group">
+                            <label for="worker2">İkinci Eleman</label>
+                            <input type="text" id="worker2" name="worker2" placeholder="İkinci eleman adı">
+                        </div>
+                        <div class="form-group">
+                            <label for="worker3">Üçüncü Eleman</label>
+                            <input type="text" id="worker3" name="worker3" placeholder="Üçüncü eleman adı">
+                        </div>
+                        <div class="form-group">
+                            <label for="worker4">Dördüncü Eleman</label>
+                            <input type="text" id="worker4" name="worker4" placeholder="Dördüncü eleman adı">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Vehicle Info -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-icon">🚚</div>
+                        <div class="form-card-title">
+                            <h2>Araç Bilgileri</h2>
+                            <p>Vehicle Information</p>
+                        </div>
+                    </div>
+                    <div class="form-grid form-grid-3">
+                        <div class="form-group">
+                            <label for="plate1">Araç Plakası 1</label>
+                            <input type="text" id="plate1" name="plate1" placeholder="Birinci plaka numarası">
+                        </div>
+                        <div class="form-group">
+                            <label for="plate2">Araç Plakası 2</label>
+                            <input type="text" id="plate2" name="plate2" placeholder="İkinci plaka numarası">
+                        </div>
+                        <div class="form-group">
+                            <label for="loading_date">Tarih</label>
+                            <input type="date" id="loading_date" name="loading_date">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Weight & Destination -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-icon">⚖️</div>
+                        <div class="form-card-title">
+                            <h2>Ağırlık ve Varış Yeri</h2>
+                            <p>Weight and Destination</p>
+                        </div>
+                    </div>
+                    <div class="form-grid form-grid-3">
+                        <div class="form-group">
+                            <label for="product_weight">Yüklenecek Ürünün Ağırlığı</label>
+                            <input type="text" id="product_weight" name="product_weight" placeholder="Örnek: 1500 kg">
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicle_weight_after">Tartıdan Sonra Arabanın Ağırlığı</label>
+                            <input type="text" id="vehicle_weight_after" name="vehicle_weight_after"
+                                placeholder="Örnek: 12000 kg">
+                        </div>
+                        <div class="form-group">
+                            <label for="destination_company">Şirket Adı</label>
+                            <input type="text" id="destination_company" name="destination_company"
+                                placeholder="Şirket adı">
+                        </div>
+                        <div class="form-group">
+                            <label for="destination_country">Ülke Adı</label>
+                            <input type="text" id="destination_country" name="destination_country"
+                                placeholder="Ülke adı">
+                        </div>
+                        <div class="form-group">
+                            <label for="destination_customer">Müşteri Adı</label>
+                            <input type="text" id="destination_customer" name="destination_customer"
+                                placeholder="Müşteri adı">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Driver Info -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-icon">🧑</div>
+                        <div class="form-card-title">
+                            <h2>Sürücü Bilgileri</h2>
+                            <p>Driver Information</p>
+                        </div>
+                    </div>
+                    <div class="form-grid form-grid-3">
+                        <div class="form-group">
+                            <label for="driver_name">Araç Sürücüsünün Adı</label>
+                            <input type="text" id="driver_name" name="driver_name" placeholder="Sürücü adı">
+                        </div>
+                        <div class="form-group">
+                            <label for="driver_phone">Araç Şoförünün Telefon Numarası</label>
+                            <input type="tel" id="driver_phone" name="driver_phone" placeholder="Telefon numarası">
+                        </div>
+                        <div class="form-group">
+                            <label for="forklift_operator">Forklift Sürücüsünün Adı</label>
+                            <input type="text" id="forklift_operator" name="forklift_operator"
+                                placeholder="Forklift sürücüsü adı">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 5: Products -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-icon">📦</div>
+                        <div class="form-card-title">
+                            <h2>Yüklenecek Mallar</h2>
+                            <p>Products to Load</p>
+                        </div>
+                    </div>
+                    <div class="products-table-container">
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50%;">Yüklenecek Malın Adı</th>
+                                    <th style="width: 20%;">Sayısı</th>
+                                    <th style="width: 20%;">Pallet Sayısı</th>
+                                    <th style="width: 10%;">Sil</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                                <tr>
+                                    <td><input type="text" name="product_name[]" placeholder="Mal adı"></td>
+                                    <td><input type="number" name="product_quantity[]" placeholder="Sayı"></td>
+                                    <td><input type="number" name="product_pallets[]" placeholder="Pallet sayısı"></td>
+                                    <td><button type="button" class="remove-row-btn"
+                                            onclick="removeProductRow(this)">✕</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="add-row-btn" onclick="addProductRow()">
+                        <span>➕</span>
+                        <span>Yeni Satır Ekle</span>
+                    </button>
+                </div>
+
+
+
+                <div class="form-grid form-grid-2" style="margin-top: 24px;">
+                    <div class="form-group">
+                        <label>Araç Giriş Zamanı</label>
+                        <div class="time-picker-wrapper">
+                            <div class="time-picker" id="entryTimePicker">
+                                <div class="time-picker-display" onclick="toggleTimePicker('entry')">
+                                    <span class="time-icon">🕐</span>
+                                    <span class="time-value" id="entryTimeDisplay">Zaman seçin</span>
+                                    <span class="time-arrow">▼</span>
+                                </div>
+                                <div class="time-picker-dropdown" id="entryTimeDropdown">
+                                    <div class="time-picker-columns">
+                                        <div class="time-column">
+                                            <div class="time-column-label">Saat</div>
+                                            <div class="time-scroll" id="entryHourScroll">
+                                                <!-- Hours will be generated by JS -->
+                                            </div>
+                                        </div>
+                                        <div class="time-separator">:</div>
+                                        <div class="time-column">
+                                            <div class="time-column-label">Dakika</div>
+                                            <div class="time-scroll" id="entryMinuteScroll">
+                                                <!-- Minutes will be generated by JS -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="time-confirm-btn"
+                                        onclick="confirmTime('entry')">Onayla</button>
+                                </div>
+                            </div>
+                            <input type="hidden" id="entry_time" name="entry_time">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Araç Çıkış Zamanı</label>
+                        <div class="time-picker-wrapper">
+                            <div class="time-picker" id="exitTimePicker">
+                                <div class="time-picker-display" onclick="toggleTimePicker('exit')">
+                                    <span class="time-icon">🕐</span>
+                                    <span class="time-value" id="exitTimeDisplay">Zaman seçin</span>
+                                    <span class="time-arrow">▼</span>
+                                </div>
+                                <div class="time-picker-dropdown" id="exitTimeDropdown">
+                                    <div class="time-picker-columns">
+                                        <div class="time-column">
+                                            <div class="time-column-label">Saat</div>
+                                            <div class="time-scroll" id="exitHourScroll">
+                                                <!-- Hours will be generated by JS -->
+                                            </div>
+                                        </div>
+                                        <div class="time-separator">:</div>
+                                        <div class="time-column">
+                                            <div class="time-column-label">Dakika</div>
+                                            <div class="time-scroll" id="exitMinuteScroll">
+                                                <!-- Minutes will be generated by JS -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="time-confirm-btn"
+                                        onclick="confirmTime('exit')">Onayla</button>
+                                </div>
+                            </div>
+                            <input type="hidden" id="exit_time" name="exit_time">
+                        </div>
+                    </div>
+                </div>
+    </div>
+
+    <!-- Section 7: Comments -->
+    <div class="form-card">
+        <div class="form-card-header">
+            <div class="form-card-icon">💬</div>
+            <div class="form-card-title">
+                <h2>Yorumlar</h2>
+                <p>Comments</p>
+            </div>
+        </div>
+        <div class="form-group">
+            <textarea id="comments" name="comments" placeholder="Ek yorumlarınızı buraya ekleyin..."></textarea>
+        </div>
+    </div>
+
+    <!-- Submit Section -->
+    <div class="submit-section">
+        <button type="submit" class="submit-btn" id="submitBtn">
+            <span>Yükleme Verilerini Gönder</span>
+            <span>📤</span>
+        </button>
+    </div>
+
+    </form>
+
+    <!-- History Section -->
+    <div id="historySection" style="display: none;">
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">
+                    <h2>Gönderilen Raporlar</h2>
+                </div>
+                <button class="refresh-btn" onclick="fetchHistory()">
+                    <span>🔄</span> Yenile
+                </button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="loadings-table">
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Plaka</th>
+                            <th>Sürücü</th>
+                            <th>Durum</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="historyEmptyState" class="empty-state" style="display: none;">
+                <div class="empty-state-icon">📂</div>
+                <h3>Henüz rapor bulunmuyor</h3>
+                <p>Gönderdiğiniz raporlar burada listelenecektir.</p>
+            </div>
+            <div id="historyLoading" class="empty-state" style="display: none;">
+                <div class="spinner"
+                    style="margin: 0 auto; border-color: var(--primary); border-top-color: transparent;"></div>
+                <p style="margin-top: 16px;">Yükleniyor...</p>
+            </div>
+        </div>
+    </div>
+    </main>
+    </div>
+
+    <!-- Success Message -->
+    <div class="success-message" id="successMessage">
+        <span>✅</span>
+        <span>Yükleme verileri başarıyla gönderildi!</span>
+    </div>
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Yükleme Detayları</h2>
+                <button class="modal-close" id="closeModal">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal-overlay" id="imageModal" style="z-index: 2000; background: rgba(0,0,0,0.9);">
+        <button class="modal-close" id="closeImageModal"
+            style="position: absolute; top: 20px; right: 20px; z-index: 2001;">✕</button>
+        <img id="imageModalContent" src="" style="max-width: 90%; max-height: 90vh; object-fit: contain;">
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/check-auth');
+                const data = await response.json();
+
+                if (!data.authenticated || data.user.role !== 'loader') {
+                    window.location.href = '/';
+                    return;
+                }
+
+                document.getElementById('userName').textContent = data.user.username;
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        });
+
+        // Products table
+        function addProductRow() {
+            const tbody = document.getElementById('productsTableBody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td><input type="text" name="product_name[]" placeholder="Mal adı"></td>
+                <td><input type="number" name="product_quantity[]" placeholder="Sayı"></td>
+                <td><input type="number" name="product_pallets[]" placeholder="Pallet sayısı"></td>
+                <td><button type="button" class="remove-row-btn" onclick="removeProductRow(this)">✕</button></td>
+            `;
+            tbody.appendChild(newRow);
+        }
+
+        function removeProductRow(btn) {
+            const tbody = document.getElementById('productsTableBody');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+            }
+        }
+
+        // Form submission
+        document.getElementById('loadingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner"></div><span>Gönderiliyor...</span>';
+
+            try {
+                const formData = new FormData(e.target);
+                const data = {};
+
+                // Collect basic fields
+                formData.forEach((value, key) => {
+                    if (!key.endsWith('[]')) {
+                        data[key] = value;
+                    }
+                });
+
+                // Collect products
+                const productNames = formData.getAll('product_name[]');
+                const productQuantities = formData.getAll('product_quantity[]');
+                const productPallets = formData.getAll('product_pallets[]');
+
+                data.products = productNames.map((name, i) => ({
+                    name: name,
+                    quantity: productQuantities[i] || '',
+                    pallets: productPallets[i] || ''
+                })).filter(p => p.name.trim() !== '');
+
+                // Ensure time fields are present
+                data.entry_time = document.getElementById('entry_time').value;
+                data.exit_time = document.getElementById('exit_time').value;
+
+                const response = await fetch('/api/loadings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showSuccess();
+                    e.target.reset();
+                    // Reset time picker displays
+                    document.getElementById('entryTimeDisplay').innerHTML = '<span class="time-icon">🕐</span><span class="time-value">Zaman seçin</span><span class="time-arrow">▼</span>';
+                    document.getElementById('exitTimeDisplay').innerHTML = '<span class="time-icon">🕐</span><span class="time-value">Zaman seçin</span><span class="time-arrow">▼</span>';
+                } else {
+                    alert(result.error || 'Gönderilirken bir hata oluştu');
+                }
+            } catch (error) {
+                console.error('Submit error:', error);
+                alert('Sunucuya bağlanırken bir hata oluştu');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Yükleme Verilerini Gönder</span><span>📤</span>';
+            }
+        });
+
+
+        function showSuccess() {
+            const msg = document.getElementById('successMessage');
+            msg.classList.add('show');
+            setTimeout(() => {
+                msg.classList.remove('show');
+            }, 4000);
+        }
+
+        // Set default date to today
+        document.getElementById('loading_date').valueAsDate = new Date();
+
+        // ============ TIME PICKER ============
+        const timePickerState = {
+            entry: { hour: null, minute: null },
+            exit: { hour: null, minute: null },
+            editEntry: { hour: null, minute: null },
+            editExit: { hour: null, minute: null }
+        };
+
+        // Initialize time pickers (accepts array of types)
+        function initTimePickers(types = ['entry', 'exit']) {
+            types.forEach(type => {
+                const hourScroll = document.getElementById(`${type}HourScroll`);
+                const minuteScroll = document.getElementById(`${type}MinuteScroll`);
+
+                if (!hourScroll || !minuteScroll) return; // Skip if elements don't exist yet
+
+                // Clear existing content to avoid duplication if re-initialized
+                hourScroll.innerHTML = '';
+                minuteScroll.innerHTML = '';
+
+                // Generate hours (00-23)
+                for (let i = 0; i < 24; i++) {
+                    const hourStr = i.toString().padStart(2, '0');
+                    const div = document.createElement('div');
+                    div.className = 'time-option';
+                    div.textContent = hourStr;
+                    div.dataset.value = hourStr;
+                    div.onclick = () => selectTimeOption(type, 'hour', hourStr);
+                    hourScroll.appendChild(div);
+                }
+
+                // Generate minutes (00-59)
+                for (let i = 0; i < 60; i++) {
+                    const minStr = i.toString().padStart(2, '0');
+                    const div = document.createElement('div');
+                    div.className = 'time-option';
+                    div.textContent = minStr;
+                    div.dataset.value = minStr;
+                    div.onclick = () => selectTimeOption(type, 'minute', minStr);
+                    minuteScroll.appendChild(div);
+                }
+            });
+        }
+
+        function selectTimeOption(type, unit, value) {
+            const scrollId = unit === 'hour' ? `${type}HourScroll` : `${type}MinuteScroll`;
+            const scroll = document.getElementById(scrollId);
+
+            // Remove previous selection
+            scroll.querySelectorAll('.time-option.selected').forEach(el => el.classList.remove('selected'));
+
+            // Add new selection
+            const option = scroll.querySelector(`[data-value="${value}"]`);
+            if (option) {
+                option.classList.add('selected');
+                option.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            timePickerState[type][unit] = value;
+        }
+
+        function toggleTimePicker(type) {
+            const dropdown = document.getElementById(`${type}TimeDropdown`);
+            const isOpen = dropdown.classList.contains('show');
+
+            // Close all dropdowns first
+            document.querySelectorAll('.time-picker-dropdown').forEach(d => d.classList.remove('show'));
+
+            if (!isOpen) {
+                dropdown.classList.add('show');
+
+                // Scroll to current selected values
+                const state = timePickerState[type];
+                if (state.hour) {
+                    const hourOption = document.querySelector(`#${type}HourScroll [data-value="${state.hour}"]`);
+                    if (hourOption) hourOption.scrollIntoView({ block: 'center' });
+                }
+                if (state.minute) {
+                    const minOption = document.querySelector(`#${type}MinuteScroll [data-value="${state.minute}"]`);
+                    if (minOption) minOption.scrollIntoView({ block: 'center' });
+                }
+            }
+        }
+
+        function confirmTime(type) {
+            const state = timePickerState[type];
+
+            if (state.hour !== null && state.minute !== null) {
+                const timeStr = `${state.hour}:${state.minute}`;
+                document.getElementById(`${type}_time`).value = timeStr;
+                document.getElementById(`${type}TimeDisplay`).textContent = timeStr;
+                document.getElementById(`${type}TimeDisplay`).classList.add('has-value');
+            }
+
+            document.getElementById(`${type}TimeDropdown`).classList.remove('show');
+        }
+
+        // Close time picker when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.time-picker')) {
+                document.querySelectorAll('.time-picker-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        // Initialize on load
+        initTimePickers();
+
+        // Global data storage
+        let myLoadingsData = [];
+
+        // Check auth on load
+        checkAuth();
+
+        // ============ TABS & HISTORY ============
+        function switchTab(tab) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (tab === 'form') {
+                document.getElementById('tabForm').classList.add('active');
+                document.getElementById('loadingForm').style.display = 'block';
+                document.getElementById('historySection').style.display = 'none';
+            } else {
+                document.getElementById('tabHistory').classList.add('active');
+                document.getElementById('loadingForm').style.display = 'none';
+                document.getElementById('historySection').style.display = 'block';
+                fetchHistory();
+            }
+        }
+
+        async function fetchHistory() {
+            const tbody = document.getElementById('historyTableBody');
+            const emptyState = document.getElementById('historyEmptyState');
+            const loadingState = document.getElementById('historyLoading');
+
+            tbody.innerHTML = '';
+            emptyState.style.display = 'none';
+            loadingState.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/my-loadings');
+                const data = await response.json();
+
+                loadingState.style.display = 'none';
+
+                if (!response.ok) throw new Error(data.error);
+
+                if (data.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                // Store data globally
+                myLoadingsData = data;
+
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+
+                    // Format date
+                    const date = new Date(item.loading_date || item.created_at).toLocaleDateString('tr-TR');
+
+                    // Status
+                    let statusHtml = '<span class="status-badge status-pending">• Bekliyor</span>';
+                    if (item.is_recorded) {
+                        statusHtml = '<span class="status-badge status-recorded">✓ Kaydedildi</span>';
+                    }
+
+                    row.innerHTML = `
+                        <td>${date}</td>
+                        <td>
+                            <div>${item.plate1 || '-'}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">${item.plate2 || ''}</div>
+                        </td>
+                        <td>${item.driver_name || '-'}</td>
+                        <td>${statusHtml}</td>
+                        <td>
+                            <button class="view-btn" onclick="viewDetails('${item.id}')">
+                                🔍 İncele
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+            } catch (error) {
+                console.error('History error:', error);
+                loadingState.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">Veriler yüklenirken hata oluştu</td></tr>';
+            }
+        }
+
+        // ============ DETAIL MODAL & VERSIONING ============
+        let currentLoadingId = null;
+        let activeVersion = 'current'; // 'current' or version_number
+        let versions = [];
+        let isEditMode = false;
+
+        async function viewDetails(id) {
+            currentLoadingId = id;
+            activeVersion = 'current';
+            isEditMode = false;
+
+            // Fetch versions
+            try {
+                const response = await fetch(`/api/loadings/${id}/versions`);
+                if (response.ok) {
+                    versions = await response.json();
+                }
+            } catch (e) {
+                console.error('Error fetching versions', e);
+                versions = [];
+            }
+
+            renderModal();
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function renderModal() {
+            const loading = activeVersion === 'current'
+                ? myLoadingsData.find(l => l.id === currentLoadingId)
+                : versions.find(v => v.version_number === activeVersion)?.data;
+
+            if (!loading) return;
+
+            const modalBody = document.getElementById('modalBody');
+
+            // Tabs HTML
+            let tabsHtml = `
+                <div class="tabs-container" style="margin: -20px -24px 20px -24px; padding: 0 24px; background: var(--bg-input);">
+                    <button class="tab-btn ${activeVersion === 'current' ? 'active' : ''}" 
+                        onclick="changeVersion('current')">
+                        <span class="tab-icon">📄</span> Mevcut (Güncel)
+                    </button>
+                    ${versions.map(v => `
+                        <button class="tab-btn ${activeVersion === v.version_number ? 'active' : ''}" 
+                            onclick="changeVersion(${v.version_number})">
+                            <span class="tab-icon">🕒</span> v${v.version_number}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+
+            if (isEditMode && activeVersion === 'current') {
+                modalBody.innerHTML = tabsHtml + renderEditForm(loading);
+
+                // Initialize pickers for Edit Mode (Dynamic)
+                initTimePickers(['editEntry', 'editExit']);
+
+                // Set initial state from existing data
+                if (loading.entry_time) {
+                    const [h, m] = loading.entry_time.split(':');
+                    timePickerState.editEntry = { hour: h, minute: m };
+                }
+                if (loading.exit_time) {
+                    const [h, m] = loading.exit_time.split(':');
+                    timePickerState.editExit = { hour: h, minute: m };
+                }
+            } else {
+                modalBody.innerHTML = tabsHtml + renderViewMode(loading);
+            }
+        }
+
+        function changeVersion(version) {
+            activeVersion = version;
+            isEditMode = false; // Reset edit mode when switching versions
+            renderModal();
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            renderModal();
+        }
+
+        function renderViewMode(loading) {
+            const products = loading.products || [];
+
+            return `
+                ${activeVersion !== 'current' ? `
+                    <div style="background: var(--warning); color: white; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 14px;">
+                        ⚠️ Bu, ${new Date(loading.archived_at || Date.now()).toLocaleDateString('tr-TR')} tarihli arşivlenmiş bir versiyondur.
+                    </div>
+                ` : ''}
+
+                <!-- Team Info -->
+                <div class="detail-section">
+                    <h3>👥 Ekip Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><label>Yönetici</label><span>${loading.manager || '-'}</span></div>
+                        <div class="detail-item"><label>Birinci Eleman</label><span>${loading.worker1 || '-'}</span></div>
+                        <div class="detail-item"><label>İkinci Eleman</label><span>${loading.worker2 || '-'}</span></div>
+                        <div class="detail-item"><label>Üçüncü Eleman</label><span>${loading.worker3 || '-'}</span></div>
+                        <div class="detail-item"><label>Dördüncü Eleman</label><span>${loading.worker4 || '-'}</span></div>
+                    </div>
+                </div>
+
+                <!-- Vehicle Info -->
+                <div class="detail-section">
+                    <h3>🚚 Araç Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><label>Araç Plakası 1</label><span>${loading.plate1 || '-'}</span></div>
+                        <div class="detail-item"><label>Araç Plakası 2</label><span>${loading.plate2 || '-'}</span></div>
+                        <div class="detail-item"><label>Tarih</label><span>${loading.loading_date || '-'}</span></div>
+                    </div>
+                </div>
+
+                <!-- Weight & Destination -->
+                <div class="detail-section">
+                    <h3>⚖️ Ağırlık ve Varış Yeri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><label>Ürün Ağırlığı</label><span>${loading.product_weight || '-'}</span></div>
+                        <div class="detail-item"><label>Tartıdan Sonra Araç Ağırlığı</label><span>${loading.vehicle_weight_after || '-'}</span></div>
+                        <div class="detail-item"><label>Şirket</label><span>${loading.destination_company || '-'}</span></div>
+                        <div class="detail-item"><label>Ülke</label><span>${loading.destination_country || '-'}</span></div>
+                        <div class="detail-item"><label>Müşteri</label><span>${loading.destination_customer || '-'}</span></div>
+                    </div>
+                </div>
+
+                <!-- Driver Info -->
+                <div class="detail-section">
+                    <h3>🧑‍✈️ Sürücü Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><label>Sürücü Adı</label><span>${loading.driver_name || '-'}</span></div>
+                        <div class="detail-item"><label>Sürücü Telefonu</label><span>${loading.driver_phone || '-'}</span></div>
+                        <div class="detail-item"><label>Forklift Sürücüsü</label><span>${loading.forklift_operator || '-'}</span></div>
+                    </div>
+                </div>
+
+                <!-- Products -->
+                <div class="detail-section">
+                    <h3>📦 Yüklenen Mallar</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="loadings-table" style="margin-top: 10px;">
+                            <thead>
+                                <tr>
+                                    <th style="background: var(--bg-input);">Malın Adı</th>
+                                    <th style="background: var(--bg-input);">Sayısı</th>
+                                    <th style="background: var(--bg-input);">Pallet Sayısı</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${products.length > 0 ? products.map(p => `
+                                    <tr>
+                                        <td>${p.name || '-'}</td>
+                                        <td>${p.quantity || '-'}</td>
+                                        <td>${p.pallets || '-'}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="3" style="text-align: center;">Mal bilgisi yok</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Times -->
+                <div class="detail-section">
+                    <h3>🕐 Zamanlar</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item"><label>Giriş Zamanı</label><span>${loading.entry_time || '-'}</span></div>
+                        <div class="detail-item"><label>Çıkış Zamanı</label><span>${loading.exit_time || '-'}</span></div>
+                    </div>
+                </div>
+
+                <!-- Photos -->
+                ${renderPhotosSection('Yüklemeden Önce Mal Fotoğrafları', loading.goods_photos)}
+                ${renderPhotosSection('Hasarlı Mal Fotoğrafları', loading.damaged_goods_photos)}
+                ${loading.scale_receipt_photo ? `
+                    <div class="detail-section">
+                        <h3>🧾 Kantar Fiş Resmi</h3>
+                        <div class="detail-photos">
+                            <div class="detail-photo">
+                                <img src="${loading.scale_receipt_photo}" alt="Kantar Fişi" onclick="openImage('${loading.scale_receipt_photo}')">
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                ${renderPhotosSection('Yüklenen Araç Fotoğrafları', loading.loaded_vehicle_photos)}
+
+                <!-- Comments -->
+                ${loading.comments ? `
+                    <div class="detail-section">
+                        <h3>💬 Yorumlar</h3>
+                        <p style="color: var(--text-secondary); line-height: 1.8;">${loading.comments}</p>
+                    </div>
+                ` : ''}
+
+                <!-- Status & Edit Button -->
+                 <div class="detail-section">
+                    <h3>📝 Durum & İşlemler</h3>
+                     ${loading.is_recorded ? `
+                        <div style="color: var(--success); font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                            ✓ Bu rapor yönetici tarafından kayıt altına alındı.
+                            <br><small style="color: var(--text-muted); font-weight: normal;">${new Date(loading.recorded_at).toLocaleString('tr-TR')}</small>
+                        </div>
+                    ` : `
+                        <div style="color: var(--warning); font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                            ⏳ Bu rapor henüz yönetici tarafından incelenip onaylanmadı.
+                        </div>
+                    `}
+                    
+                    ${activeVersion === 'current' ? `
+                        <button class="tab-btn active" style="width: 100%; justify-content: center; background: var(--bg-input); border: 2px solid var(--primary);" onclick="toggleEditMode()">
+                            ✏️ Raporu Düzenle (Yeni Versiyon Oluştur)
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderEditForm(loading) {
+            // Helper for simple text inputs
+            const input = (label, name, value, type = 'text') => `
+                <div class="form-group">
+                    <label>${label}</label>
+                    <input type="${type}" name="${name}" value="${value || ''}">
+                </div>`;
+
+            // Helper for Photos Section (Existing + New)
+            const photoSection = (title, fieldName, existingPhotos, existingFieldName) => {
+                const existingHtml = (existingPhotos || []).map(p => `
+                    <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
+                        <img src="${p}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                        <input type="hidden" name="${existingFieldName}" value="${p}">
+                        <button type="button" onclick="this.parentElement.remove()" 
+                            style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="detail-section">
+                        <h3>📷 ${title}</h3>
+                        <div class="existing-photos-container">
+                            ${existingHtml}
+                        </div>
+                        <div class="upload-box" style="margin-top: 10px; padding: 10px; border: 1px dashed var(--border-color);">
+                            <label style="display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-muted);">Yeni Fotoğraf Ekle (Seçime eklenir)</label>
+                            <input type="file" name="${fieldName}" multiple accept="image/*">
+                        </div>
+                    </div>
+                `;
+            };
+
+            const products = loading.products || [];
+
+            return `
+                <form id="editForm" onsubmit="event.preventDefault(); saveChanges('${loading.id}');">
+                    <!-- Team Info -->
+                    <div class="detail-section">
+                        <h3>👥 Ekip Bilgileri</h3>
+                        <div class="form-grid form-grid-2">
+                            ${input('Yönetici', 'manager', loading.manager)}
+                            ${input('Birinci Eleman', 'worker1', loading.worker1)}
+                            ${input('İkinci Eleman', 'worker2', loading.worker2)}
+                            ${input('Üçüncü Eleman', 'worker3', loading.worker3)}
+                            ${input('Dördüncü Eleman', 'worker4', loading.worker4)}
+                        </div>
+                    </div>
+
+                    <!-- Vehicle Info -->
+                    <div class="detail-section">
+                        <h3>🚚 Araç Bilgileri</h3>
+                        <div class="form-grid form-grid-3">
+                            ${input('Araç Plakası 1', 'plate1', loading.plate1)}
+                            ${input('Araç Plakası 2', 'plate2', loading.plate2)}
+                            ${input('Tarih', 'loading_date', loading.loading_date, 'date')}
+                        </div>
+                    </div>
+
+                    <!-- Weight & Destination -->
+                    <div class="detail-section">
+                        <h3>⚖️ Ağırlık ve Varış Yeri</h3>
+                        <div class="form-grid form-grid-2">
+                             ${input('Ürün Ağırlığı', 'product_weight', loading.product_weight)}
+                             ${input('Tartıdan Sonra Araç', 'vehicle_weight_after', loading.vehicle_weight_after)}
+                             ${input('Şirket', 'destination_company', loading.destination_company)}
+                             ${input('Ülke', 'destination_country', loading.destination_country)}
+                             ${input('Müşteri', 'destination_customer', loading.destination_customer)}
+                        </div>
+                    </div>
+
+                    <!-- Driver Info -->
+                    <div class="detail-section">
+                        <h3>🧑‍✈️ Sürücü Bilgileri</h3>
+                        <div class="form-grid form-grid-3">
+                             ${input('Sürücü Adı', 'driver_name', loading.driver_name)}
+                             ${input('Telefon', 'driver_phone', loading.driver_phone)}
+                             ${input('Forklift', 'forklift_operator', loading.forklift_operator)}
+                        </div>
+                    </div>
+                    
+                    <!-- Times (NEW - with Picker) -->
+                     <div class="detail-section">
+                        <h3>🕐 Zamanlar</h3>
+                        <div class="form-grid form-grid-2">
+                             <!-- Entry Time -->
+                            <div class="form-group">
+                                <label>Giriş Zamanı</label>
+                                <div class="time-picker-wrapper">
+                                    <input type="hidden" id="editEntry_time" name="entry_time" value="${loading.entry_time || ''}">
+                                    <div class="time-picker" id="editEntryTimePicker">
+                                        <div class="time-picker-display" onclick="toggleTimePicker('editEntry')">
+                                            <span class="time-icon">🕐</span>
+                                            <span class="time-value" id="editEntryTimeDisplay">${loading.entry_time || 'Zaman seçin'}</span>
+                                            <span class="time-arrow">▼</span>
+                                        </div>
+                                        <div class="time-picker-dropdown" id="editEntryTimeDropdown">
+                                            <div class="time-picker-columns">
+                                                <div class="time-column">
+                                                    <div class="time-column-label">Saat</div>
+                                                    <div class="time-scroll" id="editEntryHourScroll"></div>
+                                                </div>
+                                                <div class="time-column">
+                                                    <div class="time-column-label">Dakika</div>
+                                                    <div class="time-scroll" id="editEntryMinuteScroll"></div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="time-confirm-btn" onclick="confirmTime('editEntry')">Tamam</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Exit Time -->
+                            <div class="form-group">
+                                <label>Çıkış Zamanı</label>
+                                <div class="time-picker-wrapper">
+                                    <input type="hidden" id="editExit_time" name="exit_time" value="${loading.exit_time || ''}">
+                                    <div class="time-picker" id="editExitTimePicker">
+                                        <div class="time-picker-display" onclick="toggleTimePicker('editExit')">
+                                            <span class="time-icon">🕐</span>
+                                            <span class="time-value" id="editExitTimeDisplay">${loading.exit_time || 'Zaman seçin'}</span>
+                                            <span class="time-arrow">▼</span>
+                                        </div>
+                                        <div class="time-picker-dropdown" id="editExitTimeDropdown">
+                                            <div class="time-picker-columns">
+                                                <div class="time-column">
+                                                    <div class="time-column-label">Saat</div>
+                                                    <div class="time-scroll" id="editExitHourScroll"></div>
+                                                </div>
+                                                <div class="time-column">
+                                                    <div class="time-column-label">Dakika</div>
+                                                    <div class="time-scroll" id="editExitMinuteScroll"></div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="time-confirm-btn" onclick="confirmTime('editExit')">Tamam</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products (Dynamic) -->
+                    <div class="detail-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3>📦 Yüklenen Mallar</h3>
+                            <button type="button" class="tab-btn compact" onclick="addEditProductRow()" style="background: var(--bg-input);">
+                                + Mal Ekle
+                            </button>
+                        </div>
+                        <div id="editProductsContainer">
+                            ${products.map(p => `
+                                <div class="product-entry" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label style="font-size: 11px;">Malın Adı</label>
+                                        <input type="text" class="edit-prod-name" value="${p.name || ''}" placeholder="Malın Adı">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label style="font-size: 11px;">Sayısı</label>
+                                        <input type="number" class="edit-prod-qty" value="${p.quantity || ''}" placeholder="0">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label style="font-size: 11px;">Palet</label>
+                                        <input type="number" class="edit-prod-pallets" value="${p.pallets || ''}" placeholder="0">
+                                    </div>
+                                    <button type="button" onclick="this.closest('.product-entry').remove()" style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Photos (Editable) -->
+                    ${photoSection('Yüklemeden Önce Mal Fotoğrafları', 'goods_photos', loading.goods_photos, 'existing_goods_photos')}
+                    ${photoSection('Hasarlı Mal Fotoğrafları', 'damaged_goods_photos', loading.damaged_goods_photos, 'existing_damaged_goods_photos')}
+                    ${photoSection('Yüklenen Araç Fotoğrafları', 'loaded_vehicle_photos', loading.loaded_vehicle_photos, 'existing_loaded_vehicle_photos')}
+                    
+                    <div class="detail-section">
+                        <h3>🧾 Kantar Fiş Resmi</h3>
+                        ${loading.scale_receipt_photo ? `
+                             <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
+                                <img src="${loading.scale_receipt_photo}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;">
+                                <label style="display: block; font-size: 11px; color: var(--text-muted); text-align: center;">Mevcut</label>
+                                <!-- Cannot delete receipt easily if required, but lets allow visual replacement -->
+                            </div>
+                        ` : ''}
+                        <input type="file" name="scale_receipt_photo" accept="image/*" style="margin-top: 5px;">
+                    </div>
+
+                    <div class="detail-section">
+                        <div class="form-grid form-grid-2">
+                            <button type="button" class="tab-btn" style="width: 100%; justify-content: center; background: var(--bg-input);" onclick="toggleEditMode()">
+                                ❌ İptal
+                            </button>
+                            <button type="submit" class="record-btn" style="width: 100%; justify-content: center; margin: 0; font-size: 16px;">
+                                💾 Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            `;
+        }
+
+        function addEditProductRow() {
+            const container = document.getElementById('editProductsContainer');
+            const row = document.createElement('div');
+            row.className = 'product-entry';
+            row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;';
+            row.innerHTML = `
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Malın Adı</label>
+                    <input type="text" class="edit-prod-name" placeholder="Malın Adı">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Sayısı</label>
+                    <input type="number" class="edit-prod-qty" placeholder="0">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Palet</label>
+                    <input type="number" class="edit-prod-pallets" placeholder="0">
+                </div>
+                <button type="button" onclick="this.closest('.product-entry').remove()" style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+            `;
+            container.appendChild(row);
+        }
+
+        async function saveChanges(id) {
+            const form = document.getElementById('editForm');
+            const formData = new FormData(form);
+
+            // Collect dynamic products
+            const productRows = document.querySelectorAll('#editProductsContainer .product-entry');
+            const products = Array.from(productRows).map(row => ({
+                name: row.querySelector('.edit-prod-name').value,
+                quantity: row.querySelector('.edit-prod-qty').value,
+                pallets: row.querySelector('.edit-prod-pallets').value
+            })).filter(p => p.name); // Filter empty
+
+            formData.set('products', JSON.stringify(products));
+
+            // Show loading
+            const btn = form.querySelector('button[type="submit"]');
+            btn.innerHTML = 'Kaydediliyor...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/loadings/${id}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('Rapor başarıyla güncellendi ve eski versiyon arşivlendi! ✅');
+                    // Refresh data
+                    fetchHistory().then(() => {
+                        // We must wait for fetchHistory to update global data
+                        // Then re-open details
+                        viewDetails(id);
+                    });
+                } else {
+                    const data = await response.json();
+                    alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                    btn.innerHTML = '💾 Değişiklikleri Kaydet';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                console.error('Save error', e);
+                alert('Bağlantı hatası');
+                btn.innerHTML = '💾 Değişiklikleri Kaydet';
+                btn.disabled = false;
+            }
+        }
+
+        function renderPhotosSection(title, photos) {
+            if (!photos || photos.length === 0) return '';
+            return `
+                <div class="detail-section">
+                    <h3>📷 ${title}</h3>
+                    <div class="detail-photos">
+                        ${photos.map(photo => `
+                            <div class="detail-photo">
+                                <img src="${photo}" alt="${title}" onclick="openImage('${photo}')">
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function openImage(src) {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('imageModalContent');
+            img.src = src;
+            modal.classList.add('show');
+        }
+
+        // Close handlers
+        document.getElementById('closeModal').addEventListener('click', () => {
+            document.getElementById('detailModal').classList.remove('show');
+        });
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailModal') {
+                document.getElementById('detailModal').classList.remove('show');
+            }
+        });
+
+        // Image modal close
+        document.getElementById('closeImageModal').addEventListener('click', () => {
+            document.getElementById('imageModal').classList.remove('show');
+        });
+        document.getElementById('imageModal').addEventListener('click', (e) => {
+            if (e.target.id === 'imageModal') {
+                document.getElementById('imageModal').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+
+</html>

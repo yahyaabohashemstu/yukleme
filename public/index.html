@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="tr" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş | Yükleme Yönetim Sistemi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="login-page">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-logo">
+                    <div class="login-logo-icon">🚛</div>
+                    <h1>Yükleme Yönetim Sistemi</h1>
+                    <p>Yükleme Belgesi</p>
+                </div>
+
+                <div class="login-error" id="loginError"></div>
+
+                <form class="login-form" id="loginForm">
+                    <div class="input-group">
+                        <div class="input-icon-container">
+                            <span class="icon">👤</span>
+                        </div>
+                        <div class="input-content">
+                            <label for="username">Kullanıcı Adı</label>
+                            <input type="text" id="username" name="username" placeholder="Örn: ahmet"
+                                autocomplete="username" required>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-icon-container">
+                            <span class="icon">🔒</span>
+                        </div>
+                        <div class="input-content">
+                            <label for="password">Şifre</label>
+                            <input type="password" id="password" name="password" placeholder="••••••••"
+                                autocomplete="current-password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="loginBtn">
+                        <span>Giriş Yap</span>
+                        <span>🔐</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if already logged in
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/check-auth');
+                const data = await response.json();
+
+                if (data.authenticated) {
+                    redirectByRole(data.user.role);
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+            }
+        }
+
+        function redirectByRole(role) {
+            if (role === 'loader') {
+                window.location.href = '/loader.html';
+            } else if (role === 'manager') {
+                window.location.href = '/manager.html';
+            }
+        }
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const loginBtn = document.getElementById('loginBtn');
+            const errorDiv = document.getElementById('loginError');
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('Lütfen kullanıcı adı ve şifre girin');
+                return;
+            }
+
+            // Disable button and show loading
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<div class="spinner"></div><span>Giriş yapılıyor...</span>';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    redirectByRole(data.user.role);
+                } else {
+                    showError(data.error || 'Giriş yapılırken bir hata oluştu');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Sunucuya bağlanırken bir hata oluştu');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span>Giriş Yap</span><span>🔐</span>';
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Check auth on load
+        checkAuth();
+    </script>
+</body>
+
+</html>

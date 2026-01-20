@@ -1077,22 +1077,7 @@
                         </div>
                     </div>
 
-                    <!-- Photos (Editable) -->
-                    ${photoSection('Yüklemeden Önce Mal Fotoğrafları', 'goods_photos', loading.goods_photos, 'existing_goods_photos')}
-                    ${photoSection('Hasarlı Mal Fotoğrafları', 'damaged_goods_photos', loading.damaged_goods_photos, 'existing_damaged_goods_photos')}
-                    ${photoSection('Yüklenen Araç Fotoğrafları', 'loaded_vehicle_photos', loading.loaded_vehicle_photos, 'existing_loaded_vehicle_photos')}
-                    
-                    <div class="detail-section">
-                        <h3>🧾 Kantar Fiş Resmi</h3>
-                        ${loading.scale_receipt_photo ? `
-                             <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
-                                <img src="${loading.scale_receipt_photo}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;">
-                                <label style="display: block; font-size: 11px; color: var(--text-muted); text-align: center;">Mevcut</label>
-                                <!-- Cannot delete receipt easily if required, but lets allow visual replacement -->
-                            </div>
-                        ` : ''}
-                        <input type="file" name="scale_receipt_photo" accept="image/*" style="margin-top: 5px;">
-                    </div>
+
 
                     <div class="detail-section">
                         <div class="form-grid form-grid-2">

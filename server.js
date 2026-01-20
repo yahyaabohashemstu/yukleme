@@ -199,6 +199,7 @@ app.post('/api/loadings', requireLoader, async (req, res) => {
 // Get my loadings (loader only)
 app.get('/api/my-loadings', requireLoader, async (req, res) => {
     try {
+        console.log('Fetching loadings for user:', req.session.user.id);
         const { data, error } = await supabase
             .from('loadings')
             .select('*')
@@ -210,6 +211,7 @@ app.get('/api/my-loadings', requireLoader, async (req, res) => {
             return res.status(500).json({ error: 'حدث خطأ أثناء جلب البيانات' });
         }
 
+        console.log('Found loadings:', data ? data.length : 0);
         res.json(data || []);
     } catch (error) {
         console.error('Get my loadings error:', error);

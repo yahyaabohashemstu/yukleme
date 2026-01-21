@@ -85,15 +85,21 @@ const requireAuth = (req, res, next) => {
 };
 
 const requireLoader = (req, res, next) => {
-    if (!req.session.user || req.session.user.role !== 'loader') {
-        return res.status(403).json({ error: 'غير مصرح - هذه الصفحة لمسؤول التحميل فقط' });
+    if (!req.session.user) {
+        return res.status(401).json({ error: 'Oturum süresi doldu. Lütfen tekrar giriş yapın.' }); // Session expired
+    }
+    if (req.session.user.role !== 'loader') {
+        return res.status(403).json({ error: 'Bu işlem için yetkiniz yok (Sadece Loader).' });
     }
     next();
 };
 
 const requireManager = (req, res, next) => {
-    if (!req.session.user || req.session.user.role !== 'manager') {
-        return res.status(403).json({ error: 'غير مصرح - هذه الصفحة لمدير الإنتاج فقط' });
+    if (!req.session.user) {
+        return res.status(401).json({ error: 'Oturum süresi doldu. Lütfen tekrar giriş yapın.' }); // Session expired
+    }
+    if (req.session.user.role !== 'manager') {
+        return res.status(403).json({ error: 'Bu işlem için yetkiniz yok (Sadece Manager).' });
     }
     next();
 };

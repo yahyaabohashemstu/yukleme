@@ -16,6 +16,13 @@ if (!token || !chatId) {
 // Function to format the message
 function formatLoadingMessage(loading, type = 'new') {
     const title = type === 'new' ? '🆕 <b>Yeni Rapor Oluşturuldu</b>' : '✏️ <b>Rapor Güncellendi</b>';
+    // Format Date & Time (Turkey time)
+    const createdAt = new Date(loading.created_at || new Date());
+    const formattedDateTime = createdAt.toLocaleString('tr-TR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+
     const date = new Date(loading.loading_date).toLocaleDateString('tr-TR');
 
     // Calculate total products
@@ -32,6 +39,7 @@ function formatLoadingMessage(loading, type = 'new') {
 ${title}
 
 📄 <b>Rapor ID:</b> <code>${loading.id.slice(0, 8)}</code>
+🕒 <b>Yükleme Zamanı:</b> ${formattedDateTime}
 📅 <b>Tarih:</b> ${date}
 🚛 <b>Plaka:</b> ${loading.plate1 || '-'} ${loading.plate2 ? '/ ' + loading.plate2 : ''}
 👤 <b>Sürücü:</b> ${loading.driver_name || '-'}
@@ -42,6 +50,7 @@ ${title}
 • Toplam Palet: ${totalPallets}
 
 📍 <b>Varış:</b> ${loading.destination_company || '-'} (${loading.destination_country || '-'})
+👤 <b>Müşteri:</b> ${loading.destination_customer || '-'}
 
 🔗 <a href="http://localhost:3000/manager.html">Detayları Görüntüle</a>
     `.trim();

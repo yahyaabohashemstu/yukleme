@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -83,7 +84,7 @@
                     <table class="loadings-table">
                         <thead>
                             <tr>
-                                <th>Tarih</th>
+                                <th>Müşteri</th>
                                 <th>Araç Plakası</th>
                                 <th>Varış Yeri</th>
                                 <th>Sürücü</th>
@@ -113,6 +114,16 @@
         <div class="modal">
             <div class="modal-header">
                 <h2>Yükleme Detayları</h2>
+                <div class="modal-actions" style="display: flex; gap: 10px; margin-right: auto; margin-left: 20px;">
+                    <button class="action-btn" onclick="printReport()"
+                        style="background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                        <span>🖨️</span> Yazdır
+                    </button>
+                    <button class="action-btn" onclick="exportToExcel()"
+                        style="background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                        <span>📊</span> Excel
+                    </button>
+                </div>
                 <button class="modal-close" id="closeModal">✕</button>
             </div>
             <div class="modal-body" id="modalBody">
@@ -190,7 +201,7 @@
                 <tr>
                     <td>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            ${formatDate(loading.loading_date)}
+                            ${loading.destination_customer || '-'}
                             ${!loading.viewed_at ? '<span class="new-badge">YENİ</span>' : ''}
                         </div>
                     </td>
@@ -247,11 +258,13 @@
 
         let currentVersions = [];
         let currentLoadingId = null;
+        let currentLoading = null;
 
         async function viewDetails(id) {
             currentLoadingId = id;
             const loading = loadingsData.find(l => l.id === id);
             if (!loading) return;
+            currentLoading = loading;
 
             // Mark as viewed in background
             if (!loading.viewed_at) {
@@ -380,6 +393,22 @@
                 if (!Array.isArray(products)) products = [];
             }
 
+            // Generate Photos HTML
+            const photosHtml = loading.loaded_vehicle_photos && loading.loaded_vehicle_photos.length > 0 ? `
+                <div class="detail-section">
+                    <h3>📷 Yükleme Fotoğrafları</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 15px;">
+                        ${loading.loaded_vehicle_photos.map(url => `
+                            <div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                <a href="${url}" target="_blank" style="display: block; width: 100%; height: 100%;">
+                                    <img src="${url}" style="width: 100%; height: 100%; object-fit: cover;" alt="Yükleme Fotoğrafı">
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+
             // Pinar's Restricted View
             if (currentUsername === 'pinar') {
                 return `
@@ -430,6 +459,7 @@
                             </table>
                         ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
                     </div>
+                    ${photosHtml}
                     <!-- Record Button - Only show for current version -->
                     ${isCurrentVersion ? (() => {
                         // For Pinar's view, we know currentUsername is pinar
@@ -518,9 +548,9 @@
                     </div>
                 </div>
 
-                <!-- Weight & Destination -->
+                <!-- Weight Info -->
                 <div class="detail-section">
-                    <h3>⚖️ Ağırlık ve Varış Yeri</h3>
+                    <h3>⚖️ Ağırlık Bilgileri</h3>
                     <div class="detail-grid">
                         <div class="detail-item">
                             <label>Ürün Ağırlığı</label>
@@ -530,6 +560,13 @@
                             <label>Tartıdan Sonra Araç Ağırlığı</label>
                             <span>${loading.vehicle_weight_after || '-'}</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Destination Info -->
+                <div class="detail-section">
+                    <h3>📍 Varış Bilgileri</h3>
+                    <div class="detail-grid">
                         <div class="detail-item">
                             <label>Şirket</label>
                             <span>${loading.destination_company || '-'}</span>
@@ -585,6 +622,7 @@
                         </table>
                     ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
                 </div>
+                ${photosHtml}
 
                 <!-- Times -->
                 <div class="detail-section">
@@ -731,6 +769,126 @@
                     btn.innerHTML = '<span>✕</span><span>Kaydı İptal Et</span>';
                 }
             }
+        }
+
+        // Print Report
+        function printReport() {
+            window.print();
+        }
+
+        // Export to Excel (Vertical Layout)
+        function exportToExcel() {
+            if (!currentLoading) {
+                alert('Rapor verisi bulunamadı');
+                return;
+            }
+
+            const loading = currentLoading;
+            const dataRows = []; // Array of [Label, Value]
+
+            // Helper to add row
+            const addRow = (label, value) => {
+                dataRows.push([label, value || '-']);
+            };
+            const addSection = (title) => {
+                dataRows.push(['', '']); // Spacer
+                dataRows.push([title.toUpperCase(), '']); // Section Header
+            };
+
+            // Check if user is Pinar (Restricted View)
+            if (currentUsername === 'pinar') {
+                // 1. Vehicle Info
+                addSection('Araç Bilgileri');
+                addRow('Plaka (Çekici)', loading.plate1);
+                addRow('Plaka (Dorse)', loading.plate2);
+                addRow('Konteyner Numarası', loading.container_no);
+                addRow('Tarih', formatDate(loading.loading_date));
+
+                // 2. Products
+                addSection('Yüklenen Mallar');
+                if (Array.isArray(loading.products) && loading.products.length > 0) {
+                    dataRows.push(['Mal Adı', 'Miktar', 'Palet Sayısı']);
+                    loading.products.forEach(p => {
+                        dataRows.push([p.name, p.quantity, p.pallets]);
+                    });
+                } else {
+                    addRow('Mal Bilgisi', 'Yok');
+                }
+
+
+
+            } else {
+                // FULL VIEW for Safwat/Production Manager
+
+                // 1. General Info
+                addSection('Genel Bilgiler');
+                addRow('Rapor ID', loading.id);
+                addRow('Yükleme Tarihi', formatDate(loading.loading_date));
+                addRow('Kayıt Oluşturulma', formatDateTime(loading.created_at));
+                addRow('Oluşturan (ID)', loading.created_by);
+
+                // 2. Team Info
+                addSection('Yükleme Ekibi');
+                addRow('Yönetici (Manager)', loading.manager);
+                addRow('Eleman 1', loading.worker1);
+                addRow('Eleman 2', loading.worker2);
+                addRow('Eleman 3', loading.worker3);
+                addRow('Eleman 4', loading.worker4);
+                addRow('Forklift Operatörü', loading.forklift_operator);
+
+                // 3. Vehicle & Driver
+                addSection('Araç ve Sürücü');
+                addRow('Plaka (Çekici)', loading.plate1);
+                addRow('Plaka (Dorse)', loading.plate2);
+                addRow('Konteyner Numarası', loading.container_no);
+                addRow('Sürücü Adı', loading.driver_name);
+                addRow('Sürücü Telefonu', loading.driver_phone);
+
+                // 4. Weight & Destination
+                addSection('Yük ve Varış');
+                addRow('Ürün Ağırlığı', loading.product_weight);
+                addRow('Tartı Sonrası Araç', loading.vehicle_weight_after);
+                addRow('Varış Şirketi', loading.destination_company);
+                addRow('Varış Ülkesi', loading.destination_country);
+                addRow('Müşteri', loading.destination_customer);
+
+                // 5. Times
+                addSection('Zaman Çizelgesi');
+                addRow('Giriş Saati', loading.entry_time);
+                addRow('Çıkış Saati', loading.exit_time);
+
+                // 6. Products
+                addSection('Yüklenen Mallar');
+                if (Array.isArray(loading.products) && loading.products.length > 0) {
+                    // Header for products sub-table
+                    dataRows.push(['Mal Adı', 'Miktar', 'Palet Sayısı']);
+                    loading.products.forEach(p => {
+                        dataRows.push([p.name, p.quantity, p.pallets]);
+                    });
+                } else {
+                    addRow('Mal Bilgisi', 'Yok');
+                }
+
+                // 7. Status & Comments
+                addSection('Durum ve Notlar');
+                addRow('Yorumlar', loading.comments);
+            }
+
+
+
+            // Create Workbook
+            const ws = XLSX.utils.aoa_to_sheet(dataRows);
+
+            // Adjust column width for readability
+            ws['!cols'] = [{ wch: 25 }, { wch: 50 }, { wch: 15 }];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Rapor Detayı");
+
+            // Filename
+            const plate = (loading.plate1 || 'Plakasiz').replace(/[^a-z0-9]/gi, '_');
+            const date = (loading.loading_date || 'Tarihsiz');
+            XLSX.writeFile(wb, `Rapor_${plate}_${date}.xlsx`);
         }
 
         // Close modal

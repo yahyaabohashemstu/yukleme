@@ -712,6 +712,25 @@ textarea:required:valid:focus {
     border-color: var(--primary);
 }
 
+/* Explicit Validation for Table Inputs */
+.products-table input:required {
+    border-color: #ef4444 !important;
+    /* Force red border for required fields */
+}
+
+.products-table input:required:valid {
+    border-color: #10b981 !important;
+    /* Force green border when filled */
+}
+
+.products-table input:required:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.products-table input:required:valid:focus {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
 .add-row-btn {
     margin-top: 16px;
     padding: 12px 24px;

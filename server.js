@@ -7,6 +7,7 @@ const path = require('path');
 require('dotenv').config();
 
 const { supabase, initializeDatabase } = require('./database');
+const { sendNotification } = require('./utils/telegramBot');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -243,6 +244,13 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
             return res.status(500).json({ error: 'حدث خطأ أثناء حفظ البيانات' });
         }
 
+        // Send Telegram Notification (Async, don't block response)
+        try {
+            await sendNotification(data, 'new');
+        } catch (notifyError) {
+            console.error('Notification failed:', notifyError);
+        }
+
         res.status(201).json({
             message: 'تم إرسال بيانات التحميل بنجاح',
             loading: data
@@ -424,6 +432,13 @@ app.put('/api/loadings/:id', requireLoader, async (req, res) => {
         if (updateError) {
             console.error('Update error:', updateError);
             return res.status(500).json({ error: 'فشل تديث البيانات' });
+        }
+
+        // Send Telegram Notification
+        try {
+            await sendNotification(updated, 'update');
+        } catch (notifyError) {
+            console.error('Notification failed:', notifyError);
         }
 
         res.json({ message: 'تم التحديث بنجاح', loading: updated });

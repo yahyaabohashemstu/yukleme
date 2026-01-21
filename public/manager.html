@@ -88,8 +88,8 @@
                                 <th>Varış Yeri</th>
                                 <th>Sürücü</th>
                                 <th>Sisteme Giriş (Loader)</th>
-                                <th>Onay Tarihi (Manager)</th>
-                                <th>Kayıt Durumu</th>
+                                <th>Safwat</th>
+                                <th>Pinar</th>
                                 <th>İşlemler</th>
                             </tr>
                         </thead>
@@ -136,6 +136,7 @@
                 }
 
                 document.getElementById('userName').textContent = data.user.username;
+                currentUsername = data.user.username.trim().toLowerCase();
                 loadLoadings();
             } catch (error) {
                 console.error('Auth check error:', error);
@@ -197,10 +198,14 @@
                     <td>${loading.destination_company || '-'} - ${loading.destination_country || '-'}</td>
                     <td>${loading.driver_name || '-'}</td>
                     <td><span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.created_at)}</span></td>
-                    <td><span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.recorded_at)}</span></td>
-                    <td>${loading.is_recorded
+                    <td>${loading.safwat_recorded_at
                     ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
-                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>'}</td>
+                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>'}
+                    </td>
+                    <td>${loading.pinar_recorded_at
+                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
+                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>'}
+                    </td>
                     <td><button class="view-btn" onclick="viewDetails('${loading.id}')">Detayları Gör</button></td>
                 </tr>
             `).join('');
@@ -341,16 +346,122 @@
             renderVersionTabs(index);
         }
 
+        let currentUsername = '';
+
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/check-auth');
+                const data = await response.json();
+
+                if (!data.authenticated || data.user.role !== 'manager') {
+                    window.location.href = '/';
+                    return;
+                }
+
+                currentUsername = data.user.username;
+                document.getElementById('userName').textContent = currentUsername === 'pinar' ? 'Saha Operasyon' : 'Üretim Müdürü';
+
+                // Load data after auth check
+                loadLoadings();
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // Call checkAuth immediately
+        checkAuth();
+
         function renderLoadingDetails(loading, isCurrentVersion = true) {
             let products = loading.products || [];
             if (!Array.isArray(products)) {
-                // Try to parse if string
                 try { products = JSON.parse(products); } catch (e) { products = []; }
-                // Use empty array if still not array
                 if (!Array.isArray(products)) products = [];
             }
 
+            // Pinar's Restricted View
+            if (currentUsername === 'pinar') {
+                return `
+                    <!-- Vehicle Info -->
+                    <div class="detail-section">
+                        <h3>🚚 Araç Bilgileri</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Araç Plakası 1</label>
+                                <span>${loading.plate1 || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Araç Plakası 2</label>
+                                <span>${loading.plate2 || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Konteyner Numarası</label>
+                                <span>${loading.container_no || '-'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Tarih</label>
+                                <span>${formatDate(loading.loading_date)}</span>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Products -->
+                    <div class="detail-section">
+                        <h3>📦 Yüklenen Mallar</h3>
+                        ${products.length > 0 ? `
+                            <table class="products-table" style="margin-top: 12px;">
+                                <thead>
+                                    <tr>
+                                        <th>Mal Adı</th>
+                                        <th>Sayı</th>
+                                        <th>Pallet Sayısı</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${products.map(p => `
+                                        <tr>
+                                            <td>${p.name || '-'}</td>
+                                            <td>${p.quantity || '-'}</td>
+                                            <td>${p.pallets || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
+                    </div>
+                    <!-- Record Button - Only show for current version -->
+                    ${isCurrentVersion ? (() => {
+                        // For Pinar's view, we know currentUsername is pinar
+                        const isRecorded = !!loading.pinar_recorded_at;
+                        const recordedAt = loading.pinar_recorded_at;
+
+                        return `
+                        <div class="detail-section record-section">
+                            <h3>📝 Sistem Kayıt Durumu (Pinar)</h3>
+                            ${isRecorded ? `
+                                <div class="recorded-status">
+                                    <span class="status-badge status-recorded large">✓ Kaydedildi</span>
+                                    <p class="recorded-info">Kayıt tarihi: ${recordedAt ? new Date(recordedAt).toLocaleString('tr-TR') : '-'}</p>
+                                    <button class="unrecord-btn" id="unrecordBtn" onclick="cancelRecording('${loading.id}')">
+                                        <span>✕</span>
+                                        <span>Kaydı İptal Et</span>
+                                    </button>
+                                </div>
+                            ` : `
+                                <button class="record-btn" id="recordBtn" onclick="markAsRecorded('${loading.id}')">
+                                    <span>✓</span>
+                                    <span>Kaydedildi</span>
+                                </button>
+                                <p class="record-hint">Bu bilgileri sisteme kaydettikten sonra buraya tıklayın</p>
+                            `}
+                        </div>
+                        `;
+                    })() : ''}
+                `;
+            }
+
+            // Default Manager View (Full Access)
             return `
                 <!-- Team Info -->
                 <div class="detail-section">
@@ -376,6 +487,11 @@
                             <label>Dördüncü Eleman</label>
                             <span>${loading.worker4 || '-'}</span>
                         </div>
+                        <!-- Moved Forklift Operator Here or separate? In HTML default it was here -->
+                        <div class="detail-item">
+                            <label>Forklift Sürücüsü</label>
+                            <span>${loading.forklift_operator || '-'}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -390,6 +506,10 @@
                         <div class="detail-item">
                             <label>Araç Plakası 2</label>
                             <span>${loading.plate2 || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Konteyner Numarası</label>
+                            <span>${loading.container_no || '-'}</span>
                         </div>
                         <div class="detail-item">
                             <label>Tarih</label>
@@ -437,10 +557,7 @@
                             <label>Sürücü Telefonu</label>
                             <span>${loading.driver_phone || '-'}</span>
                         </div>
-                        <div class="detail-item">
-                            <label>Forklift Sürücüsü</label>
-                            <span>${loading.forklift_operator || '-'}</span>
-                        </div>
+                        <!-- Forklift was moved in Loader view, here we can keep it or sync. Keeping it in Team or Driver is fine for Manager view -->
                     </div>
                 </div>
 
@@ -493,27 +610,42 @@
                 ` : ''}
 
                 <!-- Record Button - Only show for current version -->
-                ${isCurrentVersion ? `
-                <div class="detail-section record-section">
-                    <h3>📝 Sistem Kayıt Durumu</h3>
-                    ${loading.is_recorded ? `
-                        <div class="recorded-status">
-                            <span class="status-badge status-recorded large">✓ Kaydedildi</span>
-                            <p class="recorded-info">Kayıt tarihi: ${loading.recorded_at ? new Date(loading.recorded_at).toLocaleString('tr-TR') : '-'}</p>
-                            <button class="unrecord-btn" id="unrecordBtn" onclick="cancelRecording('${loading.id}')">
-                                <span>✕</span>
-                                <span>Kaydı İptal Et</span>
+                ${isCurrentVersion ? (() => {
+                    // Determine status based on current user (Safwat/Manager)
+                    let isRecorded = false;
+                    let recordedAt = null;
+
+                    if (currentUsername === 'pinar') {
+                        isRecorded = !!loading.pinar_recorded_at;
+                        recordedAt = loading.pinar_recorded_at;
+                    } else {
+                        // Default to safwat
+                        isRecorded = !!loading.safwat_recorded_at;
+                        recordedAt = loading.safwat_recorded_at;
+                    }
+
+                    return `
+                    <div class="detail-section record-section">
+                        <h3>📝 Sistem Kayıt Durumu ${currentUsername !== 'pinar' ? '(Safwat)' : '(Pinar)'}</h3>
+                        ${isRecorded ? `
+                            <div class="recorded-status">
+                                <span class="status-badge status-recorded large">✓ Kaydedildi</span>
+                                <p class="recorded-info">Kayıt tarihi: ${recordedAt ? new Date(recordedAt).toLocaleString('tr-TR') : '-'}</p>
+                                <button class="unrecord-btn" id="unrecordBtn" onclick="cancelRecording('${loading.id}')">
+                                    <span>✕</span>
+                                    <span>Kaydı İptal Et</span>
+                                </button>
+                            </div>
+                        ` : `
+                            <button class="record-btn" id="recordBtn" onclick="markAsRecorded('${loading.id}')">
+                                <span>✓</span>
+                                <span>Kaydedildi</span>
                             </button>
-                        </div>
-                    ` : `
-                        <button class="record-btn" id="recordBtn" onclick="markAsRecorded('${loading.id}')">
-                            <span>✓</span>
-                            <span>Kaydedildi</span>
-                        </button>
-                        <p class="record-hint">Bu bilgileri sisteme kaydettikten sonra buraya tıklayın</p>
-                    `}
-                </div>
-                ` : ''}
+                            <p class="record-hint">Bu bilgileri sisteme kaydettikten sonra buraya tıklayın</p>
+                        `}
+                    </div>
+                    `;
+                })() : ''}
             `;
         }
 

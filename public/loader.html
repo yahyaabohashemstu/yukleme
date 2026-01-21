@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2">
 </head>
 
 <body>
@@ -67,23 +67,31 @@
                     <div class="form-grid form-grid-2">
                         <div class="form-group">
                             <label for="manager">Yönetici</label>
-                            <input type="text" id="manager" name="manager" placeholder="Yönetici adı">
+                            <input type="text" id="manager" name="manager" placeholder="Yönetici adı" required>
                         </div>
                         <div class="form-group">
                             <label for="worker1">Birinci Eleman</label>
-                            <input type="text" id="worker1" name="worker1" placeholder="Birinci eleman adı">
+                            <input type="text" id="worker1" name="worker1" placeholder="Birinci eleman adı" required>
                         </div>
                         <div class="form-group">
                             <label for="worker2">İkinci Eleman</label>
-                            <input type="text" id="worker2" name="worker2" placeholder="İkinci eleman adı">
+                            <input type="text" id="worker2" name="worker2" placeholder="İkinci eleman adı" required>
                         </div>
                         <div class="form-group">
                             <label for="worker3">Üçüncü Eleman</label>
-                            <input type="text" id="worker3" name="worker3" placeholder="Üçüncü eleman adı">
+                            <input type="text" id="worker3" name="worker3" placeholder="Üçüncü eleman adı" required>
                         </div>
                         <div class="form-group">
                             <label for="worker4">Dördüncü Eleman</label>
-                            <input type="text" id="worker4" name="worker4" placeholder="Dördüncü eleman adı">
+                            <input type="text" id="worker4" name="worker4" placeholder="Dördüncü eleman adı" required>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border-color);">
+                        <div class="form-group">
+                            <label for="forklift_operator">Forklift Sürücüsünün Adı</label>
+                            <input type="text" id="forklift_operator" name="forklift_operator"
+                                placeholder="Forklift sürücüsü adı" required>
                         </div>
                     </div>
                 </div>
@@ -100,15 +108,20 @@
                     <div class="form-grid form-grid-3">
                         <div class="form-group">
                             <label for="plate1">Araç Plakası 1</label>
-                            <input type="text" id="plate1" name="plate1" placeholder="Birinci plaka numarası">
+                            <input type="text" id="plate1" name="plate1" placeholder="Birinci plaka numarası" required>
                         </div>
                         <div class="form-group">
                             <label for="plate2">Araç Plakası 2</label>
-                            <input type="text" id="plate2" name="plate2" placeholder="İkinci plaka numarası">
+                            <input type="text" id="plate2" name="plate2" placeholder="İkinci plaka numarası" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="container_no">Konteyner Numarası</label>
+                            <input type="text" id="container_no" name="container_no" placeholder="Konteyner numarası"
+                                required>
                         </div>
                         <div class="form-group">
                             <label for="loading_date">Tarih</label>
-                            <input type="date" id="loading_date" name="loading_date">
+                            <input type="date" id="loading_date" name="loading_date" required>
                         </div>
                     </div>
                 </div>
@@ -168,11 +181,7 @@
                             <label for="driver_phone">Araç Şoförünün Telefon Numarası</label>
                             <input type="tel" id="driver_phone" name="driver_phone" placeholder="Telefon numarası">
                         </div>
-                        <div class="form-group">
-                            <label for="forklift_operator">Forklift Sürücüsünün Adı</label>
-                            <input type="text" id="forklift_operator" name="forklift_operator"
-                                placeholder="Forklift sürücüsü adı">
-                        </div>
+
                     </div>
                 </div>
 
@@ -197,9 +206,10 @@
                             </thead>
                             <tbody id="productsTableBody">
                                 <tr>
-                                    <td><input type="text" name="product_name[]" placeholder="Mal adı"></td>
-                                    <td><input type="number" name="product_quantity[]" placeholder="Sayı"></td>
-                                    <td><input type="number" name="product_pallets[]" placeholder="Pallet sayısı"></td>
+                                    <td><input type="text" name="product_name[]" placeholder="Mal adı" required></td>
+                                    <td><input type="number" name="product_quantity[]" placeholder="Sayı" required></td>
+                                    <td><input type="number" name="product_pallets[]" placeholder="Pallet sayısı"
+                                            required></td>
                                     <td><button type="button" class="remove-row-btn"
                                             onclick="removeProductRow(this)">✕</button></td>
                                 </tr>
@@ -282,6 +292,39 @@
                 </div>
 
 
+                <!-- Section 6: Photos (Dynamic) -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-icon">📷</div>
+                        <div class="form-card-title">
+                            <h2>Resimler</h2>
+                            <p>Photos</p>
+                        </div>
+                    </div>
+                    <div class="products-table-container">
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 90%;">Dosya Seç</th>
+                                    <th style="width: 10%;">Sil</th>
+                                </tr>
+                            </thead>
+                            <tbody id="photosTableBody">
+                                <tr>
+                                    <td><input type="file" name="photos" accept="image/*,video/*"></td>
+                                    <td><button type="button" class="remove-row-btn"
+                                            onclick="removePhotoRow(this)">✕</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="add-row-btn" onclick="addPhotoRow()">
+                        <span>➕</span>
+                        <span>Yeni Resim Ekle</span>
+                    </button>
+                </div>
+
+
                 <!-- Section 7: Comments -->
                 <div class="form-card">
                     <div class="form-card-header">
@@ -325,7 +368,8 @@
                                     <th>Tarih</th>
                                     <th>Plaka</th>
                                     <th>Sürücü</th>
-                                    <th>Durum</th>
+                                    <th>Safwat</th>
+                                    <th>Pinar</th>
                                     <th>İşlem</th>
                                 </tr>
                             </thead>
@@ -408,9 +452,9 @@
             const tbody = document.getElementById('productsTableBody');
             const newRow = document.createElement('tr');
             newRow.innerHTML = `
-                <td><input type="text" name="product_name[]" placeholder="Mal adı"></td>
-                <td><input type="number" name="product_quantity[]" placeholder="Sayı"></td>
-                <td><input type="number" name="product_pallets[]" placeholder="Pallet sayısı"></td>
+                <td><input type="text" name="product_name[]" placeholder="Mal adı" required></td>
+                <td><input type="number" name="product_quantity[]" placeholder="Sayı" required></td>
+                <td><input type="number" name="product_pallets[]" placeholder="Pallet sayısı" required></td>
                 <td><button type="button" class="remove-row-btn" onclick="removeProductRow(this)">✕</button></td>
             `;
             tbody.appendChild(newRow);
@@ -423,6 +467,29 @@
             }
         }
 
+        // Photos table (Dynamic)
+        function addPhotoRow() {
+            const tbody = document.getElementById('photosTableBody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td style="padding: 12px 16px;">
+                    <input type="file" name="photos" accept="image/*" capture="environment" class="products-table-file-input">
+                </td>
+                <td style="text-align: center;"><button type="button" class="remove-row-btn" onclick="removePhotoRow(this)">✕</button></td>
+            `;
+            tbody.appendChild(newRow);
+        }
+
+        function removePhotoRow(btn) {
+            const tbody = document.getElementById('photosTableBody');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+            } else {
+                // If it's the last row, just clear the input
+                btn.closest('tr').querySelector('input').value = '';
+            }
+        }
+
         // Form submission
         document.getElementById('loadingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -432,37 +499,37 @@
             submitBtn.innerHTML = '<div class="spinner"></div><span>Gönderiliyor...</span>';
 
             try {
-                const formData = new FormData(e.target);
-                const data = {};
+                // Use FormData for file upload
+                const form = e.target;
+                const formData = new FormData(form);
 
-                // Collect basic fields
-                formData.forEach((value, key) => {
-                    if (!key.endsWith('[]')) {
-                        data[key] = value;
-                    }
-                });
-
-                // Collect products
+                // Process Products manually to send as JSON string
+                // (FormData would send them as separate arrays which is harder to parse as objects)
                 const productNames = formData.getAll('product_name[]');
                 const productQuantities = formData.getAll('product_quantity[]');
                 const productPallets = formData.getAll('product_pallets[]');
 
-                data.products = productNames.map((name, i) => ({
+                const products = productNames.map((name, i) => ({
                     name: name,
                     quantity: productQuantities[i] || '',
                     pallets: productPallets[i] || ''
                 })).filter(p => p.name.trim() !== '');
 
-                // Ensure time fields are present
-                data.entry_time = document.getElementById('entry_time').value;
-                data.exit_time = document.getElementById('exit_time').value;
+                // Remove the raw array fields to verify cleanliness (optional, backend handles it)
+                formData.delete('product_name[]');
+                formData.delete('product_quantity[]');
+                formData.delete('product_pallets[]');
+
+                // Append structured products JSON
+                formData.set('products', JSON.stringify(products));
+
+                // Ensure time fields
+                formData.set('entry_time', document.getElementById('entry_time').value);
+                formData.set('exit_time', document.getElementById('exit_time').value);
 
                 const response = await fetch('/api/loadings', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
+                    body: formData // No Content-Type header (browser sets it with boundary)
                 });
 
                 const result = await response.json();
@@ -470,9 +537,24 @@
                 if (response.ok) {
                     showSuccess();
                     e.target.reset();
-                    // Reset time picker displays
+                    // Reset UI
                     document.getElementById('entryTimeDisplay').innerHTML = '<span class="time-icon">🕐</span><span class="time-value">Zaman seçin</span><span class="time-arrow">▼</span>';
                     document.getElementById('exitTimeDisplay').innerHTML = '<span class="time-icon">🕐</span><span class="time-value">Zaman seçin</span><span class="time-arrow">▼</span>';
+                    // Reset tables to single row
+                    document.getElementById('productsTableBody').innerHTML = `
+                        <tr>
+                            <td><input type="text" name="product_name[]" placeholder="Mal adı"></td>
+                            <td><input type="number" name="product_quantity[]" placeholder="Sayı"></td>
+                            <td><input type="number" name="product_pallets[]" placeholder="Pallet sayısı"></td>
+                            <td><button type="button" class="remove-row-btn" onclick="removeProductRow(this)">✕</button></td>
+                        </tr>`;
+                    document.getElementById('photosTableBody').innerHTML = `
+                        <tr>
+                            <td style="padding: 12px 16px;">
+                                <input type="file" name="photos" accept="image/*" capture="environment" class="products-table-file-input">
+                            </td>
+                            <td style="text-align: center;"><button type="button" class="remove-row-btn" onclick="removePhotoRow(this)">✕</button></td>
+                        </tr>`;
                 } else {
                     alert(result.error || 'Gönderilirken bir hata oluştu');
                 }
@@ -655,16 +737,22 @@
                 myLoadingsData = data;
 
                 data.forEach(item => {
+                    console.log('Loader processing item:', item.id, 'Pinar:', item.pinar_recorded_at, 'Safwat:', item.safwat_recorded_at);
                     const row = document.createElement('tr');
 
                     // Format date
                     const date = new Date(item.loading_date || item.created_at).toLocaleDateString('tr-TR');
 
                     // Status
-                    let statusHtml = '<span class="status-badge status-pending">• Bekliyor</span>';
-                    if (item.is_recorded) {
-                        statusHtml = '<span class="status-badge status-recorded">✓ Kaydedildi</span>';
-                    }
+                    // Status - Safwat (Production Manager)
+                    const safwatStatus = item.safwat_recorded_at
+                        ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
+                        : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
+
+                    // Status - Pinar
+                    const pinarStatus = item.pinar_recorded_at
+                        ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
+                        : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
 
                     row.innerHTML = `
                         <td>${date}</td>
@@ -673,7 +761,8 @@
                             <div style="font-size: 12px; color: var(--text-muted);">${item.plate2 || ''}</div>
                         </td>
                         <td>${item.driver_name || '-'}</td>
-                        <td>${statusHtml}</td>
+                        <td>${safwatStatus}</td>
+                        <td>${pinarStatus}</td>
                         <td>
                             <button class="view-btn" onclick="viewDetails('${item.id}')">
                                 🔍 İncele
@@ -1136,7 +1225,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch(`/api/loadings/${id}`, {
+                const response = await fetch(`/ api / loadings / ${id} `, {
                     method: 'PUT',
                     body: formData
                 });
@@ -1166,7 +1255,7 @@
         function renderPhotosSection(title, photos) {
             if (!photos || photos.length === 0) return '';
             return `
-                <div class="detail-section">
+                < div class="detail-section" >
                     <h3>📷 ${title}</h3>
                     <div class="detail-photos">
                         ${photos.map(photo => `
@@ -1175,7 +1264,7 @@
                             </div>
                         `).join('')}
                     </div>
-                </div>
+                </div >
             `;
         }
 

@@ -14,13 +14,13 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Initialize database tables
 async function initializeDatabase() {
     console.log('Checking database tables...');
-    
+
     // Check if users table has data, if not, create default users
     const { data: existingUsers, error: usersError } = await supabase
         .from('users')
         .select('id')
         .limit(1);
-    
+
     if (usersError) {
         console.log('Users table might not exist. Please run the SQL setup in Supabase.');
         console.log('SQL to run in Supabase SQL Editor:');
@@ -88,28 +88,30 @@ CREATE TABLE IF NOT EXISTS loadings (
         `);
         return false;
     }
-    
+
     if (!existingUsers || existingUsers.length === 0) {
         console.log('Creating default users...');
         const bcrypt = require('bcryptjs');
-        
+
         const loaderPassword = await bcrypt.hash('loader123', 10);
         const managerPassword = await bcrypt.hash('manager123', 10);
-        
+        const pinarPassword = await bcrypt.hash('pinar123', 10);
+
         const { error: insertError } = await supabase
             .from('users')
             .insert([
                 { username: 'loader', password: loaderPassword, role: 'loader' },
-                { username: 'manager', password: managerPassword, role: 'manager' }
+                { username: 'manager', password: managerPassword, role: 'manager' },
+                { username: 'pinar', password: pinarPassword, role: 'manager' }
             ]);
-        
+
         if (insertError) {
             console.error('Error creating default users:', insertError);
             return false;
         }
         console.log('Default users created successfully!');
     }
-    
+
     return true;
 }
 

@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
 const path = require('path');
 require('dotenv').config();
 
@@ -34,6 +35,45 @@ app.use(session({
 
 
 
+
+// Multer setup (Memory Storage for Supabase)
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Sadece resim ve video dosyaları yüklenebilir.'));
+        }
+    }
+});
+
+// Helper: Upload file to Supabase Storage
+async function uploadToSupabase(file) {
+    const fileExt = path.extname(file.originalname);
+    const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { data, error } = await supabase
+        .storage
+        .from('loading-photos')
+        .upload(filePath, file.buffer, {
+            contentType: file.mimetype,
+            upsert: false
+        });
+
+    if (error) throw error;
+
+    // Get Public URL
+    const { data: { publicUrl } } = supabase
+        .storage
+        .from('loading-photos')
+        .getPublicUrl(filePath);
+
+    return publicUrl;
+}
 
 // Auth middleware
 const requireAuth = (req, res, next) => {
@@ -128,8 +168,24 @@ app.get('/api/check-auth', (req, res) => {
 
 // Create new loading (loader only)
 // Create new loading (loader only)
-app.post('/api/loadings', requireLoader, async (req, res) => {
+app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res) => {
     try {
+        // Upload Photos to Supabase
+        const uploadedUrls = [];
+        if (req.files && req.files.length > 0) {
+            const uploadPromises = req.files.map(file => uploadToSupabase(file));
+            const results = await Promise.all(uploadPromises);
+            uploadedUrls.push(...results);
+        }
+
+        // Parse products (sent as JSON string in FormData)
+        let products = [];
+        try {
+            products = JSON.parse(req.body.products || '[]');
+        } catch (e) {
+            products = [];
+        }
+
         const loadingData = {
             // Team info
             manager: req.body.manager || null,
@@ -141,6 +197,7 @@ app.post('/api/loadings', requireLoader, async (req, res) => {
             // Vehicle info
             plate1: req.body.plate1 || null,
             plate2: req.body.plate2 || null,
+            container_no: req.body.container_no || null,
             loading_date: req.body.loading_date || null,
 
             // Weight info
@@ -156,13 +213,13 @@ app.post('/api/loadings', requireLoader, async (req, res) => {
             forklift_operator: req.body.forklift_operator || null,
 
             // Products
-            products: req.body.products || [],
+            products: products,
 
-            // Documentation (Removed)
+            // Documentation (Using loaded_vehicle_photos as the main gallery)
             goods_photos: [],
             damaged_goods_photos: [],
             scale_receipt_photo: null,
-            loaded_vehicle_photos: [],
+            loaded_vehicle_photos: uploadedUrls, // All photos go here
 
             // Times
             entry_time: req.body.entry_time || null,
@@ -192,7 +249,7 @@ app.post('/api/loadings', requireLoader, async (req, res) => {
         });
     } catch (error) {
         console.error('Create loading error:', error);
-        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+        res.status(500).json({ error: 'حدث خطأ في الخادم: ' + error.message });
     }
 });
 
@@ -212,6 +269,9 @@ app.get('/api/my-loadings', requireLoader, async (req, res) => {
         }
 
         console.log('Found loadings:', data ? data.length : 0);
+        if (data && data.length > 0) {
+            console.log('Sample loading data (first item):', JSON.stringify(data[0], null, 2));
+        }
         res.json(data || []);
     } catch (error) {
         console.error('Get my loadings error:', error);
@@ -378,13 +438,27 @@ app.put('/api/loadings/:id', requireLoader, async (req, res) => {
 // Mark loading as recorded (manager only)
 app.patch('/api/loadings/:id/record', requireManager, async (req, res) => {
     try {
+        const username = req.session.user.username ? req.session.user.username.trim().toLowerCase() : 'safwat';
+        const now = new Date().toISOString();
+
+        // Determine which column to update based on username
+        let updateData = {};
+        if (username === 'pinar') {
+            updateData.pinar_recorded_at = now;
+        } else {
+            // Default to safwat for manager/other
+            updateData.safwat_recorded_at = now;
+        }
+
+        // BACKWARD COMPATIBILITY:
+        // Also update legacy columns so 'is_recorded' becomes true if AT LEAST ONE manager recorded it.
+        updateData.is_recorded = true;
+        updateData.recorded_at = now;
+        updateData.recorded_by = req.session.user.id;
+
         const { data, error } = await supabase
             .from('loadings')
-            .update({
-                is_recorded: true,
-                recorded_at: new Date().toISOString(),
-                recorded_by: req.session.user.id
-            })
+            .update(updateData)
             .eq('id', req.params.id)
             .select()
             .single();
@@ -407,25 +481,55 @@ app.patch('/api/loadings/:id/record', requireManager, async (req, res) => {
 // Cancel recording (manager only)
 app.patch('/api/loadings/:id/unrecord', requireManager, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const username = req.session.user.username ? req.session.user.username.trim().toLowerCase() : 'safwat';
+
+        // Determine which column to clear based on username
+        let updateData = {};
+        if (username === 'pinar') {
+            updateData.pinar_recorded_at = null;
+        } else {
+            // Default to safwat for manager/other
+            updateData.safwat_recorded_at = null;
+        }
+
+        // We first update the specific column
+        const { data: updatedSpecific, error: updateError } = await supabase
             .from('loadings')
-            .update({
-                is_recorded: false,
-                recorded_at: null,
-                recorded_by: null
-            })
+            .update(updateData)
             .eq('id', req.params.id)
             .select()
             .single();
 
-        if (error) {
-            console.error('Update error:', error);
+        if (updateError) {
+            console.error('Update error:', updateError);
             return res.status(500).json({ error: 'حدث خطأ أثناء إلغاء التقييد' });
+        }
+
+        // BACKWARD COMPATIBILITY CHECK:
+        // If BOTH are null, then set is_recorded = false
+        const s = updatedSpecific.safwat_recorded_at;
+        const p = updatedSpecific.pinar_recorded_at;
+
+        if (!s && !p) {
+            const { data: finalData, error: finalError } = await supabase
+                .from('loadings')
+                .update({
+                    is_recorded: false,
+                    recorded_at: null,
+                    recorded_by: null
+                })
+                .eq('id', req.params.id)
+                .select()
+                .single();
+
+            if (!finalError) {
+                return res.json({ message: 'تم إلغاء التقييد بنجاح', loading: finalData });
+            }
         }
 
         res.json({
             message: 'تم إلغاء التقييد بنجاح',
-            loading: data
+            loading: updatedSpecific
         });
     } catch (error) {
         console.error('Unrecord loading error:', error);

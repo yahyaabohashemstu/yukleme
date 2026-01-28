@@ -146,8 +146,18 @@
                     return;
                 }
 
-                document.getElementById('userName').textContent = data.user.username;
-                currentUsername = data.user.username.trim().toLowerCase();
+                // Set display name based on username
+                const username = data.user.username.trim().toLowerCase();
+                let displayName = username;
+
+                if (username === 'manager') {
+                    displayName = 'Safwat';
+                } else if (username === 'pinar') {
+                    displayName = 'Pinar';
+                }
+
+                document.getElementById('userName').textContent = displayName;
+                currentUsername = username;
                 loadLoadings();
             } catch (error) {
                 console.error('Auth check error:', error);

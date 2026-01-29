@@ -1190,22 +1190,32 @@ textarea,
     position: fixed;
     top: 20px;
     left: 50%;
-    transform: translateX(-50%) translateY(-100px);
+    transform: translateX(-50%) translateY(0);
+    /* Start slightly off but use opacity */
     background: var(--gradient-success);
     padding: 16px 32px;
     border-radius: var(--radius);
     color: white;
     font-weight: 500;
     box-shadow: var(--shadow-xl);
-    z-index: 1001;
-    transition: var(--transition);
+    z-index: 9999;
+    /* Higher z-index */
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     display: flex;
     align-items: center;
     gap: 12px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    margin-top: -100px;
+    /* Pull it up initially */
 }
 
 .success-message.show {
-    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    margin-top: 0;
 }
 
 /* Loading Spinner */

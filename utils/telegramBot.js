@@ -14,8 +14,16 @@ if (!token || !chatId) {
 }
 
 // Function to format the message
+// Function to format the message
 function formatLoadingMessage(loading, type = 'new') {
-    const title = type === 'new' ? '🆕 <b>Yeni Rapor Oluşturuldu</b>' : '✏️ <b>Rapor Güncellendi</b>';
+    let title = '';
+    if (type === 'new') {
+        title = '🆕 <b>Yeni Rapor Oluşturuldu</b>';
+    } else if (type === 'update_important') {
+        title = '⚠️🔴 <b>DİKKAT: İNCELENMİŞ RAPOR DEĞİŞTİRİLDİ</b> 🔴⚠️';
+    } else {
+        title = '✏️ <b>Rapor Güncellendi</b>';
+    }
     // Format Date & Time (Turkey time)
     const createdAt = new Date(loading.created_at || new Date());
     const formattedDateTime = createdAt.toLocaleString('tr-TR', {

@@ -995,7 +995,7 @@
                             </div >
                         </div >
 
-                        < !--Times -->
+                        <!-- Times -->
                         <div class="detail-section">
                             <h3>🕐 Zamanlar</h3>
                             <div class="detail-grid">
@@ -1023,7 +1023,7 @@
                 }
                         ${renderPhotosSection('Yüklenen Araç Fotoğrafları', loading.loaded_vehicle_photos)}
 
-                        < !--Comments -->
+                        <!-- Comments -->
                 ${loading.comments ? `
                         <div class="detail-section">
                             <h3>💬 Yorumlar</h3>
@@ -1032,7 +1032,7 @@
                         ` : ''
                 }
 
-                        < !--Status & Edit Button-- >
+                        <!-- Status & Edit Button -->
                 <div class="detail-section">
                     <h3>📝 Durum & İşlemler</h3>
                     ${loading.is_recorded ? `
@@ -1071,14 +1071,14 @@
             // Helper for Photos Section (Existing + New)
             const photoSection = (title, fieldName, existingPhotos, existingFieldName) => {
                 const existingHtml = (existingPhotos || []).map(p => `
-                < div class="edit-photo-item" style = "position: relative; display: inline-block; margin: 5px;" >
+                <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
                     <img src="${p}"
                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
-                        <input type="hidden" name="${existingFieldName}" value="${p}">
-                            <button type="button" onclick="this.parentElement.remove()"
-                                style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
-                        </div>
-                        `).join('');
+                    <input type="hidden" name="${existingFieldName}" value="${p}">
+                    <button type="button" onclick="this.parentElement.remove()"
+                        style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                </div>
+                `).join('');
 
                 return `
                         <div class="detail-section">
@@ -1086,13 +1086,22 @@
                             <div class="existing-photos-container">
                                 ${existingHtml}
                             </div>
-                            <div class="upload-box"
-                                style="margin-top: 10px; padding: 10px; border: 1px dashed var(--border-color);">
-                                <label
-                                    style="display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-muted);">Yeni
-                                    Fotoğraf Ekle (Seçime eklenir)</label>
-                                <input type="file" name="${fieldName}" multiple accept="image/*">
+                        <div class="detail-section">
+                            <h3>📷 ${title}</h3>
+                            <div class="existing-photos-container">
+                                ${existingHtml}
                             </div>
+                            
+                            <div id="edit_${fieldName}_container" style="margin-top: 15px;">
+                                <div class="upload-row" style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
+                                     <input type="file" name="${fieldName}" accept="image/*" class="products-table-file-input" style="width: 100%;">
+                                </div>
+                            </div>
+                            
+                            <button type="button" class="add-row-btn" onclick="addEditPhotoRow('${fieldName}')" style="margin-top: 5px;">
+                                <span>➕</span>
+                                <span>Yeni Resim Ekle</span>
+                            </button>
                         </div>
                         `;
             };
@@ -1152,7 +1161,14 @@
                                     ${input('Telefon', 'driver_phone', loading.driver_phone)}
                                     ${input('Forklift', 'forklift_operator', loading.forklift_operator)}
                                 </div>
+                                    ${input('Sürücü Adı', 'driver_name', loading.driver_name)}
+                                    ${input('Telefon', 'driver_phone', loading.driver_phone)}
+                                    ${input('Forklift', 'forklift_operator', loading.forklift_operator)}
+                                </div>
                             </div>
+                            
+                            <!-- Photos (NEW) -->
+                            ${photoSection('Fotoğraflar (Araç & Yük)', 'photos', loading.loaded_vehicle_photos, 'loaded_vehicle_photos')}
 
                             <!-- Times (NEW - with Picker) -->
                             <div class="detail-section">
@@ -1280,22 +1296,35 @@
             row.className = 'product-entry';
             row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;';
             row.innerHTML = `
-                < div class="form-group" style = "margin: 0;" >
-                            <label style="font-size: 11px;">Malın Adı</label>
-                            <input type="text" class="edit-prod-name" placeholder="Malın Adı">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-size: 11px;">Sayısı</label>
-                            <input type="number" class="edit-prod-qty" placeholder="0">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-size: 11px;">Palet</label>
-                            <input type="number" class="edit-prod-pallets" placeholder="0">
-                        </div>
-                        <button type="button" onclick="this.closest('.product-entry').remove()"
-                            style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Malın Adı</label>
+                    <input type="text" class="edit-prod-name" placeholder="Malın Adı">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Sayısı</label>
+                    <input type="number" class="edit-prod-qty" placeholder="0">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Palet</label>
+                    <input type="number" class="edit-prod-pallets" placeholder="0">
+                </div>
+                <button type="button" onclick="this.closest('.product-entry').remove()"
+                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
             `;
             container.appendChild(row);
+        }
+
+        function addEditPhotoRow(fieldName) {
+            const container = document.getElementById(`edit_${fieldName}_container`);
+            const div = document.createElement('div');
+            div.className = 'upload-row';
+            div.style.cssText = 'margin-bottom: 10px; display: flex; gap: 10px; align-items: center;';
+            div.innerHTML = `
+                <input type="file" name="${fieldName}" accept="image/*" class="products-table-file-input" style="width: 100%;">
+                <button type="button" onclick="this.parentElement.remove()" 
+                    style="background: var(--danger); color: white; border: none; width: 48px; height: 48px; border-radius: var(--radius); cursor: pointer; flex-shrink: 0;">🗑️</button>
+            `;
+            container.appendChild(div);
         }
 
 

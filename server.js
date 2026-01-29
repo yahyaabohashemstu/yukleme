@@ -298,7 +298,7 @@ app.get('/api/loadings', requireManager, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('loadings')
-            .select('*')
+            .select('*, loading_versions(count)')
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -357,7 +357,7 @@ app.get('/api/loadings/:id/versions', requireAuth, async (req, res) => {
 });
 
 // Update loading (loader only) - Archives old version
-app.put('/api/loadings/:id', requireLoader, async (req, res) => {
+app.put('/api/loadings/:id', requireLoader, upload.array('photos'), async (req, res) => {
     try {
         const id = req.params.id;
 
@@ -373,7 +373,6 @@ app.put('/api/loadings/:id', requireLoader, async (req, res) => {
         }
 
         // 2. Archive current data
-        // Get next version number
         const { count, error: countError } = await supabase
             .from('loading_versions')
             .select('*', { count: 'exact', head: true })
@@ -395,7 +394,43 @@ app.put('/api/loadings/:id', requireLoader, async (req, res) => {
             return res.status(500).json({ error: 'فشل في أرشفة النسخة الحالية' });
         }
 
-        // 3. Prepare new data
+        // 3. Process Photos
+        // New uploads
+        const newUploadedUrls = [];
+        if (req.files && req.files.length > 0) {
+            const uploadPromises = req.files.map(file => uploadToSupabase(file));
+            const results = await Promise.all(uploadPromises);
+            newUploadedUrls.push(...results);
+        }
+
+        // Preserve existing photos (sent as strings in body)
+        // req.body.loaded_vehicle_photos might be a single string or an array of strings
+        let preservedPhotos = [];
+        if (req.body.loaded_vehicle_photos) {
+            if (Array.isArray(req.body.loaded_vehicle_photos)) {
+                preservedPhotos = req.body.loaded_vehicle_photos;
+            } else {
+                preservedPhotos = [req.body.loaded_vehicle_photos];
+            }
+        }
+
+        // Combine
+        const finalPhotos = [...preservedPhotos, ...newUploadedUrls];
+
+
+        // 4. Prepare new data
+        // Parse products if sent as string (Multipart form data sends JSON as string)
+        let products = [];
+        if (typeof req.body.products === 'string') {
+            try {
+                products = JSON.parse(req.body.products);
+            } catch (e) {
+                products = [];
+            }
+        } else {
+            products = req.body.products || [];
+        }
+
         const updateData = {
             manager: req.body.manager,
             worker1: req.body.worker1,
@@ -413,21 +448,28 @@ app.put('/api/loadings/:id', requireLoader, async (req, res) => {
             driver_name: req.body.driver_name,
             driver_phone: req.body.driver_phone,
             forklift_operator: req.body.forklift_operator,
-            products: req.body.products || [],
-            goods_photos: [],
-            damaged_goods_photos: [],
-            scale_receipt_photo: null,
-            loaded_vehicle_photos: [],
-            entry_time: req.body.entry_time,
-            exit_time: req.body.exit_time,
+            products: products,
+            goods_photos: [], // Reserved for future use if needed, currently unused in UI
+            damaged_goods_photos: [], // Reserved
+            scale_receipt_photo: null, // Reserved
+            loaded_vehicle_photos: finalPhotos, // All photos go here
+            entry_time: req.body.entry_time === '' ? null : req.body.entry_time,
+            exit_time: req.body.exit_time === '' ? null : req.body.exit_time,
             comments: req.body.comments,
-            // Reset recorded status on edit?
+            // Reset recorded status on edit
             is_recorded: false,
             recorded_at: null,
-            recorded_by: null
+            recorded_by: null,
+            recorded_at: null,
+            recorded_by: null,
+            // Clear specific manager records
+            safwat_recorded_at: null,
+            pinar_recorded_at: null,
+            // Reset viewed status so it appears as "New/Edited" to managers
+            viewed_at: null
         };
 
-        // 4. Update
+        // 5. Update
         const { data: updated, error: updateError } = await supabase
             .from('loadings')
             .update(updateData)
@@ -440,9 +482,18 @@ app.put('/api/loadings/:id', requireLoader, async (req, res) => {
             return res.status(500).json({ error: 'فشل تديث البيانات' });
         }
 
-        // Send Telegram Notification
+        // Send Telegram Notification (Conditional)
         try {
-            await sendNotification(updated, 'update');
+            // Check if ANY manager has viewed the report
+            // current.viewed_at is set when any manager opens the report
+            if (current.viewed_at) {
+                // If viewed, send URGENT alert
+                console.log(`Report ${id} changed after viewing. Sending ALERT.`);
+                await sendNotification(updated, 'update_important');
+            } else {
+                // If NOT viewed, update silently (No notification)
+                console.log(`Report ${id} updated before viewing. Silent update.`);
+            }
         } catch (notifyError) {
             console.error('Notification failed:', notifyError);
         }

@@ -212,7 +212,11 @@
                     <td>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             ${loading.destination_customer || '-'}
-                            ${!loading.viewed_at ? '<span class="new-badge">YENİ</span>' : ''}
+                            ${!loading.viewed_at
+                    ? ((loading.loading_versions && loading.loading_versions[0] && loading.loading_versions[0].count > 0)
+                        ? '<span class="edited-badge">DÜZENLENDİ</span>'
+                        : '<span class="new-badge">YENİ</span>')
+                    : ''}
                         </div>
                     </td>
                     <td>${loading.plate1 || '-'} ${loading.plate2 ? '/ ' + loading.plate2 : ''}</td>

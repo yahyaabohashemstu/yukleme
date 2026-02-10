@@ -93,14 +93,14 @@ CREATE TABLE IF NOT EXISTS loadings (
         console.log('Creating default users...');
         const bcrypt = require('bcryptjs');
 
-        const loaderPassword = await bcrypt.hash('loader123', 10);
+        const loaderPassword = await bcrypt.hash('murat123', 10);
         const managerPassword = await bcrypt.hash('manager123', 10);
         const pinarPassword = await bcrypt.hash('pinar123', 10);
 
         const { error: insertError } = await supabase
             .from('users')
             .insert([
-                { username: 'loader', password: loaderPassword, role: 'loader' },
+                { username: 'murat', password: loaderPassword, role: 'murat' },
                 { username: 'manager', password: managerPassword, role: 'manager' },
                 { username: 'pinar', password: pinarPassword, role: 'manager' }
             ]);

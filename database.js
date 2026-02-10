@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS loadings (
         const { error: insertError } = await supabase
             .from('users')
             .insert([
-                { username: 'murat', password: loaderPassword, role: 'murat' },
+                { username: 'murat', password: loaderPassword, role: 'loader' },
                 { username: 'manager', password: managerPassword, role: 'manager' },
                 { username: 'pinar', password: pinarPassword, role: 'manager' }
             ]);

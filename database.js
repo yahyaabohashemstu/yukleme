@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS loadings (
             .from('users')
             .insert([
                 { username: 'murat', password: loaderPassword, role: 'loader' },
+                { username: 'mahmud', password: await bcrypt.hash('mahmud123', 10), role: 'loader' },
                 { username: 'manager', password: managerPassword, role: 'manager' },
                 { username: 'pinar', password: pinarPassword, role: 'manager' }
             ]);

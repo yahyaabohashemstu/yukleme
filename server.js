@@ -654,7 +654,8 @@ async function startServer() {
     app.listen(PORT, () => {
         console.log(`\n🚀 Server running on http://localhost:${PORT}`);
         console.log(`\n📋 Default users:`);
-        console.log(`   Loader: username=murat, password=murat123`);
+        console.log(`   Loader 1: username=murat, password=murat123`);
+        console.log(`   Loader 2: username=mahmud, password=mahmud123`);
         console.log(`   Manager: username=manager, password=manager123\n`);
     });
 }

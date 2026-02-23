@@ -1,5 +1,5 @@
 const express = require('express');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
@@ -22,15 +22,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // Session configuration
-app.use(session({
+app.use(cookieSession({
+    name: 'session',
     secret: process.env.SESSION_SECRET || 'yukleme-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+    maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year (Never log out)
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax'
 }));
 
 
@@ -151,12 +149,8 @@ app.post('/api/login', async (req, res) => {
 
 // Logout
 app.post('/api/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            return res.status(500).json({ error: 'حدث خطأ أثناء تسجيل الخروج' });
-        }
-        res.json({ message: 'تم تسجيل الخروج بنجاح' });
-    });
+    req.session = null;
+    res.json({ message: 'تم تسجيل الخروج بنجاح' });
 });
 
 // Check auth status

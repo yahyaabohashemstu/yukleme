@@ -123,6 +123,19 @@
                             🗑️ Çöp Kutusu (Arşiv)
                         </button>
                     </div>
+
+                    <!-- Plate Search Box -->
+                    <div style="width: 100%; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 18px;">🔍</span>
+                        <input type="text" id="plateSearchInput"
+                            placeholder="Plakaya göre ara... (Araç Plakası 1 veya 2)" oninput="filterByPlate()"
+                            style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
+                        <button onclick="document.getElementById('plateSearchInput').value=''; filterByPlate()"
+                            title="Temizle"
+                            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
+                            ✕
+                        </button>
+                    </div>
                 </div>
 
                 <div id="tableContainer">
@@ -307,6 +320,20 @@
                     <td><button class="view-btn" onclick="viewDetails('${loading.id}')">Detayları Gör</button></td>
                 </tr>
             `).join('');
+        }
+
+        function filterByPlate() {
+            const query = (document.getElementById('plateSearchInput')?.value || '').replace(/\\s+/g, '').toLowerCase();
+            if (!query) {
+                renderLoadings(loadingsData);
+                return;
+            }
+            const filtered = loadingsData.filter(l => {
+                const p1 = (l.plate1 || '').replace(/\\s+/g, '').toLowerCase();
+                const p2 = (l.plate2 || '').replace(/\\s+/g, '').toLowerCase();
+                return p1.includes(query) || p2.includes(query);
+            });
+            renderLoadings(filtered);
         }
 
         function updateStats(loadings) {
@@ -607,7 +634,7 @@
                         ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
-                                <label>Tartıdan Sonra Araç Ağırlığı</label>
+                                <label>Toplam Yük Ağırlığı ⚖️</label>
                                 <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
                             </div>
                         </div>
@@ -716,7 +743,7 @@
                     ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
-                            <label>Tartıdan Sonra Araç Ağırlığı</label>
+                            <label>Toplam Yük Ağırlığı ⚖️</label>
                             <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
                         </div>
                     </div>
@@ -1080,7 +1107,7 @@
                     <div class="detail-section">
                         <h3>⚖️ Araç Ağırlığı (Tartı Sonrası)</h3>
                         <div class="form-grid form-grid-2">
-                            ${input('Tartıdan Sonra Araç Ağırlığı', 'vehicle_weight_after', loading.vehicle_weight_after, 'text', true)}
+                            ${input('Toplam Yük Ağırlığı ⚖️', 'vehicle_weight_after', loading.vehicle_weight_after, 'text', true)}
                         </div>
                     </div>
 
@@ -1462,7 +1489,7 @@
                 // 3. Weight Info
                 addSection('Ağırlık Bilgileri');
                 addRow('Ürün Ağırlığı', loading.product_weight);
-                addRow('Tartıdan Sonra Araç Ağırlığı', loading.vehicle_weight_after);
+                addRow('Toplam Yük Ağırlığı ⚖️', loading.vehicle_weight_after);
             } else {
                 // FULL VIEW for Safwat/Production Manager
 

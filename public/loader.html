@@ -380,6 +380,17 @@
                             <span>🔄</span> Yenile
                         </button>
                     </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 18px;">🔍</span>
+                        <input type="text" id="plateSearchInput"
+                            placeholder="Plakaya göre ara... (Araç Plakası 1 veya 2)" oninput="filterHistoryByPlate()"
+                            style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
+                        <button onclick="document.getElementById('plateSearchInput').value=''; filterHistoryByPlate()"
+                            title="Temizle"
+                            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
+                            ✕
+                        </button>
+                    </div>
                     <div style="overflow-x: auto;">
                         <table class="loadings-table">
                             <thead>
@@ -767,45 +778,8 @@
                 // Debug: Show count
                 // alert('System found ' + data.length + ' reports for you.');
 
-                // Store data globally
                 myLoadingsData = data;
-
-                data.forEach(item => {
-                    console.log('Loader processing item:', item.id, 'Pinar:', item.pinar_recorded_at, 'Safwat:',
-                        item.safwat_recorded_at);
-                    const row = document.createElement('tr');
-
-                    // Format date
-                    const date = new Date(item.loading_date || item.created_at).toLocaleDateString('tr-TR');
-
-                    // Status
-                    // Status - Safwat (Production Manager)
-                    const safwatStatus = item.safwat_recorded_at
-                        ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
-                        : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
-
-                    // Status - Pinar
-                    const pinarStatus = item.pinar_recorded_at
-                        ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
-                        : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
-
-                    row.innerHTML = `
-                        <td>${date}</td>
-                        <td>
-                            <div>${item.plate1 || '-'}</div>
-                            <div style="font-size: 12px; color: var(--text-muted);">${item.plate2 || ''}</div>
-                        </td>
-                        <td>${item.driver_name || '-'}</td>
-                        <td>${safwatStatus}</td>
-                        <td>${pinarStatus}</td>
-                        <td>
-                            <button class="view-btn" onclick="viewDetails('${item.id}')">
-                                🔍 İncele
-                            </button>
-                        </td>
-                        `;
-                    tbody.appendChild(row);
-                });
+                renderHistoryRows(data);
 
             } catch (error) {
                 console.error('History error:', error);
@@ -816,7 +790,61 @@
             }
         }
 
-        // ============ DETAIL MODAL & VERSIONING ============
+        function renderHistoryRows(data) {
+            const tbody = document.getElementById('historyTableBody');
+            const emptyState = document.getElementById('historyEmptyState');
+
+            tbody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                const date = new Date(item.loading_date || item.created_at).toLocaleDateString('tr-TR');
+                const safwatStatus = item.safwat_recorded_at
+                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
+                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
+                const pinarStatus = item.pinar_recorded_at
+                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
+                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
+
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>
+                        <div>${(item.plate1 || '-').replace(/\\s+/g, '')}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">${(item.plate2 || '').replace(/\\s+/g, '')}</div>
+                    </td>
+                    <td>${item.driver_name || '-'}</td>
+                    <td>${safwatStatus}</td>
+                    <td>${pinarStatus}</td>
+                    <td>
+                        <button class="view-btn" onclick="viewDetails('${item.id}')">
+                            🔍 İncele
+                        </button>
+                    </td>`;
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterHistoryByPlate() {
+            const query = (document.getElementById('plateSearchInput')?.value || '').replace(/\\s+/g, '').toLowerCase();
+            if (!query) {
+                renderHistoryRows(myLoadingsData);
+                return;
+            }
+            const filtered = (myLoadingsData || []).filter(l => {
+                const p1 = (l.plate1 || '').replace(/\\s+/g, '').toLowerCase();
+                const p2 = (l.plate2 || '').replace(/\\s+/g, '').toLowerCase();
+                return p1.includes(query) || p2.includes(query);
+            });
+            renderHistoryRows(filtered);
+        }
+
+
         let currentLoadingId = null;
         let activeVersion = 'current'; // 'current' or version_number
         let versions = [];

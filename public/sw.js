@@ -3,8 +3,8 @@
 // Version: 1.0.0
 // ============================================
 
-const CACHE_NAME = 'yukleme-cache-v2';
-const DYNAMIC_CACHE = 'yukleme-dynamic-v2';
+const CACHE_NAME = 'yukleme-cache-v7';
+const DYNAMIC_CACHE = 'yukleme-dynamic-v7';
 
 // Files to cache immediately on install
 const STATIC_ASSETS = [
@@ -32,7 +32,7 @@ const API_ROUTES = [
 // ============================================
 self.addEventListener('install', (event) => {
   console.log('[ServiceWorker] Installing...');
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -55,7 +55,7 @@ self.addEventListener('install', (event) => {
 // ============================================
 self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activating...');
-  
+
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -83,28 +83,28 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
   }
-  
+
   // Skip chrome-extension and other non-http requests
   if (!url.protocol.startsWith('http')) {
     return;
   }
-  
+
   // Skip Supabase storage requests (external images)
   if (url.hostname.includes('supabase')) {
     return;
   }
-  
+
   // API requests: Network First, fallback to cache
   if (API_ROUTES.some(route => url.pathname.startsWith(route))) {
     event.respondWith(networkFirst(request));
     return;
   }
-  
+
   // Static assets: Cache First, fallback to network
   event.respondWith(cacheFirst(request));
 });
@@ -121,27 +121,27 @@ self.addEventListener('fetch', (event) => {
  */
 async function cacheFirst(request) {
   const cachedResponse = await caches.match(request);
-  
+
   if (cachedResponse) {
     // Return cached version
     return cachedResponse;
   }
-  
+
   try {
     // Try network
     const networkResponse = await fetch(request);
-    
+
     // Cache successful responses
     if (networkResponse.ok) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     // Network failed
     console.log('[ServiceWorker] Network failed for:', request.url);
-    
+
     // For navigation requests, show offline page
     if (request.mode === 'navigate') {
       const offlinePage = await caches.match('/offline.html');
@@ -149,7 +149,7 @@ async function cacheFirst(request) {
         return offlinePage;
       }
     }
-    
+
     // For other requests, return a simple error response
     return new Response('Offline', {
       status: 503,
@@ -170,23 +170,23 @@ async function cacheFirst(request) {
 async function networkFirst(request) {
   try {
     const networkResponse = await fetch(request);
-    
+
     // Cache successful API responses
     if (networkResponse.ok) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.log('[ServiceWorker] Network failed, trying cache for:', request.url);
-    
+
     // Try cache
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
     // Return error response
     return new Response(JSON.stringify({ error: 'Çevrimdışı - Offline' }), {
       status: 503,
@@ -203,7 +203,7 @@ async function networkFirst(request) {
 // ============================================
 self.addEventListener('sync', (event) => {
   console.log('[ServiceWorker] Background sync:', event.tag);
-  
+
   if (event.tag === 'sync-loadings') {
     // Future: sync pending loadings when back online
   }
@@ -214,7 +214,7 @@ self.addEventListener('sync', (event) => {
 // ============================================
 self.addEventListener('push', (event) => {
   console.log('[ServiceWorker] Push received');
-  
+
   const options = {
     body: event.data ? event.data.text() : 'Yeni bildirim',
     icon: '/icons/icon-192x192.png',
@@ -229,7 +229,7 @@ self.addEventListener('push', (event) => {
       { action: 'close', title: 'Kapat' }
     ]
   };
-  
+
   event.waitUntil(
     self.registration.showNotification('Yükleme Yönetim Sistemi', options)
   );
@@ -238,7 +238,7 @@ self.addEventListener('push', (event) => {
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
+
   if (event.action === 'view') {
     event.waitUntil(
       clients.openWindow('/manager.html')
@@ -253,7 +253,7 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
+
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     caches.keys().then((names) => {
       names.forEach((name) => caches.delete(name));

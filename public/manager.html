@@ -32,6 +32,13 @@
     <!-- External Scripts -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
+    <style>
+        .field-changed {
+            border: 2px solid #f59e0b !important;
+            border-radius: 6px;
+        }
+    </style>
+
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -93,15 +100,29 @@
 
             <!-- Loadings Table -->
             <div class="table-card">
-                <div class="table-header">
-                    <div class="table-title">
-                        <span style="font-size: 24px;">📋</span>
-                        <h2>Yükleme Kayıtları</h2>
+                <div class="table-header" style="flex-direction: column; align-items: flex-start; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                        <div class="table-title">
+                            <span style="font-size: 24px;">📋</span>
+                            <h2>Yükleme Kayıtları</h2>
+                        </div>
+                        <button class="refresh-btn" id="refreshBtn">
+                            <span>🔄</span>
+                            <span>Yenile</span>
+                        </button>
                     </div>
-                    <button class="refresh-btn" id="refreshBtn">
-                        <span>🔄</span>
-                        <span>Yenile</span>
-                    </button>
+
+                    <div class="view-tabs"
+                        style="display: flex; gap: 10px; border-bottom: 1px solid var(--border-color); width: 100%; padding-bottom: 10px;">
+                        <button class="view-tab-btn active" id="tabActive" onclick="switchMainView(false)"
+                            style="padding: 8px 16px; border: none; background: var(--bg-primary); color: var(--text-primary); border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            Aktif Raporlar
+                        </button>
+                        <button class="view-tab-btn" id="tabArchive" onclick="switchMainView(true)"
+                            style="padding: 8px 16px; border: none; background: transparent; color: var(--text-secondary); border-radius: 6px; cursor: pointer;">
+                            🗑️ Çöp Kutusu (Arşiv)
+                        </button>
+                    </div>
                 </div>
 
                 <div id="tableContainer">
@@ -126,7 +147,7 @@
                 <div class="empty-state hidden" id="emptyState">
                     <div class="empty-state-icon">📭</div>
                     <h3>Yükleme kaydı bulunamadı</h3>
-                    <p>Yükleme sorumlusu kayıt gönderdiğinde burada görünecektir</p>
+                    <p>Bu bölümde görüntülenecek kayıt yok</p>
                 </div>
             </div>
         </main>
@@ -157,6 +178,7 @@
 
     <script>
         let loadingsData = [];
+        let isArchiveView = false; // State for active tab
 
         // Check authentication
         async function checkAuth() {
@@ -198,10 +220,39 @@
             }
         });
 
+        // Switch Tabs
+        function switchMainView(archive) {
+            isArchiveView = archive;
+
+            const tabActive = document.getElementById('tabActive');
+            const tabArchive = document.getElementById('tabArchive');
+
+            if (archive) {
+                tabArchive.style.background = 'var(--bg-primary)';
+                tabArchive.style.color = 'var(--text-primary)';
+                tabArchive.style.fontWeight = '500';
+
+                tabActive.style.background = 'transparent';
+                tabActive.style.color = 'var(--text-secondary)';
+                tabActive.style.fontWeight = 'normal';
+            } else {
+                tabActive.style.background = 'var(--bg-primary)';
+                tabActive.style.color = 'var(--text-primary)';
+                tabActive.style.fontWeight = '500';
+
+                tabArchive.style.background = 'transparent';
+                tabArchive.style.color = 'var(--text-secondary)';
+                tabArchive.style.fontWeight = 'normal';
+            }
+
+            loadLoadings();
+        }
+
         // Load loadings
         async function loadLoadings() {
             try {
-                const response = await fetch('/api/loadings');
+                const url = isArchiveView ? '/api/loadings?archived=true' : '/api/loadings';
+                const response = await fetch(url);
                 const data = await response.json();
 
                 if (response.ok) {
@@ -242,7 +293,7 @@
                     : ''}
                         </div>
                     </td>
-                    <td>${loading.plate1 || '-'} ${loading.plate2 ? '/ ' + loading.plate2 : ''}</td>
+                    <td>${(loading.plate1 || '-').replace(/\s+/g, '')} ${loading.plate2 ? '/ ' + loading.plate2.replace(/\s+/g, '') : ''}</td>
                     <td>${loading.destination_company || '-'} - ${loading.destination_country || '-'}</td>
                     <td><span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.created_at)}</span></td>
                     <td>${loading.safwat_recorded_at
@@ -386,7 +437,21 @@
                 `;
             }
 
-            contentHtml += renderLoadingDetails(activeVersionData, !isArchived); // Pass isEditable=false for archived
+            let previousVersionData = null;
+            if (currentVersions.length > 1) {
+                // The previous version is the one immediately older than the active one
+                // If we are looking at Current (index 0), previous is index 1
+                // If we are looking at index 1, previous is index 2, etc.
+                if (activeIndex < currentVersions.length - 1) {
+                    previousVersionData = currentVersions[activeIndex + 1].data;
+                }
+            }
+
+            console.log(`[Highlight Debug] rendering tab index ${activeIndex}`);
+            console.log(`[Highlight Debug] activeVersionData:`, activeVersionData);
+            console.log(`[Highlight Debug] previousVersionData:`, previousVersionData);
+
+            contentHtml += renderLoadingDetails(activeVersionData, !isArchived, previousVersionData); // Pass isEditable=false for archived
 
             modalBody.innerHTML = tabsHtml + '<div class="version-content">' + contentHtml + '</div>';
         }
@@ -409,7 +474,7 @@
                 }
 
                 currentUsername = data.user.username;
-                document.getElementById('userName').textContent = currentUsername === 'pinar' ? 'Saha Operasyon' : 'Üretim Müdürü';
+                document.getElementById('userName').textContent = currentUsername === 'pinar' ? 'pinar' : 'Üretim Müdürü';
 
                 // Load data after auth check
                 loadLoadings();
@@ -422,7 +487,44 @@
         // Call checkAuth immediately
         checkAuth();
 
-        function renderLoadingDetails(loading, isCurrentVersion = true) {
+        function getChangedClass(currentData, previousData, fieldName) {
+            // Only highlight if it's the current version AND we have previous data
+            if (!previousData) return '';
+
+            // Do not highlight if the active version was edited by the manager
+            const managerEditNoteText = 'Bu rapor yönetici tarafından düzenlenmiştir.';
+            const isManagerEdit = typeof currentData.comments === 'string' && currentData.comments.includes(managerEditNoteText);
+            if (isManagerEdit) return ''; // Suppress highlights for manager edits
+
+            let currentVal = currentData[fieldName];
+            let prevVal = previousData[fieldName];
+
+            // If we are comparing the products array, stringify them consistently
+            if (fieldName === 'products') {
+                if (typeof currentVal === 'string') {
+                    try { currentVal = JSON.parse(currentVal); } catch (e) { }
+                }
+                if (typeof prevVal === 'string') {
+                    try { prevVal = JSON.parse(prevVal); } catch (e) { }
+                }
+                currentVal = JSON.stringify(currentVal || []);
+                prevVal = JSON.stringify(prevVal || []);
+            }
+
+            // Consider undefined, null, and empty string as equivalent
+            const cleanCurrent = (currentVal == null || currentVal === 'null') ? '' : String(currentVal).trim();
+            const cleanPrev = (prevVal == null || prevVal === 'null') ? '' : String(prevVal).trim();
+
+            // Compare values
+            if (cleanCurrent !== cleanPrev) {
+                console.log(`[Highlight] Field changed: ${fieldName} | Old: '${cleanPrev}', New: '${cleanCurrent}'`);
+                // Ensure field-changed class is applied
+                return 'field-changed';
+            }
+            return '';
+        }
+
+        function renderLoadingDetails(loading, isCurrentVersion = true, previousData = null) {
             let products = loading.products || [];
             if (!Array.isArray(products)) {
                 try { products = JSON.parse(products); } catch (e) { products = []; }
@@ -461,19 +563,19 @@
                     <div class="detail-section">
                         <h3>🚚 Araç Bilgileri</h3>
                         <div class="detail-grid">
-                            <div class="detail-item">
+                            <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate1') : ''}">
                                 <label>Araç Plakası 1</label>
-                                <span>${loading.plate1 || '-'}</span>
+                                <span>${loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-'}</span>
                             </div>
-                            <div class="detail-item">
+                            <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate2') : ''}">
                                 <label>Araç Plakası 2</label>
-                                <span>${loading.plate2 || '-'}</span>
+                                <span>${loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-'}</span>
                             </div>
-                            <div class="detail-item">
+                            <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'container_no') : ''}">
                                 <label>Konteyner Numarası</label>
-                                <span>${loading.container_no || '-'}</span>
+                                <span>${loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-'}</span>
                             </div>
-                            <div class="detail-item">
+                            <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'loading_date') : ''}">
                                 <label>Tarih</label>
                                 <span>${formatDate(loading.loading_date)}</span>
                             </div>
@@ -481,7 +583,7 @@
                     </div>
 
                     <!-- Products -->
-                    <div class="detail-section">
+                    <div class="detail-section ${isCurrentVersion && String(loading.products) !== String(previousData?.products) ? 'field-changed' : ''}">
                         <h3>📦 Yüklenen Mallar</h3>
                         ${products.length > 0 ? `
                             <table class="products-table" style="margin-top: 12px;">
@@ -539,113 +641,51 @@
             // Default Manager View (Full Access)
             return `
                 ${managerEditBanner}
-                <!-- Team Info -->
-                <div class="detail-section">
-                    <h3>👥 Ekip Bilgileri</h3>
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <label>Yönetici</label>
-                            <span>${loading.manager || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Birinci Eleman</label>
-                            <span>${loading.worker1 || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>İkinci Eleman</label>
-                            <span>${loading.worker2 || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Üçüncü Eleman</label>
-                            <span>${loading.worker3 || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Dördüncü Eleman</label>
-                            <span>${loading.worker4 || '-'}</span>
-                        </div>
-                        <!-- Moved Forklift Operator Here or separate? In HTML default it was here -->
-                        <div class="detail-item">
-                            <label>Forklift Sürücüsü</label>
-                            <span>${loading.forklift_operator || '-'}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Vehicle Info -->
-                <div class="detail-section">
-                    <h3>🚚 Araç Bilgileri</h3>
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <label>Araç Plakası 1</label>
-                            <span>${loading.plate1 || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Araç Plakası 2</label>
-                            <span>${loading.plate2 || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Konteyner Numarası</label>
-                            <span>${loading.container_no || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Tarih</label>
-                            <span>${formatDate(loading.loading_date)}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Weight Info -->
-                <div class="detail-section">
-                    <h3>⚖️ Ağırlık Bilgileri</h3>
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <label>Ürün Ağırlığı</label>
-                            <span>${loading.product_weight || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>Tartıdan Sonra Araç Ağırlığı</label>
-                            <span>${loading.vehicle_weight_after || '-'}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Destination Info -->
+                
+                <!-- Destination Info (Moved to Top) -->
                 <div class="detail-section">
                     <h3>📍 Varış Bilgileri</h3>
                     <div class="detail-grid">
-                        <div class="detail-item">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_company') : ''}">
                             <label>Şirket</label>
                             <span>${loading.destination_company || '-'}</span>
                         </div>
-                        <div class="detail-item">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_country') : ''}">
                             <label>Ülke</label>
                             <span>${loading.destination_country || '-'}</span>
                         </div>
-                        <div class="detail-item">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_customer') : ''}">
                             <label>Müşteri</label>
                             <span>${loading.destination_customer || '-'}</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Driver Info -->
+                <!-- Vehicle Info (Moved to 2nd) -->
                 <div class="detail-section">
-                    <h3>🧑 Sürücü Bilgileri</h3>
+                    <h3>🚚 Araç Bilgileri</h3>
                     <div class="detail-grid">
-                        <div class="detail-item">
-                            <label>Sürücü Adı</label>
-                            <span>${loading.driver_name || '-'}</span>
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate1') : ''}">
+                            <label>Araç Plakası 1</label>
+                            <span>${loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-'}</span>
                         </div>
-                        <div class="detail-item">
-                            <label>Sürücü Telefonu</label>
-                            <span>${loading.driver_phone || '-'}</span>
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate2') : ''}">
+                            <label>Araç Plakası 2</label>
+                            <span>${loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-'}</span>
                         </div>
-                        <!-- Forklift was moved in Loader view, here we can keep it or sync. Keeping it in Team or Driver is fine for Manager view -->
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'container_no') : ''}">
+                            <label>Konteyner Numarası</label>
+                            <span>${loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-'}</span>
+                        </div>
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'loading_date') : ''}">
+                            <label>Tarih</label>
+                            <span>${formatDate(loading.loading_date)}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Products -->
-                <div class="detail-section">
+                <!-- Products (Moved to 3rd) -->
+                <div class="detail-section ${isCurrentVersion && String(loading.products) !== String(previousData?.products) ? 'field-changed' : ''}">
                     <h3>📦 Yüklenen Mallar</h3>
                     ${products.length > 0 ? `
                         <table class="products-table" style="margin-top: 12px;">
@@ -668,17 +708,73 @@
                         </table>
                     ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
                 </div>
+
+                <!-- Team Info -->
+                <div class="detail-section">
+                    <h3>👥 Ekip Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'manager') : ''}">
+                            <label>Yönetici</label>
+                            <span>${loading.manager || '-'}</span>
+                        </div>
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker1') : ''}">
+                            <label>Birinci Eleman</label>
+                            <span>${loading.worker1 || '-'}</span>
+                        </div>
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker2') : ''}">
+                            <label>İkinci Eleman</label>
+                            <span>${loading.worker2 || '-'}</span>
+                        </div>
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker3') : ''}">
+                            <label>Üçüncü Eleman</label>
+                            <span>${loading.worker3 || '-'}</span>
+                        </div>
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker4') : ''}">
+                            <label>Dördüncü Eleman</label>
+                            <span>${loading.worker4 || '-'}</span>
+                        </div>
+                        <!-- Moved Forklift Operator Here or separate? In HTML default it was here -->
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'forklift_operator') : ''}">
+                            <label>Forklift Sürücüsü</label>
+                            <span>${loading.forklift_operator || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weight Info -->
+                <div class="detail-section">
+                    <h3>⚖️ Ağırlık Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'product_weight') : ''}">
+                            <label>Ürün Ağırlığı</label>
+                            <span>${loading.product_weight || '-'}</span>
+                        </div>
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
+                            <label>Tartıdan Sonra Araç Ağırlığı</label>
+                            <span>${loading.vehicle_weight_after || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Info -->
+                <div class="detail-section">
+                    <h3>🧑 Sürücü Bilgileri</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'driver_name') : ''}">
+                            <label>Sürücü Adı</label>
+                            <span>${loading.driver_name || '-'}</span>
+                        </div>
                 ${photosHtml}
 
                 <!-- Times -->
                 <div class="detail-section">
                     <h3>🕐 Zamanlar</h3>
                     <div class="detail-grid">
-                        <div class="detail-item">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'entry_time') : ''}">
                             <label>Giriş Zamanı</label>
                             <span>${loading.entry_time || '-'}</span>
                         </div>
-                        <div class="detail-item">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'exit_time') : ''}">
                             <label>Çıkış Zamanı</label>
                             <span>${loading.exit_time || '-'}</span>
                         </div>
@@ -687,7 +783,7 @@
 
                 <!-- Comments -->
                 ${loading.comments ? `
-                    <div class="detail-section">
+                    <div class="detail-section ${isCurrentVersion ? getChangedClass(loading, previousData, 'comments') : ''}">
                         <h3>💬 Yorumlar</h3>
                         <p style="color: var(--gray-200); line-height: 1.8;">${loading.comments}</p>
                     </div>
@@ -731,14 +827,27 @@
                     `;
                 })() : ''}
 
-                <!-- Edit Button - Only show for current version -->
+                <!-- Action Buttons - Only show for current version -->
                 ${isCurrentVersion ? `
-                    <div class="detail-section">
+                    <div class="detail-section" style="display: flex; gap: 10px; flex-direction: column;">
+                        ${!loading.is_archived ? `
                         <button class="tab-btn active"
                             style="width: 100%; justify-content: center; background: var(--bg-input); border: 2px solid var(--warning); color: var(--text-primary); margin-top: 10px;"
                             onclick="openManagerEdit()">
                             ✏️ Raporu Düzenle (Yönetici)
                         </button>
+                        <button class="tab-btn"
+                            style="width: 100%; justify-content: center; background: transparent; border: 2px solid var(--error); color: var(--error); margin-top: 5px;"
+                            onclick="archiveLoading('${loading.id}')">
+                            🗑️ Arşive Taşı (Soft Delete)
+                        </button>
+                        ` : `
+                        <button class="tab-btn"
+                            style="width: 100%; justify-content: center; background: transparent; border: 2px solid var(--success); color: var(--success); margin-top: 10px;"
+                            onclick="restoreLoading('${loading.id}')">
+                            ♻️ Geri Yükle (Restore)
+                        </button>
+                        `}
                     </div>
                 ` : ''}
             `;
@@ -831,6 +940,52 @@
         // Print Report
         function printReport() {
             window.print();
+        }
+
+        // Archive loading
+        async function archiveLoading(id) {
+            if (!confirm('Bu raporu arşive taşımak istediğinizden emin misiniz?')) return;
+
+            try {
+                const response = await fetch(`/api/loadings/${id}/archive`, {
+                    method: 'PATCH'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('detailModal').classList.remove('show');
+                    loadLoadings();
+                } else {
+                    alert(data.error || 'Bir hata oluştu');
+                }
+            } catch (error) {
+                console.error('Archive error:', error);
+                alert('Bağlantı hatası');
+            }
+        }
+
+        // Restore loading
+        async function restoreLoading(id) {
+            if (!confirm('Bu raporu arşivden aktif raporlara taşımak istediğinizden emin misiniz?')) return;
+
+            try {
+                const response = await fetch(`/api/loadings/${id}/restore`, {
+                    method: 'PATCH'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('detailModal').classList.remove('show');
+                    loadLoadings();
+                } else {
+                    alert(data.error || 'Bir hata oluştu');
+                }
+            } catch (error) {
+                console.error('Restore error:', error);
+                alert('Bağlantı hatası');
+            }
         }
 
         // ---------- Manager Edit Mode ----------
@@ -1287,9 +1442,9 @@
             if (currentUsername === 'pinar') {
                 // 1. Vehicle Info
                 addSection('Araç Bilgileri');
-                addRow('Plaka (Çekici)', loading.plate1);
-                addRow('Plaka (Dorse)', loading.plate2);
-                addRow('Konteyner Numarası', loading.container_no);
+                addRow('Plaka (Çekici)', (loading.plate1 || '').replace(/\s+/g, ''));
+                addRow('Plaka (Dorse)', (loading.plate2 || '').replace(/\s+/g, ''));
+                addRow('Konteyner Numarası', (loading.container_no || '').replace(/\s+/g, ''));
                 addRow('Tarih', formatDate(loading.loading_date));
 
                 // 2. Products
@@ -1326,9 +1481,9 @@
 
                 // 3. Vehicle & Driver
                 addSection('Araç ve Sürücü');
-                addRow('Plaka (Çekici)', loading.plate1);
-                addRow('Plaka (Dorse)', loading.plate2);
-                addRow('Konteyner Numarası', loading.container_no);
+                addRow('Plaka (Çekici)', (loading.plate1 || '').replace(/\s+/g, ''));
+                addRow('Plaka (Dorse)', (loading.plate2 || '').replace(/\s+/g, ''));
+                addRow('Konteyner Numarası', (loading.container_no || '').replace(/\s+/g, ''));
                 addRow('Sürücü Adı', loading.driver_name);
                 addRow('Sürücü Telefonu', loading.driver_phone);
 

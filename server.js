@@ -10,7 +10,7 @@ const { supabase, initializeDatabase } = require('./database');
 const { sendNotification } = require('./utils/telegramBot');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 // Trust proxy is required for secure cookies on Render/Heroku
 app.set('trust proxy', 1);
@@ -269,6 +269,7 @@ app.get('/api/my-loadings', requireLoader, async (req, res) => {
             .from('loadings')
             .select('*')
             .eq('created_by', req.session.user.id)
+            .eq('is_archived', false)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -290,9 +291,12 @@ app.get('/api/my-loadings', requireLoader, async (req, res) => {
 // Get all loadings (manager only)
 app.get('/api/loadings', requireManager, async (req, res) => {
     try {
+        const fetchArchived = req.query.archived === 'true';
+
         const { data, error } = await supabase
             .from('loadings')
             .select('*, loading_versions(count)')
+            .eq('is_archived', fetchArchived)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -444,6 +448,11 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             } else {
                 comments = existingComments;
             }
+        } else {
+            // It's a loader making the edit. We MUST preserve existing comments since loader edit form doesn't send them,
+            // AND we MUST remove the managerEditNote if it was previously added by a manager.
+            const existingComments = comments || current.comments || '';
+            comments = existingComments.replace(managerEditNote, '').trim();
         }
 
         const updateData = {
@@ -499,15 +508,20 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
 
         // Send Telegram Notification (Conditional)
         try {
-            // Check if ANY manager has viewed the report
-            // current.viewed_at is set when any manager opens the report
-            if (current.viewed_at) {
-                // If viewed, send URGENT alert
-                console.log(`Report ${id} changed after viewing. Sending ALERT.`);
-                await sendNotification(updated, 'update_important');
+            // Only send notifications if the user is a loader, not a manager
+            if (req.session.user.role !== 'manager') {
+                // Check if ANY manager has viewed the report
+                // current.viewed_at is set when any manager opens the report
+                if (current.viewed_at) {
+                    // If viewed, send URGENT alert
+                    console.log(`Report ${id} changed after viewing. Sending ALERT.`);
+                    await sendNotification(updated, 'update_important');
+                } else {
+                    // If NOT viewed, update silently (No notification)
+                    console.log(`Report ${id} updated before viewing. Silent update.`);
+                }
             } else {
-                // If NOT viewed, update silently (No notification)
-                console.log(`Report ${id} updated before viewing. Silent update.`);
+                console.log(`Report ${id} updated by manager. No Telegram notification sent.`);
             }
         } catch (notifyError) {
             console.error('Notification failed:', notifyError);
@@ -624,6 +638,52 @@ app.patch('/api/loadings/:id/unrecord', requireManager, async (req, res) => {
     }
 });
 
+
+
+// Archive loading (manager only)
+app.patch('/api/loadings/:id/archive', requireManager, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('loadings')
+            .update({ is_archived: true })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Archive error:', error);
+            return res.status(500).json({ error: 'حدث خطأ أثناء أرشفة التقرير' });
+        }
+
+        res.json({ message: 'تم أرشفة التقرير بنجاح', loading: data });
+    } catch (error) {
+        console.error('Archive loading error:', error);
+        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+    }
+});
+
+// Restore loading (manager only)
+app.patch('/api/loadings/:id/restore', requireManager, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('loadings')
+            .update({ is_archived: false })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Restore error:', error);
+            return res.status(500).json({ error: 'حدث خطأ أثناء عرض التقرير' });
+        }
+
+        res.json({ message: 'تم استعادة التقرير بنجاح', loading: data });
+    } catch (error) {
+        console.error('Restore loading error:', error);
+        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+    }
+});
+
 // Mark loading as viewed (manager only)
 app.patch('/api/loadings/:id/view', requireManager, async (req, res) => {
     try {
@@ -671,7 +731,8 @@ async function startServer() {
         console.log(`\n📋 Default users:`);
         console.log(`   Loader 1: username=murat, password=murat123`);
         console.log(`   Loader 2: username=mahmud, password=mahmud123`);
-        console.log(`   Manager: username=manager, password=manager123\n`);
+        console.log(`   Manager: username=manager, password=manager123`);
+        console.log(`   Manager: username=pinar, password=pinar123\n`);
     });
 }
 

@@ -165,7 +165,7 @@
                         <div class="form-group">
                             <label for="vehicle_weight_after">Tartıdan Sonra Arabanın Ağırlığı</label>
                             <input type="text" id="vehicle_weight_after" name="vehicle_weight_after"
-                                placeholder="Örnek: 12000 kg">
+                                placeholder="Örnek: 12000 kg" required>
                         </div>
                     </div>
                 </div>
@@ -1160,8 +1160,7 @@
                                 <h3>⚖️ Ağırlık Bilgileri</h3>
                                 <div class="form-grid form-grid-2">
                                     ${input('Ürün Ağırlığı', 'product_weight', loading.product_weight)}
-                                    ${input('Tartıdan Sonra Araç', 'vehicle_weight_after',
-                loading.vehicle_weight_after)}
+                                    ${input('Tartıdan Sonra Araç', 'vehicle_weight_after', loading.vehicle_weight_after, 'text', true)}
                                 </div>
                             </div>
 

@@ -606,6 +606,22 @@
                             </table>
                         ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
                     </div>
+
+                    <!-- Weight Info -->
+                    <div class="detail-section">
+                        <h3>⚖️ Ağırlık Bilgileri</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'product_weight') : ''}">
+                                <label>Ürün Ağırlığı</label>
+                                <span>${loading.product_weight || '-'}</span>
+                            </div>
+                            <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
+                                <label>Tartıdan Sonra Araç Ağırlığı</label>
+                                <span>${loading.vehicle_weight_after || '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     ${photosHtml}
                     <!-- Record Button - Only show for current version -->
                     ${isCurrentVersion ? (() => {
@@ -1081,7 +1097,7 @@
                         <h3>⚖️ Ağırlık Bilgileri</h3>
                         <div class="form-grid form-grid-2">
                             ${input('Ürün Ağırlığı', 'product_weight', loading.product_weight)}
-                            ${input('Tartıdan Sonra Araç', 'vehicle_weight_after', loading.vehicle_weight_after)}
+                            ${input('Tartıdan Sonra Araç', 'vehicle_weight_after', loading.vehicle_weight_after, 'text', true)}
                         </div>
                     </div>
 
@@ -1460,8 +1476,10 @@
                     addRow('Mal Bilgisi', 'Yok');
                 }
 
-
-
+                // 3. Weight Info
+                addSection('Ağırlık Bilgileri');
+                addRow('Ürün Ağırlığı', loading.product_weight);
+                addRow('Tartıdan Sonra Araç Ağırlığı', loading.vehicle_weight_after);
             } else {
                 // FULL VIEW for Safwat/Production Manager
 

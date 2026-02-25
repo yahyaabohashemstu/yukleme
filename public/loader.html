@@ -148,27 +148,6 @@
                     </div>
                 </div>
 
-                <!-- Section 3: Weight & Destination -->
-                <div class="form-card">
-                    <div class="form-card-header">
-                        <div class="form-card-icon">⚖️</div>
-                        <div class="form-card-title">
-                            <h2>Ağırlık Bilgileri</h2>
-                            <p>Weight Information</p>
-                        </div>
-                    </div>
-                    <div class="form-grid form-grid-3">
-                        <div class="form-group">
-                            <label for="product_weight">Yüklenecek Ürünün Ağırlığı</label>
-                            <input type="text" id="product_weight" name="product_weight" placeholder="Örnek: 1500 kg">
-                        </div>
-                        <div class="form-group">
-                            <label for="vehicle_weight_after">Tartıdan Sonra Arabanın Ağırlığı</label>
-                            <input type="text" id="vehicle_weight_after" name="vehicle_weight_after"
-                                placeholder="Örnek: 12000 kg" required>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Section 3.1: Destination Info -->
                 <div class="form-card">
@@ -225,7 +204,7 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">📦</div>
                         <div class="form-card-title">
-                            <h2>Yüklenecek Mallar</h2>
+                            <h2>Yüklenen Mallar</h2>
                             <p>Products to Load</p>
                         </div>
                     </div>
@@ -257,6 +236,13 @@
                         <span>➕</span>
                         <span>Yeni Satır Ekle</span>
                     </button>
+                    <!-- Vehicle Weight After - shown inside products card -->
+                    <div class="form-group"
+                        style="margin-top: 18px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                        <label for="vehicle_weight_after">Toplam Yük Ağırlığı ⚖️</label>
+                        <input type="text" id="vehicle_weight_after" name="vehicle_weight_after"
+                            placeholder="Örnek: 12000 kg" style="max-width: 300px;" required>
+                    </div>
                 </div>
 
                 <div class="form-grid form-grid-2" style="margin-top: 24px;">
@@ -1155,15 +1141,6 @@
                                 </div>
                             </div>
 
-                            <!-- Weight & Destination -->
-                            <div class="detail-section">
-                                <h3>⚖️ Ağırlık Bilgileri</h3>
-                                <div class="form-grid form-grid-2">
-                                    ${input('Ürün Ağırlığı', 'product_weight', loading.product_weight)}
-                                    ${input('Tartıdan Sonra Araç', 'vehicle_weight_after', loading.vehicle_weight_after, 'text', true)}
-                                </div>
-                            </div>
-
                             <!-- Destination Info -->
                             <div class="detail-section">
                                 <h3>📍 Varış Bilgileri</h3>
@@ -1289,6 +1266,13 @@
                                             style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
                                     </div>
                                     `).join('')}
+                                </div>
+                            </div>
+                            <!-- Vehicle Weight After - shown inside products section -->
+                            <div class="detail-section" style="margin-top: -10px; padding-top: 0; border-top: none;">
+                                <div class="form-group">
+                                    <label>Toplam Yük Ağırlığı ⚖️</label>
+                                    <input type="text" name="vehicle_weight_after" value="${loading.vehicle_weight_after || ''}" placeholder="Örnek: 12000 kg" style="max-width: 300px;" required>
                                 </div>
                             </div>
 

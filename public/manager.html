@@ -605,19 +605,10 @@
                                 </tbody>
                             </table>
                         ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
-                    </div>
-
-                    <!-- Weight Info -->
-                    <div class="detail-section">
-                        <h3>⚖️ Ağırlık Bilgileri</h3>
-                        <div class="detail-grid">
-                            <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'product_weight') : ''}">
-                                <label>Ürün Ağırlığı</label>
-                                <span>${loading.product_weight || '-'}</span>
-                            </div>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                                 <label>Tartıdan Sonra Araç Ağırlığı</label>
-                                <span>${loading.vehicle_weight_after || '-'}</span>
+                                <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
                             </div>
                         </div>
                     </div>
@@ -723,6 +714,12 @@
                             </tbody>
                         </table>
                     ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
+                            <label>Tartıdan Sonra Araç Ağırlığı</label>
+                            <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Team Info -->
@@ -753,21 +750,6 @@
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'forklift_operator') : ''}">
                             <label>Forklift Sürücüsü</label>
                             <span>${loading.forklift_operator || '-'}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Weight Info -->
-                <div class="detail-section">
-                    <h3>⚖️ Ağırlık Bilgileri</h3>
-                    <div class="detail-grid">
-                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'product_weight') : ''}">
-                            <label>Ürün Ağırlığı</label>
-                            <span>${loading.product_weight || '-'}</span>
-                        </div>
-                        <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
-                            <label>Tartıdan Sonra Araç Ağırlığı</label>
-                            <span>${loading.vehicle_weight_after || '-'}</span>
                         </div>
                     </div>
                 </div>
@@ -1092,12 +1074,13 @@
                         </div>
                     </div>
 
-                    <!-- Weight & Destination -->
+
+                    <!-- Products section is dynamically rendered below -->
+                    <!-- Araç Ağırlığı is shown after products in a separate detail-section -->
                     <div class="detail-section">
-                        <h3>⚖️ Ağırlık Bilgileri</h3>
+                        <h3>⚖️ Araç Ağırlığı (Tartı Sonrası)</h3>
                         <div class="form-grid form-grid-2">
-                            ${input('Ürün Ağırlığı', 'product_weight', loading.product_weight)}
-                            ${input('Tartıdan Sonra Araç', 'vehicle_weight_after', loading.vehicle_weight_after, 'text', true)}
+                            ${input('Tartıdan Sonra Araç Ağırlığı', 'vehicle_weight_after', loading.vehicle_weight_after, 'text', true)}
                         </div>
                     </div>
 

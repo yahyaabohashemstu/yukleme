@@ -350,10 +350,16 @@ app.get('/api/loadings/:id/versions', requireAuth, async (req, res) => {
     }
 });
 
-// Update loading (loader only) - Archives old version
-app.put('/api/loadings/:id', requireLoader, upload.array('photos'), async (req, res) => {
+// Update loading (loader or manager) - Archives old version
+app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, res) => {
     try {
         const id = req.params.id;
+        const currentUser = req.session.user;
+        const currentRole = currentUser?.role;
+
+        if (!currentRole || !['loader', 'manager'].includes(currentRole)) {
+            return res.status(403).json({ error: 'Bu işlem için yetkiniz yok.' });
+        }
 
         // 1. Get current data
         const { data: current, error: fetchError } = await supabase
@@ -380,7 +386,7 @@ app.put('/api/loadings/:id', requireLoader, upload.array('photos'), async (req, 
                 loading_id: id,
                 version_number: nextVersion,
                 data: current,
-                archived_by: req.session.user.id
+                archived_by: currentUser.id
             }]);
 
         if (archiveError) {
@@ -425,6 +431,21 @@ app.put('/api/loadings/:id', requireLoader, upload.array('photos'), async (req, 
             products = req.body.products || [];
         }
 
+        // 4. Prepare new data
+        const managerEditNote = 'Bu rapor yönetici tarafından düzenlenmiştir.';
+
+        let comments = req.body.comments;
+        if (currentRole === 'manager') {
+            const existingComments = comments || current.comments || '';
+            if (!existingComments.includes(managerEditNote)) {
+                comments = existingComments
+                    ? `${managerEditNote}\n\n${existingComments}`
+                    : managerEditNote;
+            } else {
+                comments = existingComments;
+            }
+        }
+
         const updateData = {
             manager: req.body.manager,
             worker1: req.body.worker1,
@@ -449,7 +470,7 @@ app.put('/api/loadings/:id', requireLoader, upload.array('photos'), async (req, 
             loaded_vehicle_photos: finalPhotos, // All photos go here
             entry_time: req.body.entry_time === '' ? null : req.body.entry_time,
             exit_time: req.body.exit_time === '' ? null : req.body.exit_time,
-            comments: req.body.comments,
+            comments,
             // Reset recorded status on edit
             is_recorded: false,
             recorded_at: null,

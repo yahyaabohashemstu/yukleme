@@ -111,7 +111,6 @@
                                 <th>Müşteri</th>
                                 <th>Araç Plakası</th>
                                 <th>Varış Yeri</th>
-                                <th>Sürücü</th>
                                 <th>Sisteme Giriş (Loader)</th>
                                 <th>Safwat</th>
                                 <th>Pinar</th>
@@ -245,7 +244,6 @@
                     </td>
                     <td>${loading.plate1 || '-'} ${loading.plate2 ? '/ ' + loading.plate2 : ''}</td>
                     <td>${loading.destination_company || '-'} - ${loading.destination_country || '-'}</td>
-                    <td>${loading.driver_name || '-'}</td>
                     <td><span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.created_at)}</span></td>
                     <td>${loading.safwat_recorded_at
                     ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
@@ -431,6 +429,14 @@
                 if (!Array.isArray(products)) products = [];
             }
 
+            const managerEditNoteText = 'Bu rapor yönetici tarafından düzenlenmiştir.';
+            const hasManagerEditNote = typeof loading.comments === 'string' && loading.comments.includes(managerEditNoteText);
+            const managerEditBanner = hasManagerEditNote ? `
+                <div class="archive-warning">
+                    📝 Bu rapor yönetici tarafından düzenlenmiştir.
+                </div>
+            ` : '';
+
             // Generate Photos HTML
             const photosHtml = loading.loaded_vehicle_photos && loading.loaded_vehicle_photos.length > 0 ? `
                 <div class="detail-section">
@@ -450,6 +456,7 @@
             // Pinar's Restricted View
             if (currentUsername === 'pinar') {
                 return `
+                    ${managerEditBanner}
                     <!-- Vehicle Info -->
                     <div class="detail-section">
                         <h3>🚚 Araç Bilgileri</h3>
@@ -531,6 +538,7 @@
 
             // Default Manager View (Full Access)
             return `
+                ${managerEditBanner}
                 <!-- Team Info -->
                 <div class="detail-section">
                     <h3>👥 Ekip Bilgileri</h3>
@@ -722,6 +730,17 @@
                     </div>
                     `;
                 })() : ''}
+
+                <!-- Edit Button - Only show for current version -->
+                ${isCurrentVersion ? `
+                    <div class="detail-section">
+                        <button class="tab-btn active"
+                            style="width: 100%; justify-content: center; background: var(--bg-input); border: 2px solid var(--warning); color: var(--text-primary); margin-top: 10px;"
+                            onclick="openManagerEdit()">
+                            ✏️ Raporu Düzenle (Yönetici)
+                        </button>
+                    </div>
+                ` : ''}
             `;
         }
 
@@ -812,6 +831,213 @@
         // Print Report
         function printReport() {
             window.print();
+        }
+
+        // ---------- Manager Edit Mode ----------
+
+        function openManagerEdit() {
+            if (!currentLoading) return;
+
+            const loading = currentLoading;
+            let products = loading.products || [];
+            if (!Array.isArray(products)) {
+                try { products = JSON.parse(products); } catch (e) { products = []; }
+                if (!Array.isArray(products)) products = [];
+            }
+
+            const modalBody = document.getElementById('modalBody');
+
+            const managerEditFormHtml = `
+                <div class="detail-section">
+                    <h3>📝 Raporu Düzenle (Yönetici)</h3>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                        Bu düzenleme yeni bir versiyon oluşturur ve eski versiyon arşivlenir.
+                    </p>
+                </div>
+
+                <form id="managerEditForm" onsubmit="event.preventDefault(); saveManagerChanges();">
+                    <div class="detail-section">
+                        <h3>📍 Varış Bilgileri</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Şirket</label>
+                                <input type="text" name="destination_company" value="${loading.destination_company || ''}">
+                            </div>
+                            <div class="detail-item">
+                                <label>Ülke</label>
+                                <input type="text" name="destination_country" value="${loading.destination_country || ''}">
+                            </div>
+                            <div class="detail-item">
+                                <label>Müşteri</label>
+                                <input type="text" name="destination_customer" value="${loading.destination_customer || ''}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>🧑 Sürücü Bilgileri</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Sürücü Adı</label>
+                                <input type="text" name="driver_name" value="${loading.driver_name || ''}">
+                            </div>
+                            <div class="detail-item">
+                                <label>Sürücü Telefonu</label>
+                                <input type="text" name="driver_phone" value="${loading.driver_phone || ''}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>🕐 Zamanlar</h3>
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <label>Giriş Zamanı (HH:MM)</label>
+                                <input type="text" name="entry_time" value="${loading.entry_time || ''}" placeholder="örn. 08:30">
+                            </div>
+                            <div class="detail-item">
+                                <label>Çıkış Zamanı (HH:MM)</label>
+                                <input type="text" name="exit_time" value="${loading.exit_time || ''}" placeholder="örn. 17:45">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3>📦 Yüklenen Mallar</h3>
+                            <button type="button" class="tab-btn compact" onclick="addManagerProductRow()"
+                                style="background: var(--bg-input);">
+                                + Mal Ekle
+                            </button>
+                        </div>
+                        <div id="managerProductsContainer">
+                            ${products.map(p => `
+                                <div class="product-entry"
+                                    style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                                    <div class="form-group" style="margin: 0;">
+                                        <label style="font-size: 11px;">Malın Adı</label>
+                                        <input type="text" class="manager-prod-name" value="${p.name || ''}">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label style="font-size: 11px;">Sayısı</label>
+                                        <input type="number" class="manager-prod-qty" value="${p.quantity || ''}">
+                                    </div>
+                                    <div class="form-group" style="margin: 0;">
+                                        <label style="font-size: 11px;">Palet</label>
+                                        <input type="number" class="manager-prod-pallets" value="${p.pallets || ''}">
+                                    </div>
+                                    <button type="button" onclick="this.closest('.product-entry').remove()"
+                                        style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h3>💬 Yorumlar</h3>
+                        <textarea name="comments" rows="4"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); resize: vertical;">${loading.comments || ''}</textarea>
+                    </div>
+
+                    <!-- Preserve existing photos so they are not lost -->
+                    ${(loading.loaded_vehicle_photos || []).map(url => `
+                        <input type="hidden" name="loaded_vehicle_photos" value="${url}">
+                    `).join('')}
+
+                    <div class="detail-section">
+                        <div class="detail-grid form-grid-2">
+                            <button type="button" class="tab-btn"
+                                style="width: 100%; justify-content: center; background: var(--bg-input);"
+                                onclick="renderVersionTabs(0)">
+                                ❌ İptal
+                            </button>
+                            <button type="submit" class="record-btn"
+                                style="width: 100%; justify-content: center; margin: 0; font-size: 16px;">
+                                💾 Yönetici Olarak Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            `;
+
+            modalBody.innerHTML = managerEditFormHtml;
+        }
+
+        function addManagerProductRow() {
+            const container = document.getElementById('managerProductsContainer');
+            const row = document.createElement('div');
+            row.className = 'product-entry';
+            row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;';
+            row.innerHTML = `
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Malın Adı</label>
+                    <input type="text" class="manager-prod-name" placeholder="Malın Adı">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Sayısı</label>
+                    <input type="number" class="manager-prod-qty" placeholder="0">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-size: 11px;">Palet</label>
+                    <input type="number" class="manager-prod-pallets" placeholder="0">
+                </div>
+                <button type="button" onclick="this.closest('.product-entry').remove()"
+                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+            `;
+            container.appendChild(row);
+        }
+
+        async function saveManagerChanges() {
+            if (!currentLoadingId) return;
+
+            const form = document.getElementById('managerEditForm');
+            const formData = new FormData(form);
+
+            // Build products
+            const rows = document.querySelectorAll('#managerProductsContainer .product-entry');
+            const products = Array.from(rows).map(row => ({
+                name: row.querySelector('.manager-prod-name').value,
+                quantity: row.querySelector('.manager-prod-qty').value,
+                pallets: row.querySelector('.manager-prod-pallets').value
+            })).filter(p => p.name && p.name.trim() !== '');
+
+            formData.set('products', JSON.stringify(products));
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Kaydediliyor...';
+
+            try {
+                const response = await fetch(`/api/loadings/${currentLoadingId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.error || 'Bir hata oluştu');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '💾 Yönetici Olarak Kaydet';
+                    return;
+                }
+
+                // Update local data
+                const index = loadingsData.findIndex(l => l.id === currentLoadingId);
+                if (index !== -1 && data.loading) {
+                    loadingsData[index] = data.loading;
+                }
+
+                alert('Rapor yönetici tarafından güncellendi ve eski versiyon arşivlendi.');
+                renderLoadings(loadingsData);
+                viewDetails(currentLoadingId);
+            } catch (error) {
+                console.error('Manager save error:', error);
+                alert('Bağlantı hatası');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '💾 Yönetici Olarak Kaydet';
+            }
         }
 
         // Export to Excel (Vertical Layout)

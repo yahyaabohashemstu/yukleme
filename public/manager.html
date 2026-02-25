@@ -847,6 +847,46 @@
 
             const modalBody = document.getElementById('modalBody');
 
+            // Helper for simple text inputs
+            const input = (label, name, value, type = 'text', required = false) => `
+                <div class="form-group">
+                    <label>${label}</label>
+                    <input type="${type}" name="${name}" value="${value || ''}" ${required ? 'required' : ''}>
+                </div>`;
+
+            // Helper for Photos Section (Existing + New)
+            const photoSection = (title, fieldName, existingPhotos, existingFieldName) => {
+                const existingHtml = (existingPhotos || []).map(p => `
+                <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
+                    <img src="${p}"
+                        style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                    <input type="hidden" name="${existingFieldName}" value="${p}">
+                    <button type="button" onclick="this.parentElement.remove()"
+                        style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                </div>
+                `).join('');
+
+                return `
+                <div class="detail-section">
+                    <h3>📷 ${title}</h3>
+                    <div class="existing-photos-container">
+                        ${existingHtml}
+                    </div>
+                    
+                    <div id="edit_${fieldName}_container" style="margin-top: 15px;">
+                        <div class="upload-row" style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
+                             <input type="file" name="${fieldName}" accept="image/*" class="products-table-file-input" style="width: 100%;">
+                        </div>
+                    </div>
+                    
+                    <button type="button" class="add-row-btn" onclick="addEditPhotoRow('${fieldName}')" style="margin-top: 5px;">
+                        <span>➕</span>
+                        <span>Yeni Resim Ekle</span>
+                    </button>
+                </div>
+                `;
+            };
+
             const managerEditFormHtml = `
                 <div class="detail-section">
                     <h3>📝 Raporu Düzenle (Yönetici)</h3>
@@ -856,94 +896,160 @@
                 </div>
 
                 <form id="managerEditForm" onsubmit="event.preventDefault(); saveManagerChanges();">
+                    <!-- Team Info -->
+                    <div class="detail-section">
+                        <h3>👥 Ekip Bilgileri</h3>
+                        <div class="form-grid form-grid-2">
+                            ${input('Yönetici', 'manager', loading.manager, 'text', true)}
+                            ${input('Birinci Eleman', 'worker1', loading.worker1, 'text', true)}
+                            ${input('İkinci Eleman', 'worker2', loading.worker2, 'text', true)}
+                            ${input('Üçüncü Eleman', 'worker3', loading.worker3, 'text', true)}
+                            ${input('Dördüncü Eleman', 'worker4', loading.worker4, 'text', true)}
+                        </div>
+                    </div>
+
+                    <!-- Vehicle Info -->
+                    <div class="detail-section">
+                        <h3>🚚 Araç Bilgileri</h3>
+                        <div class="form-grid form-grid-3">
+                            ${input('Araç Plakası 1', 'plate1', loading.plate1, 'text', true)}
+                            ${input('Araç Plakası 2', 'plate2', loading.plate2, 'text', true)}
+                            ${input('Konteyner Numarası', 'container_no', loading.container_no, 'text', true)}
+                            ${input('Tarih', 'loading_date', loading.loading_date, 'date', true)}
+                        </div>
+                    </div>
+
+                    <!-- Weight & Destination -->
+                    <div class="detail-section">
+                        <h3>⚖️ Ağırlık Bilgileri</h3>
+                        <div class="form-grid form-grid-2">
+                            ${input('Ürün Ağırlığı', 'product_weight', loading.product_weight)}
+                            ${input('Tartıdan Sonra Araç', 'vehicle_weight_after', loading.vehicle_weight_after)}
+                        </div>
+                    </div>
+
+                    <!-- Destination Info -->
                     <div class="detail-section">
                         <h3>📍 Varış Bilgileri</h3>
-                        <div class="detail-grid">
-                            <div class="detail-item">
-                                <label>Şirket</label>
-                                <input type="text" name="destination_company" value="${loading.destination_company || ''}">
-                            </div>
-                            <div class="detail-item">
-                                <label>Ülke</label>
-                                <input type="text" name="destination_country" value="${loading.destination_country || ''}">
-                            </div>
-                            <div class="detail-item">
-                                <label>Müşteri</label>
-                                <input type="text" name="destination_customer" value="${loading.destination_customer || ''}">
-                            </div>
+                        <div class="form-grid form-grid-3">
+                            ${input('Şirket', 'destination_company', loading.destination_company)}
+                            ${input('Ülke', 'destination_country', loading.destination_country)}
+                            ${input('Müşteri', 'destination_customer', loading.destination_customer)}
                         </div>
                     </div>
 
+                    <!-- Driver Info -->
                     <div class="detail-section">
-                        <h3>🧑 Sürücü Bilgileri</h3>
-                        <div class="detail-grid">
-                            <div class="detail-item">
-                                <label>Sürücü Adı</label>
-                                <input type="text" name="driver_name" value="${loading.driver_name || ''}">
-                            </div>
-                            <div class="detail-item">
-                                <label>Sürücü Telefonu</label>
-                                <input type="text" name="driver_phone" value="${loading.driver_phone || ''}">
-                            </div>
+                        <h3>🧑‍✈️ Sürücü Bilgileri</h3>
+                        <div class="form-grid form-grid-3">
+                            ${input('Sürücü Adı', 'driver_name', loading.driver_name)}
+                            ${input('Telefon', 'driver_phone', loading.driver_phone)}
+                            ${input('Forklift', 'forklift_operator', loading.forklift_operator)}
                         </div>
                     </div>
+                    
+                    <!-- Photos -->
+                    ${photoSection('Fotoğraflar (Araç & Yük)', 'photos', loading.loaded_vehicle_photos, 'loaded_vehicle_photos')}
 
+                    <!-- Times -->
                     <div class="detail-section">
                         <h3>🕐 Zamanlar</h3>
-                        <div class="detail-grid">
-                            <div class="detail-item">
-                                <label>Giriş Zamanı (HH:MM)</label>
-                                <input type="text" name="entry_time" value="${loading.entry_time || ''}" placeholder="örn. 08:30">
+                        <div class="form-grid form-grid-2">
+                            <!-- Entry Time -->
+                            <div class="form-group">
+                                <label>Giriş Zamanı</label>
+                                <div class="time-picker-wrapper">
+                                    <input type="hidden" id="editEntry_time" name="entry_time" value="${loading.entry_time || ''}">
+                                    <div class="time-picker" id="editEntryTimePicker">
+                                        <div class="time-picker-display" onclick="toggleTimePicker('editEntry')">
+                                            <span class="time-icon">🕐</span>
+                                            <span class="time-value" id="editEntryTimeDisplay">${loading.entry_time || 'Zaman seçin'}</span>
+                                            <span class="time-arrow">▼</span>
+                                        </div>
+                                        <div class="time-picker-dropdown" id="editEntryTimeDropdown">
+                                            <div class="time-picker-columns">
+                                                <div class="time-column">
+                                                    <div class="time-column-label">Saat</div>
+                                                    <div class="time-scroll" id="editEntryHourScroll"></div>
+                                                </div>
+                                                <div class="time-column">
+                                                    <div class="time-column-label">Dakika</div>
+                                                    <div class="time-scroll" id="editEntryMinuteScroll"></div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="time-confirm-btn" onclick="confirmTime('editEntry')">Tamam</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <label>Çıkış Zamanı (HH:MM)</label>
-                                <input type="text" name="exit_time" value="${loading.exit_time || ''}" placeholder="örn. 17:45">
+                            <!-- Exit Time -->
+                            <div class="form-group">
+                                <label>Çıkış Zamanı</label>
+                                <div class="time-picker-wrapper">
+                                    <input type="hidden" id="editExit_time" name="exit_time" value="${loading.exit_time || ''}">
+                                    <div class="time-picker" id="editExitTimePicker">
+                                        <div class="time-picker-display" onclick="toggleTimePicker('editExit')">
+                                            <span class="time-icon">🕐</span>
+                                            <span class="time-value" id="editExitTimeDisplay">${loading.exit_time || 'Zaman seçin'}</span>
+                                            <span class="time-arrow">▼</span>
+                                        </div>
+                                        <div class="time-picker-dropdown" id="editExitTimeDropdown">
+                                            <div class="time-picker-columns">
+                                                <div class="time-column">
+                                                    <div class="time-column-label">Saat</div>
+                                                    <div class="time-scroll" id="editExitHourScroll"></div>
+                                                </div>
+                                                <div class="time-column">
+                                                    <div class="time-column-label">Dakika</div>
+                                                    <div class="time-scroll" id="editExitMinuteScroll"></div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="time-confirm-btn" onclick="confirmTime('editExit')">Tamam</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Products -->
                     <div class="detail-section">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3>📦 Yüklenen Mallar</h3>
-                            <button type="button" class="tab-btn compact" onclick="addManagerProductRow()"
+                            <button type="button" class="tab-btn compact" onclick="addEditProductRow()"
                                 style="background: var(--bg-input);">
                                 + Mal Ekle
                             </button>
                         </div>
-                        <div id="managerProductsContainer">
+                        <div id="editProductsContainer">
                             ${products.map(p => `
-                                <div class="product-entry"
-                                    style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
-                                    <div class="form-group" style="margin: 0;">
-                                        <label style="font-size: 11px;">Malın Adı</label>
-                                        <input type="text" class="manager-prod-name" value="${p.name || ''}">
-                                    </div>
-                                    <div class="form-group" style="margin: 0;">
-                                        <label style="font-size: 11px;">Sayısı</label>
-                                        <input type="number" class="manager-prod-qty" value="${p.quantity || ''}">
-                                    </div>
-                                    <div class="form-group" style="margin: 0;">
-                                        <label style="font-size: 11px;">Palet</label>
-                                        <input type="number" class="manager-prod-pallets" value="${p.pallets || ''}">
-                                    </div>
-                                    <button type="button" onclick="this.closest('.product-entry').remove()"
-                                        style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                            <div class="product-entry"
+                                style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-size: 11px;">Malın Adı</label>
+                                    <input type="text" class="edit-prod-name" value="${p.name || ''}" placeholder="Malın Adı">
                                 </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-size: 11px;">Sayısı</label>
+                                    <input type="number" class="edit-prod-qty" value="${p.quantity || ''}" placeholder="0">
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-size: 11px;">Palet</label>
+                                    <input type="number" class="edit-prod-pallets" value="${p.pallets || ''}" placeholder="0">
+                                </div>
+                                <button type="button" onclick="this.closest('.product-entry').remove()"
+                                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                            </div>
                             `).join('')}
                         </div>
                     </div>
 
+                    <!-- Comments -->
                     <div class="detail-section">
                         <h3>💬 Yorumlar</h3>
                         <textarea name="comments" rows="4"
                             style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); resize: vertical;">${loading.comments || ''}</textarea>
                     </div>
-
-                    <!-- Preserve existing photos so they are not lost -->
-                    ${(loading.loaded_vehicle_photos || []).map(url => `
-                        <input type="hidden" name="loaded_vehicle_photos" value="${url}">
-                    `).join('')}
 
                     <div class="detail-section">
                         <div class="detail-grid form-grid-2">
@@ -962,31 +1068,149 @@
             `;
 
             modalBody.innerHTML = managerEditFormHtml;
+
+            // Initialize time pickers after injecting HTML
+            initTimePickers(['editEntry', 'editExit']);
         }
 
-        function addManagerProductRow() {
-            const container = document.getElementById('managerProductsContainer');
+        function addEditProductRow() {
+            const container = document.getElementById('editProductsContainer');
             const row = document.createElement('div');
             row.className = 'product-entry';
             row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;';
             row.innerHTML = `
                 <div class="form-group" style="margin: 0;">
                     <label style="font-size: 11px;">Malın Adı</label>
-                    <input type="text" class="manager-prod-name" placeholder="Malın Adı">
+                    <input type="text" class="edit-prod-name" placeholder="Malın Adı">
                 </div>
                 <div class="form-group" style="margin: 0;">
                     <label style="font-size: 11px;">Sayısı</label>
-                    <input type="number" class="manager-prod-qty" placeholder="0">
+                    <input type="number" class="edit-prod-qty" placeholder="0">
                 </div>
                 <div class="form-group" style="margin: 0;">
                     <label style="font-size: 11px;">Palet</label>
-                    <input type="number" class="manager-prod-pallets" placeholder="0">
+                    <input type="number" class="edit-prod-pallets" placeholder="0">
                 </div>
                 <button type="button" onclick="this.closest('.product-entry').remove()"
                     style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
             `;
             container.appendChild(row);
         }
+
+        function addEditPhotoRow(fieldName) {
+            const container = document.getElementById(`edit_${fieldName}_container`);
+            const div = document.createElement('div');
+            div.className = 'upload-row';
+            div.style.cssText = 'margin-bottom: 10px; display: flex; gap: 10px; align-items: center;';
+            div.innerHTML = `
+                <input type="file" name="${fieldName}" accept="image/*" class="products-table-file-input" style="width: 100%;">
+                <button type="button" onclick="this.parentElement.remove()" 
+                    style="background: var(--danger); color: white; border: none; width: 48px; height: 48px; border-radius: var(--radius); cursor: pointer; flex-shrink: 0;">🗑️</button>
+            `;
+            container.appendChild(div);
+        }
+
+        // ============ TIME PICKER ============
+        const timePickerState = {
+            editEntry: { hour: null, minute: null },
+            editExit: { hour: null, minute: null }
+        };
+
+        // Initialize time pickers (accepts array of types)
+        function initTimePickers(types = ['editEntry', 'editExit']) {
+            types.forEach(type => {
+                const hourScroll = document.getElementById(`${type}HourScroll`);
+                const minuteScroll = document.getElementById(`${type}MinuteScroll`);
+
+                if (!hourScroll || !minuteScroll) return; // Skip if elements don't exist yet
+
+                // Clear existing content to avoid duplication if re-initialized
+                hourScroll.innerHTML = '';
+                minuteScroll.innerHTML = '';
+
+                // Generate hours (00-23)
+                for (let i = 0; i < 24; i++) {
+                    const hourStr = i.toString().padStart(2, '0');
+                    const div = document.createElement('div');
+                    div.className = 'time-option';
+                    div.textContent = hourStr;
+                    div.dataset.value = hourStr;
+                    div.onclick = () => selectTimeOption(type, 'hour', hourStr);
+                    hourScroll.appendChild(div);
+                }
+
+                // Generate minutes (00-59)
+                for (let i = 0; i < 60; i++) {
+                    const minStr = i.toString().padStart(2, '0');
+                    const div = document.createElement('div');
+                    div.className = 'time-option';
+                    div.textContent = minStr;
+                    div.dataset.value = minStr;
+                    div.onclick = () => selectTimeOption(type, 'minute', minStr);
+                    minuteScroll.appendChild(div);
+                }
+            });
+        }
+
+        function selectTimeOption(type, unit, value) {
+            const scrollId = unit === 'hour' ? `${type}HourScroll` : `${type}MinuteScroll`;
+            const scroll = document.getElementById(scrollId);
+
+            // Remove previous selection
+            scroll.querySelectorAll('.time-option.selected').forEach(el => el.classList.remove('selected'));
+
+            // Add new selection
+            const option = scroll.querySelector(`[data-value="${value}"]`);
+            if (option) {
+                option.classList.add('selected');
+                option.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            timePickerState[type][unit] = value;
+        }
+
+        function toggleTimePicker(type) {
+            const dropdown = document.getElementById(`${type}TimeDropdown`);
+            const isOpen = dropdown.classList.contains('show');
+
+            // Close all dropdowns first
+            document.querySelectorAll('.time-picker-dropdown').forEach(d => d.classList.remove('show'));
+
+            if (!isOpen) {
+                dropdown.classList.add('show');
+
+                // Scroll to current selected values
+                const state = timePickerState[type];
+                if (state.hour) {
+                    const hourOption = document.querySelector(`#${type}HourScroll [data-value="${state.hour}"]`);
+                    if (hourOption) hourOption.scrollIntoView({ block: 'center' });
+                }
+                if (state.minute) {
+                    const minOption = document.querySelector(`#${type}MinuteScroll [data-value="${state.minute}"]`);
+                    if (minOption) minOption.scrollIntoView({ block: 'center' });
+                }
+            }
+        }
+
+        function confirmTime(type) {
+            const state = timePickerState[type];
+
+            if (state.hour !== null && state.minute !== null) {
+                const timeStr = `${state.hour}:${state.minute}`;
+                document.getElementById(`${type}_time`).value = timeStr;
+                document.getElementById(`${type}TimeDisplay`).textContent = timeStr;
+                document.getElementById(`${type}TimeDisplay`).classList.add('has-value');
+            }
+
+            document.getElementById(`${type}TimeDropdown`).classList.remove('show');
+        }
+
+        // Close time picker when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.time-picker')) {
+                document.querySelectorAll('.time-picker-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
 
         async function saveManagerChanges() {
             if (!currentLoadingId) return;
@@ -995,11 +1219,11 @@
             const formData = new FormData(form);
 
             // Build products
-            const rows = document.querySelectorAll('#managerProductsContainer .product-entry');
+            const rows = document.querySelectorAll('#editProductsContainer .product-entry');
             const products = Array.from(rows).map(row => ({
-                name: row.querySelector('.manager-prod-name').value,
-                quantity: row.querySelector('.manager-prod-qty').value,
-                pallets: row.querySelector('.manager-prod-pallets').value
+                name: row.querySelector('.edit-prod-name').value,
+                quantity: row.querySelector('.edit-prod-qty').value,
+                pallets: row.querySelector('.edit-prod-pallets').value
             })).filter(p => p.name && p.name.trim() !== '');
 
             formData.set('products', JSON.stringify(products));

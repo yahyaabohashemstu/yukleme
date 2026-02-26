@@ -323,14 +323,14 @@
         }
 
         function filterByPlate() {
-            const query = (document.getElementById('plateSearchInput')?.value || '').replace(/\\s+/g, '').toLowerCase();
+            const query = (document.getElementById('plateSearchInput')?.value || '').replace(/\s+/g, '').toLowerCase();
             if (!query) {
                 renderLoadings(loadingsData);
                 return;
             }
             const filtered = loadingsData.filter(l => {
-                const p1 = (l.plate1 || '').replace(/\\s+/g, '').toLowerCase();
-                const p2 = (l.plate2 || '').replace(/\\s+/g, '').toLowerCase();
+                const p1 = (l.plate1 || '').replace(/\s+/g, '').toLowerCase();
+                const p2 = (l.plate2 || '').replace(/\s+/g, '').toLowerCase();
                 return p1.includes(query) || p2.includes(query);
             });
             renderLoadings(filtered);
@@ -907,7 +907,7 @@
                     renderLoadings(loadingsData);
                     viewDetails(id);
                 } else {
-                    alert(data.error || 'Bir hata oluştu');
+                    showToast(data.error || 'Bir hata oluştu', 'error');
                     if (btn) {
                         btn.disabled = false;
                         btn.innerHTML = '<span>✓</span><span>Kaydedildi</span>';
@@ -915,7 +915,7 @@
                 }
             } catch (error) {
                 console.error('Record error:', error);
-                alert('Bağlantı hatası');
+                showToast('Bağlantı hatası', 'error');
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = '<span>✓</span><span>Kaydedildi</span>';
@@ -948,7 +948,7 @@
                     renderLoadings(loadingsData);
                     viewDetails(id);
                 } else {
-                    alert(data.error || 'Bir hata oluştu');
+                    showToast(data.error || 'Bir hata oluştu', 'error');
                     if (btn) {
                         btn.disabled = false;
                         btn.innerHTML = '<span>✕</span><span>Kaydı İptal Et</span>';
@@ -956,7 +956,7 @@
                 }
             } catch (error) {
                 console.error('Unrecord error:', error);
-                alert('Bağlantı hatası');
+                showToast('Bağlantı hatası', 'error');
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = '<span>✕</span><span>Kaydı İptal Et</span>';
@@ -971,7 +971,8 @@
 
         // Archive loading
         async function archiveLoading(id) {
-            if (!confirm('Bu raporu arşive taşımak istediğinizden emin misiniz?')) return;
+            const confirmed = await showConfirm({ message: 'Bu raporu arşive taşımak istediğinizden emin misiniz?', title: 'Arşive Taşı', icon: '🗑️', okText: '✅ Arşive Taşı', okClass: 'primary' });
+            if (!confirmed) return;
 
             try {
                 const response = await fetch(`/api/loadings/${id}/archive`, {
@@ -984,17 +985,18 @@
                     document.getElementById('detailModal').classList.remove('show');
                     loadLoadings();
                 } else {
-                    alert(data.error || 'Bir hata oluştu');
+                    showToast(data.error || 'Bir hata oluştu', 'error');
                 }
             } catch (error) {
                 console.error('Archive error:', error);
-                alert('Bağlantı hatası');
+                showToast('Bağlantı hatası', 'error');
             }
         }
 
         // Restore loading
         async function restoreLoading(id) {
-            if (!confirm('Bu raporu arşivden aktif raporlara taşımak istediğinizden emin misiniz?')) return;
+            const confirmed2 = await showConfirm({ message: 'Bu raporu arşivden aktif raporlara taşımak istediğinizden emin misiniz?', title: 'Geri Yükle', icon: '♻️', okText: '✅ Geri Yükle', okClass: 'success' });
+            if (!confirmed2) return;
 
             try {
                 const response = await fetch(`/api/loadings/${id}/restore`, {
@@ -1007,11 +1009,11 @@
                     document.getElementById('detailModal').classList.remove('show');
                     loadLoadings();
                 } else {
-                    alert(data.error || 'Bir hata oluştu');
+                    showToast(data.error || 'Bir hata oluştu', 'error');
                 }
             } catch (error) {
                 console.error('Restore error:', error);
-                alert('Bağlantı hatası');
+                showToast('Bağlantı hatası', 'error');
             }
         }
 
@@ -1424,7 +1426,7 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    alert(data.error || 'Bir hata oluştu');
+                    showToast(data.error || 'Bir hata oluştu', 'error');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '💾 Yönetici Olarak Kaydet';
                     return;
@@ -1436,12 +1438,12 @@
                     loadingsData[index] = data.loading;
                 }
 
-                alert('Rapor yönetici tarafından güncellendi ve eski versiyon arşivlendi.');
+                showToast('Rapor güncellendi ve eski versiyon arşivlendi.', 'success');
                 renderLoadings(loadingsData);
                 viewDetails(currentLoadingId);
             } catch (error) {
                 console.error('Manager save error:', error);
-                alert('Bağlantı hatası');
+                showToast('Bağlantı hatası', 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '💾 Yönetici Olarak Kaydet';
             }
@@ -1450,7 +1452,7 @@
         // Export to Excel (Vertical Layout)
         function exportToExcel() {
             if (!currentLoading) {
-                alert('Rapor verisi bulunamadı');
+                showToast('Rapor verisi bulunamadı', 'warning');
                 return;
             }
 
@@ -1594,6 +1596,66 @@
                     .catch((error) => {
                         console.error('❌ ServiceWorker registration failed:', error);
                     });
+            });
+        }
+    </script>
+
+    <!-- ===== Custom Popup System ===== -->
+    <div id="toast-container"></div>
+    <div id="confirm-overlay">
+        <div id="confirm-box">
+            <span id="confirm-icon">⚠️</span>
+            <div id="confirm-title">Emin misiniz?</div>
+            <div id="confirm-message"></div>
+            <div class="confirm-actions">
+                <button id="confirm-cancel-btn">❌ İptal</button>
+                <button id="confirm-ok-btn">✅ Onayla</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // ===== Toast Notifications =====
+        function showToast(message, type = 'info', title = null) {
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+            const titles = { success: 'Başarılı', error: 'Hata', warning: 'Uyarı', info: 'Bilgi' };
+            const container = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast toast-${type}`;
+            t.innerHTML = `
+                <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+                <div class="toast-body">
+                    <div class="toast-title">${title || titles[type]}</div>
+                    <div class="toast-msg">${message}</div>
+                </div>
+                <button class="toast-close" onclick="dismissToast(this.parentElement)">✕</button>`;
+            container.appendChild(t);
+            setTimeout(() => dismissToast(t), 4500);
+        }
+        function dismissToast(el) {
+            if (!el || el.classList.contains('hide')) return;
+            el.classList.add('hide');
+            setTimeout(() => el.remove(), 350);
+        }
+
+        // ===== Confirm Dialog (replaces confirm()) =====
+        function showConfirm({ message, title = 'Emin misiniz?', icon = '⚠️', okText = '✅ Onayla', cancelText = '❌ İptal', okClass = '' }) {
+            return new Promise(resolve => {
+                document.getElementById('confirm-icon').textContent = icon;
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+                const okBtn = document.getElementById('confirm-ok-btn');
+                okBtn.textContent = okText;
+                okBtn.className = okClass ? `ok-${okClass}` : '';
+                document.getElementById('confirm-cancel-btn').textContent = cancelText;
+                const overlay = document.getElementById('confirm-overlay');
+                overlay.classList.add('show');
+                const cleanup = (result) => {
+                    overlay.classList.remove('show');
+                    resolve(result);
+                };
+                okBtn.onclick = () => cleanup(true);
+                document.getElementById('confirm-cancel-btn').onclick = () => cleanup(false);
+                overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
             });
         }
     </script>

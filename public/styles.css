@@ -1757,6 +1757,10 @@ textarea,
         padding: 0 !important;
         margin: 0 !important;
         background: white !important;
+        max-height: none !important;
+        height: auto !important;
+        display: block !important;
+        overflow: visible !important;
     }
 
     .modal-header h2 {
@@ -1776,10 +1780,14 @@ textarea,
 
     /* Section Styling */
     .detail-section {
-        border: 1px solid #ddd !important;
-        border-radius: 8px !important;
-        margin-bottom: 15px !important;
-        padding: 15px !important;
+        border-top: 2px solid #333 !important;
+        border-bottom: none !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-radius: 0 !important;
+        margin-top: 25px !important;
+        margin-bottom: 25px !important;
+        padding: 20px 0 0 0 !important;
         box-shadow: none !important;
         background: white !important;
         break-inside: avoid;
@@ -1787,11 +1795,43 @@ textarea,
     }
 
     .detail-section h3 {
-        font-size: 16px !important;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 8px;
-        margin-bottom: 12px;
+        font-size: 18px !important;
+        border-bottom: none !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 16px !important;
         color: black !important;
+        font-weight: bold !important;
+    }
+
+    /* Print Images 4x Larger */
+    .existing-photos-container,
+    .detail-section>div>div[style*="aspect-ratio"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 20px !important;
+        grid-template-columns: none !important;
+    }
+
+    .edit-photo-item,
+    .detail-section>div>div[style*="aspect-ratio"] {
+        width: 320px !important;
+        height: 320px !important;
+        aspect-ratio: auto !important;
+        border: 2px solid #ddd !important;
+        box-shadow: none !important;
+    }
+
+    .edit-photo-item img,
+    .detail-section>div>div[style*="aspect-ratio"] img {
+        width: 320px !important;
+        height: 320px !important;
+        object-fit: cover !important;
+    }
+
+    /* Hide edit/delete buttons on photos */
+    .edit-photo-item button,
+    .detail-section>div>div[style*="aspect-ratio"] button {
+        display: none !important;
     }
 
     /* Grid Layout for Print */
@@ -1818,6 +1858,14 @@ textarea,
         font-size: 13px !important;
         color: black !important;
         font-weight: 500;
+    }
+
+    /* Remove highlight borders in print */
+    .field-changed,
+    .detail-item.field-changed {
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
     }
 
     /* Table Styling for Print */
@@ -1847,5 +1895,238 @@ textarea,
 
     tr {
         break-inside: avoid;
+    }
+}
+
+/* ============================================
+   Custom Popup System (Toast + Confirm Dialog)
+   ============================================ */
+
+/* Toast Container */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-xl);
+    min-width: 300px;
+    max-width: 400px;
+    pointer-events: all;
+    animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    font-family: var(--font-family);
+}
+
+.toast.hide {
+    animation: toastOut 0.3s ease forwards;
+}
+
+.toast-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.toast-body {
+    flex: 1;
+}
+
+.toast-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.toast-msg {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 16px;
+    padding: 0;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.toast-close:hover {
+    color: var(--text-primary);
+}
+
+/* Toast variants */
+.toast-success {
+    border-left: 4px solid var(--success);
+}
+
+.toast-error {
+    border-left: 4px solid var(--danger);
+}
+
+.toast-warning {
+    border-left: 4px solid var(--accent);
+}
+
+.toast-info {
+    border-left: 4px solid var(--primary);
+}
+
+/* Confirm Dialog Overlay */
+#confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+#confirm-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#confirm-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: var(--shadow-xl);
+    padding: 30px 28px 24px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    transform: scale(0.9) translateY(10px);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-family: var(--font-family);
+}
+
+#confirm-overlay.show #confirm-box {
+    transform: scale(1) translateY(0);
+}
+
+#confirm-icon {
+    font-size: 44px;
+    margin-bottom: 14px;
+    display: block;
+}
+
+#confirm-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+#confirm-message {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+#confirm-cancel-btn {
+    flex: 1;
+    padding: 10px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-family);
+}
+
+#confirm-cancel-btn:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+#confirm-ok-btn {
+    flex: 1;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-family);
+}
+
+#confirm-ok-btn:hover {
+    background: var(--danger-dark);
+}
+
+#confirm-ok-btn.ok-primary {
+    background: var(--primary);
+}
+
+#confirm-ok-btn.ok-primary:hover {
+    background: var(--primary-dark);
+}
+
+#confirm-ok-btn.ok-success {
+    background: var(--success);
+}
+
+#confirm-ok-btn.ok-success:hover {
+    background: var(--success-dark);
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateX(60px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateX(60px) scale(0.9);
     }
 }

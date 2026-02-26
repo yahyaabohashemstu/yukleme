@@ -395,12 +395,13 @@
                         <table class="loadings-table">
                             <thead>
                                 <tr>
-                                    <th>Tarih</th>
-                                    <th>Plaka</th>
-                                    <th>Sürücü</th>
+                                    <th>Müşteri</th>
+                                    <th>Araç Plakası</th>
+                                    <th>Varış Yeri</th>
+                                    <th>Sisteme Giriş (Loader)</th>
                                     <th>Safwat</th>
                                     <th>Pinar</th>
-                                    <th>İşlem</th>
+                                    <th>İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody id="historyTableBody">
@@ -607,11 +608,11 @@
                             onclick="removePhotoRow(this)">✕</button></td>
                 </tr>`;
                 } else {
-                    alert(result.error || 'Gönderilirken bir hata oluştu');
+                    showToast(result.error || 'Gönderilirken bir hata oluştu', 'error');
                 }
             } catch (error) {
                 console.error('Submit error:', error);
-                alert('Sunucuya bağlanırken bir hata oluştu');
+                showToast('Sunucuya bağlanırken bir hata oluştu', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<span>Yükleme Verilerini Gönder</span><span>📤</span>';
@@ -753,6 +754,12 @@
             }
         }
 
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
         async function fetchHistory() {
             const tbody = document.getElementById('historyTableBody');
             const emptyState = document.getElementById('historyEmptyState');
@@ -804,7 +811,6 @@
 
             data.forEach(item => {
                 const row = document.createElement('tr');
-                const date = new Date(item.loading_date || item.created_at).toLocaleDateString('tr-TR');
                 const safwatStatus = item.safwat_recorded_at
                     ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
                     : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
@@ -812,33 +818,32 @@
                     ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
                     : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
 
+                const plate1 = (item.plate1 || '-').replace(/\s+/g, '');
+                const plate2 = item.plate2 ? ' / ' + item.plate2.replace(/\s+/g, '') : '';
+
                 row.innerHTML = `
-                    <td>${date}</td>
-                    <td>
-                        <div>${(item.plate1 || '-').replace(/\\s+/g, '')}</div>
-                        <div style="font-size: 12px; color: var(--text-muted);">${(item.plate2 || '').replace(/\\s+/g, '')}</div>
-                    </td>
-                    <td>${item.driver_name || '-'}</td>
+                    <td>${item.destination_customer || '-'}</td>
+                    <td>${plate1}${plate2}</td>
+                    <td>${item.destination_company || '-'} - ${item.destination_country || '-'}</td>
+                    <td><span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(item.created_at)}</span></td>
                     <td>${safwatStatus}</td>
                     <td>${pinarStatus}</td>
                     <td>
-                        <button class="view-btn" onclick="viewDetails('${item.id}')">
-                            🔍 İncele
-                        </button>
+                        <button class="view-btn" onclick="viewDetails('${item.id}')">Detayları Gör</button>
                     </td>`;
                 tbody.appendChild(row);
             });
         }
 
         function filterHistoryByPlate() {
-            const query = (document.getElementById('plateSearchInput')?.value || '').replace(/\\s+/g, '').toLowerCase();
+            const query = (document.getElementById('plateSearchInput')?.value || '').replace(/\s+/g, '').toLowerCase();
             if (!query) {
                 renderHistoryRows(myLoadingsData);
                 return;
             }
             const filtered = (myLoadingsData || []).filter(l => {
-                const p1 = (l.plate1 || '').replace(/\\s+/g, '').toLowerCase();
-                const p2 = (l.plate2 || '').replace(/\\s+/g, '').toLowerCase();
+                const p1 = (l.plate1 || '').replace(/\s+/g, '').toLowerCase();
+                const p2 = (l.plate2 || '').replace(/\s+/g, '').toLowerCase();
                 return p1.includes(query) || p2.includes(query);
             });
             renderHistoryRows(filtered);
@@ -1387,7 +1392,7 @@
                 });
 
                 if (response.ok) {
-                    alert('Rapor başarıyla güncellendi ve eski versiyon arşivlendi! ✅');
+                    showToast('Rapor başarıyla güncellendi! ✅', 'success');
                     // Refresh data
                     fetchHistory().then(() => {
                         // We must wait for fetchHistory to update global data
@@ -1396,13 +1401,13 @@
                     });
                 } else {
                     const data = await response.json();
-                    alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                    showToast('Hata: ' + (data.error || 'Bilinmeyen hata'), 'error');
                     btn.innerHTML = '💾 Değişiklikleri Kaydet';
                     btn.disabled = false;
                 }
             } catch (e) {
                 console.error('Save error', e);
-                alert('Bağlantı hatası');
+                showToast('Bağlantı hatası', 'error');
                 btn.innerHTML = '💾 Değişiklikleri Kaydet';
                 btn.disabled = false;
             }
@@ -1461,6 +1466,60 @@
                     .catch((error) => {
                         console.error('❌ ServiceWorker registration failed:', error);
                     });
+            });
+        }
+    </script>
+
+    <!-- ===== Custom Popup System ===== -->
+    <div id="toast-container"></div>
+    <div id="confirm-overlay">
+        <div id="confirm-box">
+            <span id="confirm-icon">⚠️</span>
+            <div id="confirm-title">Emin misiniz?</div>
+            <div id="confirm-message"></div>
+            <div class="confirm-actions">
+                <button id="confirm-cancel-btn">❌ İptal</button>
+                <button id="confirm-ok-btn">✅ Onayla</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function showToast(message, type = 'info', title = null) {
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+            const titles = { success: 'Başarılı', error: 'Hata', warning: 'Uyarı', info: 'Bilgi' };
+            const container = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast toast-${type}`;
+            t.innerHTML = `
+                <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+                <div class="toast-body">
+                    <div class="toast-title">${title || titles[type]}</div>
+                    <div class="toast-msg">${message}</div>
+                </div>
+                <button class="toast-close" onclick="dismissToast(this.parentElement)">✕</button>`;
+            container.appendChild(t);
+            setTimeout(() => dismissToast(t), 4500);
+        }
+        function dismissToast(el) {
+            if (!el || el.classList.contains('hide')) return;
+            el.classList.add('hide');
+            setTimeout(() => el.remove(), 350);
+        }
+        function showConfirm({ message, title = 'Emin misiniz?', icon = '⚠️', okText = '✅ Onayla', cancelText = '❌ İptal', okClass = '' }) {
+            return new Promise(resolve => {
+                document.getElementById('confirm-icon').textContent = icon;
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+                const okBtn = document.getElementById('confirm-ok-btn');
+                okBtn.textContent = okText;
+                okBtn.className = okClass ? `ok-${okClass}` : '';
+                document.getElementById('confirm-cancel-btn').textContent = cancelText;
+                const overlay = document.getElementById('confirm-overlay');
+                overlay.classList.add('show');
+                const cleanup = (result) => { overlay.classList.remove('show'); resolve(result); };
+                okBtn.onclick = () => cleanup(true);
+                document.getElementById('confirm-cancel-btn').onclick = () => cleanup(false);
+                overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
             });
         }
     </script>

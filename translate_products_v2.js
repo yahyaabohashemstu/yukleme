@@ -365,7 +365,7 @@ const translations = {
     "ورد": "Gül",
     "أزهار الربيع": "Bahar Çiçekleri",
     "النسيم الارجواني": "Purple Breeze",
-    "نضارة الربيع": "Bahar Tazeliği",
+    "نضارة الربيع": "Spring",
     "حدائق بابل": "Babil Bahçeleri",
     "الحديقة السرية": "Gizli Bahçe",
     "أسود": "Siyah",

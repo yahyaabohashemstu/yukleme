@@ -741,11 +741,17 @@
                             </tbody>
                         </table>
                     ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                             <label>Toplam Yük Ağırlığı ⚖️</label>
                             <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
                         </div>
+                        ${products.length > 0 ? `
+                        <div class="detail-item">
+                            <label>Toplam Pallet Sayısı 🟫</label>
+                            <span style="font-weight: 600; font-size: 1.1em; color: var(--success);">${products.reduce((sum, p) => sum + (parseInt(p.pallets) || 0), 0)} Pallet</span>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
 

@@ -1033,7 +1033,19 @@
                                         `).join('') : '<tr><td colspan="3" style="text-align: center;">Mal bilgisi yok</td></tr>'}
                                     </tbody>
                                 </table>
-                            </div >
+                            </div>
+                            ${products.length > 0 ? `
+                            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color); display: flex; gap: 20px; flex-wrap: wrap;">
+                                <div class="detail-item">
+                                    <label>Toplam Yük Ağırlığı ⚖️</label>
+                                    <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Toplam Pallet Sayısı 🟫</label>
+                                    <span style="font-weight: 600; font-size: 1.1em; color: var(--success);">${products.reduce((sum, p) => sum + (parseInt(p.pallets) || 0), 0)} Pallet</span>
+                                </div>
+                            </div>
+                            ` : ''}
                         </div >
 
                         <!-- Times -->

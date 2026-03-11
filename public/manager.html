@@ -294,32 +294,45 @@
             emptyState.classList.add('hidden');
             tableContainer.classList.remove('hidden');
 
-            tbody.innerHTML = loadings.map(loading => `
+            tbody.innerHTML = loadings.map(loading => {
+                const plate1 = (loading.plate1 || '-').replace(/\s+/g, '');
+                const plate2 = loading.plate2 ? ' / ' + loading.plate2.replace(/\s+/g, '') : '';
+
+                // Extract creator username
+                const creatorName = loading.users?.username ? loading.users.username : 'Bilinmiyor';
+
+                const safwatHtml = loading.safwat_recorded_at
+                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
+                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
+
+                const pinarHtml = loading.pinar_recorded_at
+                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
+                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
+
+                return `
                 <tr>
                     <td>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             ${loading.destination_customer || '-'}
-                            ${!loading.viewed_at
-                    ? ((loading.loading_versions && loading.loading_versions[0] && loading.loading_versions[0].count > 0)
-                        ? '<span class="edited-badge">DÜZENLENDİ</span>'
-                        : '<span class="new-badge">YENİ</span>')
-                    : ''}
+                            ${loading.loading_versions && loading.loading_versions[0]?.count > 0 ?
+                        `<span class="version-badge" title="${loading.loading_versions[0].count} defa düzenlendi">v${loading.loading_versions[0].count + 1}</span>`
+                        : ''}
                         </div>
                     </td>
-                    <td>${(loading.plate1 || '-').replace(/\s+/g, '')} ${loading.plate2 ? '/ ' + loading.plate2.replace(/\s+/g, '') : ''}</td>
+                    <td>${plate1}${plate2}</td>
                     <td>${loading.destination_company || '-'} - ${loading.destination_country || '-'}</td>
-                    <td><span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.created_at)}</span></td>
-                    <td>${loading.safwat_recorded_at
-                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
-                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>'}
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.created_at)}</span>
+                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;">👤 ${creatorName}</span>
+                        </div>
                     </td>
-                    <td>${loading.pinar_recorded_at
-                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
-                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>'}
-                    </td>
+                    <td>${safwatHtml}</td>
+                    <td>${pinarHtml}</td>
                     <td><button class="view-btn" onclick="viewDetails('${loading.id}')">Detayları Gör</button></td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function filterByPlate() {
@@ -465,12 +478,23 @@
             }
 
             let previousVersionData = null;
+            let editorName = null;
+
             if (currentVersions.length > 1) {
                 // The previous version is the one immediately older than the active one
-                // If we are looking at Current (index 0), previous is index 1
-                // If we are looking at index 1, previous is index 2, etc.
                 if (activeIndex < currentVersions.length - 1) {
                     previousVersionData = currentVersions[activeIndex + 1].data;
+                }
+
+                // If this is the current version (index 0) AND there are older versions, the person who edited it
+                // is the user who archived version index 1.
+                if (activeIndex === 0) {
+                    editorName = currentVersions[1].users?.username;
+                } else if (activeIndex < currentVersions.length - 1) {
+                    // For an archived version, the person who edited it (thus archiving it) is the `users` on this exact archived row?
+                    // No, the person who archived version X is stored in version X's row. 
+                    // So if we are viewing version X, the person who edited and replaced it is stored in `currentVersions[activeIndex].users?.username`
+                    editorName = currentVersions[activeIndex].users?.username;
                 }
             }
 
@@ -478,7 +502,7 @@
             console.log(`[Highlight Debug] activeVersionData:`, activeVersionData);
             console.log(`[Highlight Debug] previousVersionData:`, previousVersionData);
 
-            contentHtml += renderLoadingDetails(activeVersionData, !isArchived, previousVersionData); // Pass isEditable=false for archived
+            contentHtml += renderLoadingDetails(activeVersionData, !isArchived, previousVersionData, editorName); // Pass editorName
 
             modalBody.innerHTML = tabsHtml + '<div class="version-content">' + contentHtml + '</div>';
         }
@@ -551,7 +575,7 @@
             return '';
         }
 
-        function renderLoadingDetails(loading, isCurrentVersion = true, previousData = null) {
+        function renderLoadingDetails(loading, isCurrentVersion = true, previousData = null, editorName = null) {
             let products = loading.products || [];
             if (!Array.isArray(products)) {
                 try { products = JSON.parse(products); } catch (e) { products = []; }
@@ -563,6 +587,16 @@
             const managerEditBanner = hasManagerEditNote ? `
                 <div class="archive-warning">
                     📝 Bu rapor yönetici tarafından düzenlenmiştir.
+                </div>
+            ` : '';
+
+            const editorBanner = editorName ? `
+                <div style="background: var(--bg-hover); padding: 12px 16px; border-radius: 8px; border-left: 4px solid var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">👤</span>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Bu sürümü düzenleyen</div>
+                        <div style="font-size: 15px; font-weight: bold; color: var(--text-primary); margin-top: 2px;">${editorName}</div>
+                    </div>
                 </div>
             ` : '';
 
@@ -585,6 +619,7 @@
             // Pinar's Restricted View
             if (currentUsername === 'pinar') {
                 return `
+                    ${editorBanner}
                     ${managerEditBanner}
                     <!-- Vehicle Info -->
                     <div class="detail-section">
@@ -674,6 +709,7 @@
 
             // Default Manager View (Full Access)
             return `
+                ${editorBanner}
                 ${managerEditBanner}
                 
                 <!-- Destination Info (Moved to Top) -->

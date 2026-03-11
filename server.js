@@ -264,11 +264,10 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
 // Get my loadings (loader only)
 app.get('/api/my-loadings', requireLoader, async (req, res) => {
     try {
-        console.log('Fetching loadings for user:', req.session.user.id);
+        console.log('Fetching all active loadings for loader view');
         const { data, error } = await supabase
             .from('loadings')
-            .select('*')
-            .eq('created_by', req.session.user.id)
+            .select('*, users!created_by(username)')
             .eq('is_archived', false)
             .order('created_at', { ascending: false });
 
@@ -295,7 +294,7 @@ app.get('/api/loadings', requireManager, async (req, res) => {
 
         const { data, error } = await supabase
             .from('loadings')
-            .select('*, loading_versions(count)')
+            .select('*, loading_versions(count), users!created_by(username)')
             .eq('is_archived', fetchArchived)
             .order('created_at', { ascending: false });
 
@@ -338,7 +337,7 @@ app.get('/api/loadings/:id/versions', requireAuth, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('loading_versions')
-            .select('*')
+            .select('*, users!archived_by(username)')
             .eq('loading_id', req.params.id)
             .order('version_number', { ascending: false });
 

@@ -36,6 +36,12 @@
         .field-changed {
             border: 2px solid #f59e0b !important;
             border-radius: 6px;
+            background: rgba(245, 158, 11, 0.08) !important;
+        }
+        td.field-changed {
+            background: rgba(245, 158, 11, 0.12) !important;
+            border: 2px solid #f59e0b !important;
+            font-weight: 600;
         }
     </style>
 
@@ -755,28 +761,68 @@
                 </div>
 
                 <!-- Products (Moved to 3rd) -->
-                <div class="detail-section ${isCurrentVersion && String(loading.products) !== String(previousData?.products) ? 'field-changed' : ''}">
+                <div class="detail-section">
                     <h3>📦 Yüklenen Mallar</h3>
-                    ${products.length > 0 ? `
-                        <table class="products-table" style="margin-top: 12px;">
-                            <thead>
-                                <tr>
-                                    <th>Mal Adı</th>
-                                    <th>Sayı</th>
-                                    <th>Pallet Sayısı</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${products.map(p => `
+                    ${(() => {
+                        if (products.length === 0) return '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>';
+                        
+                        // Parse previous products for comparison
+                        let prevProducts = [];
+                        if (isCurrentVersion && previousData) {
+                            try {
+                                prevProducts = typeof previousData.products === 'string'
+                                    ? JSON.parse(previousData.products)
+                                    : (previousData.products || []);
+                                if (!Array.isArray(prevProducts)) prevProducts = [];
+                            } catch(e) { prevProducts = []; }
+                        }
+
+                        const cellChanged = (cur, prev) => {
+                            const c = (cur == null || cur === 'null') ? '' : String(cur).trim();
+                            const p = (prev == null || prev === 'null') ? '' : String(prev).trim();
+                            return c !== p;
+                        };
+
+                        const rows = products.map((p, i) => {
+                            const prev = prevProducts[i]; // same-index comparison
+                            const isNew = isCurrentVersion && !prev;
+                            const rowStyle = isNew ? 'background: rgba(59,130,246,0.08); border-left: 3px solid var(--primary);' : '';
+                            const nameClass  = isCurrentVersion && prev && cellChanged(p.name,     prev.name)     ? 'field-changed' : '';
+                            const qtyClass   = isCurrentVersion && prev && cellChanged(p.quantity,  prev.quantity)  ? 'field-changed' : '';
+                            const pallClass  = isCurrentVersion && prev && cellChanged(p.pallets,   prev.pallets)   ? 'field-changed' : '';
+                            return `
+                                <tr style="${rowStyle}">
+                                    <td class="${nameClass}">${isNew ? '<span style="font-size:10px;color:var(--primary);font-weight:700;margin-right:4px;">YENİ</span>' : ''}${p.name || '-'}</td>
+                                    <td class="${qtyClass}">${p.quantity || '-'}</td>
+                                    <td class="${pallClass}">${p.pallets || '-'}</td>
+                                </tr>`;
+                        }).join('');
+
+                        // Detect removed rows (existed in prev but not current)
+                        const removedRows = isCurrentVersion && prevProducts.length > products.length
+                            ? prevProducts.slice(products.length).map(p => `
+                                <tr style="background: rgba(220,38,38,0.08); border-left: 3px solid var(--danger); opacity: 0.7; text-decoration: line-through;">
+                                    <td><span style="font-size:10px;color:var(--danger);font-weight:700;margin-right:4px;">SİLİNDİ</span>${p.name || '-'}</td>
+                                    <td>${p.quantity || '-'}</td>
+                                    <td>${p.pallets || '-'}</td>
+                                </tr>`).join('')
+                            : '';
+
+                        return `
+                            <table class="products-table" style="margin-top: 12px;">
+                                <thead>
                                     <tr>
-                                        <td>${p.name || '-'}</td>
-                                        <td>${p.quantity || '-'}</td>
-                                        <td>${p.pallets || '-'}</td>
+                                        <th>Mal Adı</th>
+                                        <th>Sayı</th>
+                                        <th>Pallet Sayısı</th>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
+                                </thead>
+                                <tbody>
+                                    ${rows}
+                                    ${removedRows}
+                                </tbody>
+                            </table>`;
+                    })()}
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                             <label>Toplam Yük Ağırlığı ⚖️</label>

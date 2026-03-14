@@ -69,10 +69,32 @@
                     <span class="tab-icon">📝</span>
                     Yeni Form
                 </button>
-                <button class="tab-btn" id="tabHistory" onclick="switchTab('history')">
+                <button class="tab-btn" id="tabHistory" onclick="switchTab('history')" style="position: relative;">
                     <span class="tab-icon">🕒</span>
                     Geçmiş Raporlarım
+                    <span id="historyTabBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; font-weight: bold; line-height: 18px; text-align: center;">!</span>
                 </button>
+            </div>
+
+            <!-- Form Level Alerts (Mini Banners) -->
+            <div id="miniAlertsContainer" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <!-- Mini Draft Alert -->
+                <div id="miniDraftAlert" style="display:none; background: rgba(249,115,22,0.1); border: 1px solid #f97316; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: 0.2s; align-items: center; justify-content: space-between;" onclick="switchTab('history');" onmouseover="this.style.background='rgba(249,115,22,0.15)'" onmouseout="this.style.background='rgba(249,115,22,0.1)'">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px; animation: pulse 2s infinite;">📝</span>
+                        <h3 style="color: #ea580c; margin: 0; font-size: 15px;">Taslak Raporunuz Var!</h3>
+                    </div>
+                    <span style="color: #ea580c; font-size: 13px; font-weight: 500;">İncele →</span>
+                </div>
+
+                <!-- Mini Improvement Alert -->
+                <div id="miniImprovementAlert" style="display:none; background: rgba(59,130,246,0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: 0.2s; align-items: center; justify-content: space-between;" onclick="switchTab('history');" onmouseover="this.style.background='rgba(59,130,246,0.15)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px; animation: pulse 2s infinite;">⚠️</span>
+                        <h3 style="color: #3b82f6; margin: 0; font-size: 15px;">Dikkat, Düzeltme İsteği!</h3>
+                    </div>
+                    <span style="color: #3b82f6; font-size: 13px; font-weight: 500;">İncele →</span>
+                </div>
             </div>
 
             <form id="loadingForm" enctype="multipart/form-data">
@@ -317,8 +339,8 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">📷</div>
                         <div class="form-card-title">
-                            <h2>Resimler</h2>
-                            <p>Photos</p>
+                            <h2>Resimler (Zorunlu)</h2>
+                            <p style="color: var(--warning); font-size: 13px; margin-top: 4px;">⚠️ Dikkat: En az 1 fotoğraf eklenmezse rapor müdüre gönderilmez, <strong>Taslak</strong> olarak kaydedilir.</p>
                         </div>
                     </div>
                     <div class="products-table-container">
@@ -371,6 +393,29 @@
 
             <!-- History Section -->
             <div id="historySection" style="display: none;">
+                
+                <!-- Draft (Missing Photos) Alert Banner -->
+                <div id="draftAlertBanner" style="display:none; background: rgba(249,115,22,0.1); border: 2px solid #f97316; border-radius: 8px; padding: 15px; margin-bottom: 20px; cursor: pointer; transition: 0.2s;" onclick="document.getElementById('plateSearchInput').focus();" onmouseover="this.style.background='rgba(249,115,22,0.15)'" onmouseout="this.style.background='rgba(249,115,22,0.1)'">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 28px; animation: pulse 2s infinite;">📝</span>
+                        <div>
+                            <h3 style="color: #ea580c; margin: 0 0 5px 0;">Taslak Raporunuz Var!</h3>
+                            <p style="margin: 0; color: var(--text-primary); font-size: 14px;">Müdürün görmesi için zorunlu olan <strong>fotoğrafı yüklenmemiş</strong> <strong id="draftAlertCount" style="color:#ea580c; font-size:16px;">0</strong> raporunuz var. (Turuncu çerçeveli raporlar).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Improvement Alert Banner -->
+                <div id="improvementAlertBanner" style="display:none; background: rgba(59,130,246,0.1); border: 2px solid #3b82f6; border-radius: 8px; padding: 15px; margin-bottom: 20px; cursor: pointer; transition: 0.2s;" onclick="document.getElementById('plateSearchInput').focus();" onmouseover="this.style.background='rgba(59,130,246,0.15)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 28px; animation: pulse 2s infinite;">⚠️</span>
+                        <div>
+                            <h3 style="color: #3b82f6; margin: 0 0 5px 0;">Dikkat, Düzeltme İsteği!</h3>
+                            <p style="margin: 0; color: var(--text-primary); font-size: 14px;">Müdür tarafından eksik/hatalı bulunup düzeltilmesi istenen <strong id="improvementAlertCount" style="color:#ef4444; font-size:16px;">0</strong> raporunuz var. Lütfen aşağıdan mavi çerçeveli raporları inceleyin.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="table-card">
                     <div class="table-header">
                         <div class="table-title">
@@ -383,7 +428,7 @@
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
                         <span style="font-size: 18px;">🔍</span>
                         <input type="text" id="plateSearchInput"
-                            placeholder="Plakaya göre ara... (Araç Plakası 1 veya 2)" oninput="filterHistoryByPlate()"
+                            placeholder="🔍 Ara... (Plaka, müşteri, ülke, tarih, çalışan, mal adı...)" oninput="filterHistoryByPlate()"
                             style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
                         <button onclick="document.getElementById('plateSearchInput').value=''; filterHistoryByPlate()"
                             title="Temizle"
@@ -477,6 +522,9 @@
                 }
 
                 document.getElementById('userName').textContent = data.user.username;
+
+                // Preload report history immediately so alert badges appear on first open.
+                fetchHistory();
             } catch (error) {
                 console.error('Auth check error:', error);
                 window.location.href = '/';
@@ -739,18 +787,29 @@
         checkAuth();
 
         // ============ TABS & HISTORY ============
+        // Tabs
         function switchTab(tab) {
-            // Update buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             if (tab === 'form') {
                 document.getElementById('tabForm').classList.add('active');
                 document.getElementById('loadingForm').style.display = 'block';
                 document.getElementById('historySection').style.display = 'none';
+                
+                // Show mini alerts if there are any
+                const container = document.getElementById('miniAlertsContainer');
+                if(container && (document.getElementById('miniDraftAlert').style.display === 'flex' || document.getElementById('miniImprovementAlert').style.display === 'flex')) {
+                    container.style.display = 'flex';
+                }
             } else {
                 document.getElementById('tabHistory').classList.add('active');
                 document.getElementById('loadingForm').style.display = 'none';
                 document.getElementById('historySection').style.display = 'block';
-                fetchHistory();
+                
+                // Hide mini alerts when on history tab
+                const container = document.getElementById('miniAlertsContainer');
+                if(container) container.style.display = 'none';
+                
+                fetchHistory(); // Sadece tab değiştiğinde yenile
             }
         }
 
@@ -786,6 +845,47 @@
                 // alert('System found ' + data.length + ' reports for you.');
 
                 myLoadingsData = data;
+                
+                // Check if any reports need improvement
+                const improvementIds = data.filter(l => l.needs_improvement_at);
+                const banner = document.getElementById('improvementAlertBanner');
+                const miniImprovementAlert = document.getElementById('miniImprovementAlert');
+                
+                if (improvementIds.length > 0) {
+                    document.getElementById('improvementAlertCount').textContent = improvementIds.length;
+                    banner.style.display = 'block';
+                    if(miniImprovementAlert) miniImprovementAlert.style.display = 'flex';
+                } else {
+                    banner.style.display = 'none';
+                    if(miniImprovementAlert) miniImprovementAlert.style.display = 'none';
+                }
+
+                // Check if any reports are drafts (missing photos)
+                const draftIds = data.filter(l => l.is_draft);
+                const draftBanner = document.getElementById('draftAlertBanner');
+                const miniDraftAlert = document.getElementById('miniDraftAlert');
+                
+                if (draftIds.length > 0) {
+                    document.getElementById('draftAlertCount').textContent = draftIds.length;
+                    draftBanner.style.display = 'block';
+                    if(miniDraftAlert) miniDraftAlert.style.display = 'flex';
+                } else if (draftBanner) {
+                    draftBanner.style.display = 'none';
+                    if(miniDraftAlert) miniDraftAlert.style.display = 'none';
+                }
+                
+                // Toggle alerts container & Tab Badge
+                const miniAlertsContainer = document.getElementById('miniAlertsContainer');
+                const tabBadge = document.getElementById('historyTabBadge');
+                const hasAnyAlerts = improvementIds.length > 0 || draftIds.length > 0;
+                
+                if (miniAlertsContainer) {
+                    miniAlertsContainer.style.display = hasAnyAlerts && document.getElementById('tabForm').classList.contains('active') ? 'flex' : 'none';
+                }
+                if (tabBadge) {
+                    tabBadge.style.display = hasAnyAlerts ? 'block' : 'none';
+                }
+
                 renderHistoryRows(data);
 
             } catch (error) {
@@ -824,6 +924,32 @@
                 // Extract creator username
                 const creatorName = item.users?.username ? item.users.username : 'Bilinmiyor';
 
+                // Paper, Improvement, and Draft status
+                const paperConfirmed = !!item.paper_confirmed_at;
+                const paperDelivered = !!item.paper_delivered_at;
+                const needsImprovement = !!item.needs_improvement_at;
+                const isDraft = !!item.is_draft;
+
+                if (isDraft) {
+                    row.style.cssText = 'border: 2px solid #f97316; outline: 2px solid rgba(249,115,22,0.3); border-radius: 6px; background-color: rgba(249,115,22,0.02);';
+                    row.title = 'Taslak: Raporun iletilmesi için fotoğraf yüklemeniz bekleniyor!';
+                } else if (needsImprovement) {
+                    row.style.cssText = 'border: 2px solid #3b82f6; outline: 2px solid rgba(59,130,246,0.3); border-radius: 6px;';
+                    row.title = 'Müdür tarafından düzeltme isteniyor!';
+                } else if (!paperConfirmed) {
+                    row.style.cssText = 'border: 2px solid var(--danger); outline: 2px solid rgba(220,38,38,0.3); border-radius: 6px;';
+                    row.title = 'Kağıt teslimi henüz müdür tarafından onaylanmadı';
+                }
+
+                const paperBadge = paperConfirmed
+                    ? '<span title="Kağıt onaylandı" style="font-size:16px;">✅</span>'
+                    : paperDelivered
+                        ? '<span title="Teslim edildi, onay bekliyor" style="font-size:16px;">📄⏳</span>'
+                        : '<span title="Kağıt teslim edilmedi" style="font-size:16px; opacity:0.35;">📄</span>';
+                
+                const improvementBadge = needsImprovement ? '<span title="Düzeltme bekleniyor" style="font-size:16px; margin-right:4px;">⚠️</span>' : '';
+                const draftBadge = isDraft ? '<span title="Taslak - Fotoğraf eksik" style="font-size:12px; color: #ea580c; background: #ffedd5; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right:4px;">📝 Taslak</span>' : '';
+
                 row.innerHTML = `
                     <td>${item.destination_customer || '-'}</td>
                     <td>${plate1}${plate2}</td>
@@ -837,22 +963,40 @@
                     <td>${safwatStatus}</td>
                     <td>${pinarStatus}</td>
                     <td>
-                        <button class="view-btn" onclick="viewDetails('${item.id}')">Detayları Gör</button>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                            <div style="display: flex; align-items: center;">${draftBadge}${improvementBadge}${paperBadge}</div>
+                            <button class="view-btn" onclick="viewDetails('${item.id}')">Detayları Gör</button>
+                        </div>
                     </td>`;
                 tbody.appendChild(row);
             });
         }
 
         function filterHistoryByPlate() {
-            const query = (document.getElementById('plateSearchInput')?.value || '').replace(/\s+/g, '').toLowerCase();
-            if (!query) {
+            const raw = (document.getElementById('plateSearchInput')?.value || '').toLowerCase();
+            const query = raw.replace(/\s+/g, '');
+            if (!raw.trim()) {
                 renderHistoryRows(myLoadingsData);
                 return;
             }
             const filtered = (myLoadingsData || []).filter(l => {
-                const p1 = (l.plate1 || '').replace(/\s+/g, '').toLowerCase();
-                const p2 = (l.plate2 || '').replace(/\s+/g, '').toLowerCase();
-                return p1.includes(query) || p2.includes(query);
+                const fields = [
+                    l.plate1, l.plate2,
+                    l.destination_customer, l.destination_company, l.destination_country,
+                    l.manager, l.worker1, l.worker2, l.worker3, l.worker4,
+                    l.driver_name, l.driver_phone,
+                    l.forklift_operator,
+                    l.loading_date,
+                    l.vehicle_weight_after, l.product_weight,
+                    l.comments, l.container_no,
+                    l.users?.username
+                ].map(v => (v || '').toLowerCase());
+
+                const productNames = (l.products || []).map(p => (p.name || '').toLowerCase());
+                const all = [...fields, ...productNames];
+
+                return all.some(f => f.includes(raw.trim())) ||
+                       all.some(f => f.replace(/\s+/g, '').includes(query));
             });
             renderHistoryRows(filtered);
         }
@@ -968,6 +1112,43 @@
                             style="background: var(--warning); color: white; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 14px;">
                             ⚠️ Bu, ${new Date(loading.archived_at || Date.now()).toLocaleDateString('tr-TR')} tarihli
                             arşivlenmiş bir versiyondur.
+                        </div>
+                        </div>
+                        ` : ''}
+
+                        <!-- Draft Alert Banner (If Any) -->
+                        ${loading.is_draft ? `
+                        <div class="detail-section" style="border: 2px solid #f97316; background: rgba(249,115,22,0.1); margin-bottom: 20px;">
+                            <h3 style="color: #ea580c; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size:20px;">📝</span> Bu Rapor Taslak Aşamasında
+                            </h3>
+                            <div style="margin-top: 10px; color: var(--text-primary);">
+                                <p>Raporun müdüre iletilebilmesi ve kaydedilebilmesi için en az 1 fotoğraf yüklemeniz gerekmektedir. Fotoğraf yüklemek için raporu düzenleyin.</p>
+                            </div>
+                            <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+                                <button class="primary-btn" onclick="toggleEditMode()" style="background: #ea580c; border: none; padding: 10px 20px; box-shadow: 0 4px 6px rgba(234,88,12,0.3);">
+                                    ✏️ Raporu Düzenle ve Fotoğraf Ekle
+                                </button>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <!-- Improvement Alert Banner (If Any) -->
+                        ${loading.needs_improvement_at && !loading.is_recorded && activeVersion === 'current' ? `
+                        <div class="detail-section" style="border: 2px solid #3b82f6; background: rgba(59,130,246,0.1); margin-bottom: 20px;">
+                            <h3 style="color: #3b82f6; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size:20px;">⚠️</span> Müdürden Düzeltme Talebi
+                            </h3>
+                            <div style="margin-top: 10px; color: var(--text-primary);">
+                                <p><strong>Bölüm:</strong> ${loading.needs_improvement_reason?.section || '-'}</p>
+                                <p><strong>Alan:</strong> ${loading.needs_improvement_reason?.field || '-'}</p>
+                                <p style="margin-top: 8px; font-size: 15px; background: var(--bg-card); padding: 10px; border-radius: 6px; border-left: 4px solid #3b82f6;"><strong>Mesaj:</strong><br/>${loading.needs_improvement_reason?.comment || '-'}</p>
+                            </div>
+                            <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+                                <button class="primary-btn" onclick="toggleEditMode()" style="background: #3b82f6; border: none; padding: 10px 20px; box-shadow: 0 4px 6px rgba(59,130,246,0.3);">
+                                    ✏️ Raporu Düzenle
+                                </button>
+                            </div>
                         </div>
                         ` : ''}
 
@@ -1137,6 +1318,46 @@
                             </button>
                             ` : ''}
                 </div>
+
+                        ${activeVersion === 'current' ? `
+                        <!-- Paper Delivery Section -->
+                        <div class="detail-section" id="paperDeliverySection_${loading.id}">
+                            <h3>📄 Kağıt Teslimi</h3>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                ${loading.paper_delivered_at ? `
+                                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(16,185,129,0.1); border: 1px solid var(--success);">
+                                        <span style="font-size: 20px;">✅</span>
+                                        <div>
+                                            <div style="font-weight: 600; color: var(--success);">Kağıt teslim edildiği işaretlendi</div>
+                                            <div style="font-size: 12px; color: var(--text-secondary);">${new Date(loading.paper_delivered_at).toLocaleString('tr-TR')}</div>
+                                        </div>
+                                    </div>
+                                    <button onclick="togglePaperDelivered('${loading.id}')"
+                                        style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--danger); background: rgba(220,38,38,0.08); color: var(--danger); cursor: pointer; font-size: 14px; font-weight: 600;">
+                                        ✕ Teslimi Geri Al
+                                    </button>
+                                ` : `
+                                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(245,158,11,0.1); border: 1px solid var(--warning);">
+                                        <span style="font-size: 20px;">⏳</span>
+                                        <div style="font-weight: 600; color: var(--warning);">Kağıt henüz teslim edilmedi</div>
+                                    </div>
+                                    <button onclick="togglePaperDelivered('${loading.id}')"
+                                        style="padding: 10px 16px; border-radius: 8px; border: none; background: var(--primary); color: white; cursor: pointer; font-size: 14px; font-weight: 600; width: 100%;">
+                                        📄 Kağıdı Teslim Ettim
+                                    </button>
+                                `}
+                                ${loading.paper_confirmed_at ? `
+                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--success); margin-top: 4px;">
+                                        <span>✅</span> Müdür tarafından teyit edildi — ${new Date(loading.paper_confirmed_at).toLocaleString('tr-TR')}
+                                    </div>
+                                ` : loading.paper_delivered_at ? `
+                                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                                        ⏳ Müdür henüz teyit etmedi
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
             `;
         }
 
@@ -1185,6 +1406,18 @@
 
             return `
                         <form id="editForm" onsubmit="event.preventDefault(); saveChanges('${loading.id}');">
+                            <!-- Draft Alert Banner (If Any) -->
+                            ${loading.is_draft ? `
+                            <div class="detail-section" style="border: 2px solid #f97316; background: rgba(249,115,22,0.1); margin-bottom: 20px;">
+                                <h3 style="color: #ea580c; display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size:20px;">📝</span> Taslak Aşamasında
+                                </h3>
+                                <p style="margin-top: 10px; color: var(--text-primary);">
+                                    Lütfen aşağıdaki "Fotoğraflar" bölümünden fotoğraf yükleyerek raporu tamamlayın ve müdüre gönderin.
+                                </p>
+                            </div>
+                            ` : ''}
+
                             <!-- Team Info -->
                             <div class="detail-section">
                                 <h3>👥 Ekip Bilgileri</h3>
@@ -1444,6 +1677,26 @@
                 showToast('Bağlantı hatası', 'error');
                 btn.innerHTML = '💾 Değişiklikleri Kaydet';
                 btn.disabled = false;
+            }
+        }
+
+        async function togglePaperDelivered(id) {
+            try {
+                const response = await fetch(`/api/loadings/${id}/paper-delivered`, { method: 'PATCH' });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(data.loading.paper_delivered_at ? 'تم تسليم الورقة ✅' : 'تم إلغاء التسليم', data.loading.paper_delivered_at ? 'success' : 'warning');
+                    // Update in-memory data
+                    const idx = myLoadingsData.findIndex(l => l.id === id);
+                    if (idx !== -1) myLoadingsData[idx] = data.loading;
+                    // Re-render current modal view
+                    viewDetails(id);
+                } else {
+                    showToast('Hata: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (e) {
+                console.error('Toggle paper delivery error', e);
+                showToast('Bağlantı hatası', 'error');
             }
         }
 

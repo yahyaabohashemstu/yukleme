@@ -230,7 +230,10 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
             comments: req.body.comments || null,
 
             // Metadata
-            created_by: req.session.user.id
+            created_by: req.session.user.id,
+
+            // Draft Status: If no photos are uploaded, it's a draft
+            is_draft: uploadedUrls.length === 0
         };
 
         const { data, error } = await supabase
@@ -246,7 +249,11 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
 
         // Send Telegram Notification (Async, don't block response)
         try {
-            await sendNotification(data, 'new');
+            if (!loadingData.is_draft) {
+                await sendNotification(data, 'new');
+            } else {
+                console.log(`Report ${data.id} created as draft (no photo). No Telegram notification sent.`);
+            }
         } catch (notifyError) {
             console.error('Notification failed:', notifyError);
         }
@@ -296,6 +303,7 @@ app.get('/api/loadings', requireManager, async (req, res) => {
             .from('loadings')
             .select('*, loading_versions(count), users!created_by(username)')
             .eq('is_archived', fetchArchived)
+            .eq('is_draft', false)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -489,8 +497,20 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             safwat_recorded_at: null,
             pinar_recorded_at: null,
             // Reset viewed status so it appears as "New/Edited" to managers
-            viewed_at: null
+            viewed_at: null,
+            // Clear improvement request flags when the report is edited
+            needs_improvement_at: null,
+            needs_improvement_by: null,
+            needs_improvement_reason: null
         };
+
+        // If it was a draft, and now has photos, publish it
+        const wasDraft = current.is_draft;
+        const isNowPublishing = wasDraft && finalPhotos.length > 0;
+        
+        if (isNowPublishing) {
+            updateData.is_draft = false;
+        }
 
         // 5. Update
         const { data: updated, error: updateError } = await supabase
@@ -509,15 +529,17 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
         try {
             // Only send notifications if the user is a loader, not a manager
             if (req.session.user.role !== 'manager') {
-                // Check if ANY manager has viewed the report
-                // current.viewed_at is set when any manager opens the report
-                if (current.viewed_at) {
-                    // If viewed, send URGENT alert
+                if (isNowPublishing) {
+                    // It was a draft and is now officially published because a photo was added
+                    console.log(`Report ${id} transitioned from draft to published. Sending NEW alert.`);
+                    await sendNotification(updated, 'new');
+                } else if (current.viewed_at && !updated.is_draft) {
+                    // If viewed and it's not a draft, send URGENT alert for changes
                     console.log(`Report ${id} changed after viewing. Sending ALERT.`);
                     await sendNotification(updated, 'update_important');
                 } else {
-                    // If NOT viewed, update silently (No notification)
-                    console.log(`Report ${id} updated before viewing. Silent update.`);
+                    // If NOT viewed or still a draft, update silently (No notification)
+                    console.log(`Report ${id} updated (silent). Draft: ${updated.is_draft}, Viewed: ${!!current.viewed_at}`);
                 }
             } else {
                 console.log(`Report ${id} updated by manager. No Telegram notification sent.`);
@@ -637,7 +659,117 @@ app.patch('/api/loadings/:id/unrecord', requireManager, async (req, res) => {
     }
 });
 
+// Toggle paper delivered status (loader only)
+app.patch('/api/loadings/:id/paper-delivered', requireLoader, async (req, res) => {
+    try {
+        const { data: current, error: fetchError } = await supabase
+            .from('loadings')
+            .select('paper_delivered_at')
+            .eq('id', req.params.id)
+            .single();
 
+        if (fetchError || !current) {
+            return res.status(404).json({ error: 'التقرير غير موجود' });
+        }
+
+        const newDelivered = current.paper_delivered_at ? null : new Date().toISOString();
+
+        const { data, error } = await supabase
+            .from('loadings')
+            .update({
+                paper_delivered_at: newDelivered,
+                // If cancelling delivery, also clear manager confirmation
+                ...(newDelivered === null ? { paper_confirmed_at: null } : {})
+            })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Paper delivery update error:', error);
+            return res.status(500).json({ error: 'حدث خطأ أثناء تحديث الحالة' });
+        }
+
+        res.json({ message: 'تم تحديث حالة التسليم', loading: data });
+    } catch (error) {
+        console.error('Paper delivery error:', error);
+        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+    }
+});
+
+// Toggle paper confirmed status (manager only)
+app.patch('/api/loadings/:id/paper-confirmed', requireManager, async (req, res) => {
+    try {
+        const { data: current, error: fetchError } = await supabase
+            .from('loadings')
+            .select('paper_confirmed_at')
+            .eq('id', req.params.id)
+            .single();
+
+        if (fetchError || !current) {
+            return res.status(404).json({ error: 'التقرير غير موجود' });
+        }
+
+        const newConfirmed = current.paper_confirmed_at ? null : new Date().toISOString();
+
+        const { data, error } = await supabase
+            .from('loadings')
+            .update({ paper_confirmed_at: newConfirmed })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Paper confirm update error:', error);
+            return res.status(500).json({ error: 'حدث خطأ أثناء تحديث الحالة' });
+        }
+
+        res.json({ message: 'تم تحديث حالة التأكيد', loading: data });
+    } catch (error) {
+        console.error('Paper confirm error:', error);
+        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+    }
+});
+
+// Send improvement alert (manager only)
+app.post('/api/loadings/:id/improvement-alert', requireManager, async (req, res) => {
+    try {
+        const { section, field, comment } = req.body;
+        
+        if (!section || !comment) {
+            return res.status(400).json({ error: 'القسم والشرح مطلوبان' });
+        }
+
+        const reason = { section, field, comment };
+
+        const { data, error } = await supabase
+            .from('loadings')
+            .update({ 
+                needs_improvement_at: new Date().toISOString(),
+                needs_improvement_by: req.session.user.id,
+                needs_improvement_reason: reason,
+                // Also unrecord it if it was recorded
+                is_recorded: false,
+                recorded_at: null,
+                recorded_by: null,
+                safwat_recorded_at: null,
+                pinar_recorded_at: null
+            })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Improvement alert error:', error);
+            return res.status(500).json({ error: 'حدث خطأ أثناء إرسال التنبيه' });
+        }
+
+        res.json({ message: 'تم إرسال طلب التعديل لمسؤول التحميل', loading: data });
+    } catch (error) {
+        console.error('Improvement alert server error:', error);
+        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+    }
+});
 
 // Archive loading (manager only)
 app.patch('/api/loadings/:id/archive', requireManager, async (req, res) => {

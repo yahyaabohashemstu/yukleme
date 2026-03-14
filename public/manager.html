@@ -134,7 +134,7 @@
                     <div style="width: 100%; display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 18px;">🔍</span>
                         <input type="text" id="plateSearchInput"
-                            placeholder="Plakaya göre ara... (Araç Plakası 1 veya 2)" oninput="filterByPlate()"
+                            placeholder="🔍 Ara... (Plaka, müşteri, ülke, tarih, çalışan, mal adı...)" oninput="filterByPlate()"
                             style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
                         <button onclick="document.getElementById('plateSearchInput').value=''; filterByPlate()"
                             title="Temizle"
@@ -150,6 +150,7 @@
                             <tr>
                                 <th>Müşteri</th>
                                 <th>Araç Plakası</th>
+                                <th>Tarih</th>
                                 <th>Varış Yeri</th>
                                 <th>Sisteme Giriş (Loader)</th>
                                 <th>Safwat</th>
@@ -315,17 +316,37 @@
                     ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
                     : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
 
+                // Paper and Improvement status
+                const paperConfirmed = !!loading.paper_confirmed_at;
+                const paperDelivered = !!loading.paper_delivered_at;
+                const needsImprovement = !!loading.needs_improvement_at;
+
+                let rowStyle = '';
+                if (needsImprovement) {
+                    rowStyle = 'style="border: 2px solid #3b82f6; outline: 2px solid rgba(59,130,246,0.3);" title="Eksik/Hatalı: Düzeltme bekleniyor"';
+                } else if (!paperConfirmed) {
+                    rowStyle = 'style="border: 2px solid var(--danger); outline: 2px solid rgba(220,38,38,0.25);" title="Kağıt teslimi henüz onaylanmadı"';
+                }
+
+                const paperBadge = paperConfirmed
+                    ? '<span title="Kağıt teslimi onaylandı" style="font-size:15px;">✅</span>'
+                    : paperDelivered
+                        ? '<span title="Teslim edildi, onay bekliyor" style="font-size:15px;">📄⏳</span>'
+                        : '<span title="Kağıt teslim edilmedi" style="font-size:15px; opacity:0.35;">📄</span>';
+                
+                const improvementBadge = needsImprovement ? '<span title="Düzeltme bekleniyor" style="font-size:16px; margin-right:4px;">⚠️</span>' : '';
+
                 return `
-                <tr>
+                <tr ${rowStyle}>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            ${loading.destination_customer || '-'}
-                            ${loading.loading_versions && loading.loading_versions[0]?.count > 0 ?
-                        `<span class="version-badge" title="${loading.loading_versions[0].count} defa düzenlendi">v${loading.loading_versions[0].count + 1}</span>`
-                        : ''}
-                        </div>
+                        <span style="font-weight: 500;">${loading.destination_customer || '-'}</span>
                     </td>
                     <td>${plate1}${plate2}</td>
+                    <td>
+                        <span style="font-weight: 500; white-space: nowrap; color: ${loading.loading_date ? 'var(--text-primary)' : 'var(--text-muted)'};">
+                            ${loading.loading_date ? formatDate(loading.loading_date) : '-'}
+                        </span>
+                    </td>
                     <td>${loading.destination_company || '-'} - ${loading.destination_country || '-'}</td>
                     <td>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -335,22 +356,45 @@
                     </td>
                     <td>${safwatHtml}</td>
                     <td>${pinarHtml}</td>
-                    <td><button class="view-btn" onclick="viewDetails('${loading.id}')">Detayları Gör</button></td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                            <div style="display: flex; align-items: center;">${improvementBadge}${paperBadge}</div>
+                            <button class="view-btn" onclick="viewDetails('${loading.id}')">Detayları Gör</button>
+                        </div>
+                    </td>
                 </tr>
             `;
             }).join('');
         }
 
         function filterByPlate() {
-            const query = (document.getElementById('plateSearchInput')?.value || '').replace(/\s+/g, '').toLowerCase();
-            if (!query) {
+            const raw = (document.getElementById('plateSearchInput')?.value || '').toLowerCase();
+            const query = raw.replace(/\s+/g, '');
+            if (!raw.trim()) {
                 renderLoadings(loadingsData);
                 return;
             }
             const filtered = loadingsData.filter(l => {
-                const p1 = (l.plate1 || '').replace(/\s+/g, '').toLowerCase();
-                const p2 = (l.plate2 || '').replace(/\s+/g, '').toLowerCase();
-                return p1.includes(query) || p2.includes(query);
+                // Collect all searchable text fields
+                const fields = [
+                    l.plate1, l.plate2,
+                    l.destination_customer, l.destination_company, l.destination_country,
+                    l.manager, l.worker1, l.worker2, l.worker3, l.worker4,
+                    l.driver_name, l.driver_phone,
+                    l.forklift_operator,
+                    l.loading_date,
+                    l.vehicle_weight_after, l.product_weight,
+                    l.comments, l.container_no,
+                    l.users?.username
+                ].map(v => (v || '').toLowerCase());
+
+                // Also search product names
+                const productNames = (l.products || []).map(p => (p.name || '').toLowerCase());
+
+                const all = [...fields, ...productNames];
+                // Try both with-spaces and without-spaces for plates
+                return all.some(f => f.includes(raw.trim())) ||
+                       all.some(f => f.replace(/\s+/g, '').includes(query));
             });
             renderLoadings(filtered);
         }
@@ -372,8 +416,8 @@
             const date = new Date(dateStr);
             return date.toLocaleDateString('tr-TR', {
                 year: 'numeric',
-                month: 'short',
-                day: 'numeric'
+                month: '2-digit',
+                day: '2-digit'
             });
         }
 
@@ -896,6 +940,64 @@
                     </div>
                 </div>
 
+                <!-- Improvement Alert Section -->
+                ${isCurrentVersion ? (() => {
+                    const needsImprovement = loading.needs_improvement_at;
+                    
+                    if (needsImprovement) {
+                        return `
+                        <div class="detail-section" style="border: 2px solid #3b82f6; background: rgba(59,130,246,0.05);">
+                            <h3 style="color: #3b82f6;">⚠️ Düzeltme Talebi Gönderildi</h3>
+                            <div style="margin-top: 10px;">
+                                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Tarih: ${new Date(loading.needs_improvement_at).toLocaleString('tr-TR')}</p>
+                                <p><strong>Bölüm:</strong> ${loading.needs_improvement_reason?.section || '-'}</p>
+                                <p><strong>Alan:</strong> ${loading.needs_improvement_reason?.field || '-'}</p>
+                                <p style="margin-top: 8px;"><strong>Mesaj:</strong><br/>${loading.needs_improvement_reason?.comment || '-'}</p>
+                            </div>
+                            <p style="margin-top:10px; font-size:13px; color:var(--text-secondary);">Loader bu raporu düzenlediğinde bu talep otomatik olarak kapanacaktır.</p>
+                        </div>
+                        `;
+                    } else {
+                        return `
+                        <div class="detail-section" id="improvementAlertSection">
+                            <h3>⚠️ Düzeltme İste</h3>
+                            <button class="view-btn" onclick="document.getElementById('improvementForm').style.display='block'; this.style.display='none';" style="background: transparent; color: #3b82f6; border: 1px solid #3b82f6; width: 100%; border-radius: 8px; padding: 10px; margin-top: 5px;">
+                                Rapor Hatalı/Eksik (Loader'a Gönder)
+                            </button>
+                            
+                            <form id="improvementForm" style="display: none; margin-top: 15px; background: var(--bg-hover); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);" onsubmit="submitImprovementAlert(event, '${loading.id}')">
+                                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Bu formu doldurduğunuzda rapor loader'a geri gönderilir ve kaydı (varsa) silinir.</p>
+                                
+                                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Hatalı Bölüm</label>
+                                <select id="improvementSection" required onchange="handleImprovementSectionChange()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
+                                    <option value="">Seçiniz</option>
+                                    <option value="Müşteri Bilgileri">Müşteri Bilgileri</option>
+                                    <option value="Araç Bilgileri">Araç Bilgileri</option>
+                                    <option value="Yüklenen Mallar">Yüklenen Mallar</option>
+                                    <option value="Yükleme Ekibi ve Forklift">Yükleme Ekibi ve Forklift</option>
+                                    <option value="Sürücü Bilgileri">Sürücü Bilgileri</option>
+                                    <option value="Fotoğraflar ve Evraklar">Fotoğraflar ve Evraklar</option>
+                                    <option value="Zamanlar ve Diğer">Zamanlar ve Diğer</option>
+                                </select>
+
+                                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Sorunlu Alan / Detay</label>
+                                <select id="improvementField" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
+                                    <option value="">Önce bölüm seçiniz</option>
+                                </select>
+
+                                <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Açıklama / Mesaj</label>
+                                <textarea id="improvementComment" rows="3" placeholder="Lütfen tam olarak neyin düzeltilmesi gerektiğini açıklayın..." required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 15px; resize: vertical; margin-top: 0px;"></textarea>
+                                
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="submit" class="primary-btn" style="flex: 1; background: #3b82f6; border-color: #3b82f6;">Gönder</button>
+                                    <button type="button" class="view-btn" style="flex: 1;" onclick="document.getElementById('improvementForm').style.display='none'; this.closest('.detail-section').querySelector('.view-btn').style.display='block';">İptal</button>
+                                </div>
+                            </form>
+                        </div>
+                        `;
+                    }
+                })() : ''}
+
                 <!-- Comments -->
                 ${loading.comments ? `
                     <div class="detail-section ${isCurrentVersion ? getChangedClass(loading, previousData, 'comments') : ''}">
@@ -942,6 +1044,51 @@
                     `;
                 })() : ''}
 
+                <!-- Paper Delivery Confirmation - Only for current version -->
+                ${isCurrentVersion ? (() => {
+                    const delivered = loading.paper_delivered_at;
+                    const confirmed = loading.paper_confirmed_at;
+                    return `
+                    <div class="detail-section">
+                        <h3>📄 Kağıt Teslimi</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            ${delivered ? `
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(16,185,129,0.1); border: 1px solid var(--success);">
+                                    <span style="font-size: 20px;">📄</span>
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--success);">Yükleyici kağıdı teslim ettiğini işaretledi</div>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">${new Date(delivered).toLocaleString('tr-TR')}</div>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(220,38,38,0.08); border: 1px solid var(--danger);">
+                                    <span style="font-size: 20px;">📄</span>
+                                    <div style="font-weight: 600; color: var(--danger);">Yükleyici henüz kağıt teslimini işaretlemedi</div>
+                                </div>
+                            `}
+                            ${confirmed ? `
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(16,185,129,0.15); border: 1px solid var(--success);">
+                                    <span style="font-size: 20px;">✅</span>
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--success);">Müdür teslimi onayladı</div>
+                                        <div style="font-size: 12px; color: var(--text-secondary);">${new Date(confirmed).toLocaleString('tr-TR')}</div>
+                                    </div>
+                                </div>
+                                <button onclick="togglePaperConfirmed('${loading.id}')"
+                                    style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--danger); background: rgba(220,38,38,0.08); color: var(--danger); cursor: pointer; font-size: 14px; font-weight: 600;">
+                                    ✕ Onayı Geri Al
+                                </button>
+                            ` : `
+                                <button onclick="togglePaperConfirmed('${loading.id}')"
+                                    style="padding: 12px 16px; border-radius: 8px; border: none; background: var(--success); color: white; cursor: pointer; font-size: 14px; font-weight: 600; width: 100%;">
+                                    ✅ Kağıt Teslimini Onayla
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                    `;
+                })() : ''}
+
                 <!-- Action Buttons - Only show for current version -->
                 ${isCurrentVersion ? `
                     <div class="detail-section" style="display: flex; gap: 10px; flex-direction: column;">
@@ -969,6 +1116,149 @@
         }
 
 
+
+        // Toggle paper confirmed (manager only)
+        async function togglePaperConfirmed(id) {
+            try {
+                const response = await fetch(`/api/loadings/${id}/paper-confirmed`, { method: 'PATCH' });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(data.loading.paper_confirmed_at ? 'Kağıt teslimi onaylandı ✅' : 'Onay geri alındı', data.loading.paper_confirmed_at ? 'success' : 'warning');
+                    // Update in-memory data
+                    const idx = loadingsData.findIndex(l => l.id === id);
+                    if (idx !== -1) loadingsData[idx] = data.loading;
+                    // Refresh table and modal
+                    renderLoadings(loadingsData);
+                    viewDetails(id);
+                } else {
+                    showToast('Hata: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (e) {
+                console.error('Toggle paper confirm error', e);
+                showToast('Bağlantı hatası', 'error');
+            }
+        }
+
+        // Handle Improvement Section Change for dynamic fields
+        function handleImprovementSectionChange() {
+            const sectionSelect = document.getElementById('improvementSection');
+            const fieldSelect = document.getElementById('improvementField');
+            
+            const section = sectionSelect.value;
+            fieldSelect.innerHTML = ''; // Select'i temizle
+            
+            if (!section) {
+                fieldSelect.innerHTML = '<option value="">Önce bölüm seçiniz</option>';
+                return;
+            }
+
+            // Define fields for each section
+            const fieldsMap = {
+                'Müşteri Bilgileri': [
+                    'Varış Noktası (Müşteri)',
+                    'Hedef Şirket',
+                    'Hedef Ülke'
+                ],
+                'Araç Bilgileri': [
+                    'Araç Plakası 1',
+                    'Araç Plakası 2',
+                    'Tarih'
+                ],
+                'Yüklenen Mallar': [
+                    'Mal Adı',
+                    'Mal Sayısı',
+                    'Pallet Sayısı',
+                    'Toplam Yük Ağırlığı',
+                    'Eksik/Fazla Malzeme'
+                ],
+                'Yükleme Ekibi ve Forklift': [
+                    'Yönetici',
+                    'Birinci Eleman',
+                    'İkinci Eleman',
+                    'Üçüncü Eleman',
+                    'Dördüncü Eleman',
+                    'Forklift Sürücüsü'
+                ],
+                'Sürücü Bilgileri': [
+                    'Sürücü Adı',
+                    'Sürücü Telefonu'
+                ],
+                'Fotoğraflar ve Evraklar': [
+                    'Eksik Fotoğraf',
+                    'Net Olmayan Fotoğraf',
+                    'Yanlış Evrak',
+                    'Kantar Fişi'
+                ],
+                'Zamanlar ve Diğer': [
+                    'Giriş Zamanı',
+                    'Çıkış Zamanı',
+                    'Ağırlık Bilgileri (Ürün/Araç)',
+                    'Genel Yorum/Not'
+                ]
+            };
+
+            const fields = fieldsMap[section] || [];
+            
+            fieldSelect.innerHTML = '<option value="">Sorunlu alanı seçiniz</option>';
+            fields.forEach(field => {
+                const opt = document.createElement('option');
+                opt.value = field;
+                opt.textContent = field;
+                fieldSelect.appendChild(opt);
+            });
+            
+            // Allow custom input by appending "Diğer (Açıklamada belirt)"
+            const otherOpt = document.createElement('option');
+            otherOpt.value = 'Diğer (Açıklamada belirt)';
+            otherOpt.textContent = 'Diğer (Açıklamada belirt)';
+            fieldSelect.appendChild(otherOpt);
+        }
+
+        // Submit Improvement Alert
+        async function submitImprovementAlert(event, id) {
+            event.preventDefault();
+            
+            const btn = event.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div><span>Gönderiliyor...</span>';
+
+            const section = document.getElementById('improvementSection').value;
+            const field = document.getElementById('improvementField').value;
+            const comment = document.getElementById('improvementComment').value;
+
+            try {
+                const response = await fetch(`/api/loadings/${id}/improvement-alert`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ section, field, comment })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast("Loader'a düzeltme talebi gönderildi", 'success');
+                    
+                    // Update in-memory
+                    const idx = loadingsData.findIndex(l => l.id === id);
+                    if (idx !== -1) {
+                        loadingsData[idx] = data.loading;
+                    }
+
+                    // Refresh table and modal
+                    renderLoadings(loadingsData);
+                    viewDetails(id);
+                } else {
+                    showToast('Hata: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Gönder';
+                }
+            } catch (e) {
+                console.error('Submit improvement alert error', e);
+                showToast('Bağlantı hatası', 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Gönder';
+            }
+        }
 
         // Mark as recorded
         async function markAsRecorded(id) {

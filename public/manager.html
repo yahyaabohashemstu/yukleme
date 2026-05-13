@@ -294,6 +294,7 @@
     <script>
         let loadingsData = [];
         let isArchiveView = false; // State for active tab
+        let currentUsername = ''; // Set by checkAuth; gates Arabic product display
 
         // Turkish → Arabic product-name map (manager-only display preference)
         // The DB stores Turkish names (loaders enter Turkish); we only translate at render time.
@@ -888,32 +889,9 @@
             renderVersionTabs(index);
         }
 
-        let currentUsername = '';
-
-        // Check authentication
-        async function checkAuth() {
-            try {
-                const response = await fetch('/api/check-auth');
-                const data = await response.json();
-
-                if (!data.authenticated || data.user.role !== 'manager') {
-                    window.location.href = '/';
-                    return;
-                }
-
-                currentUsername = data.user.username;
-                document.getElementById('userName').textContent = currentUsername === 'pinar' ? 'pinar' : 'Üretim Müdürü';
-
-                // Load data after auth check
-                loadLoadings();
-            } catch (error) {
-                console.error('Auth check error:', error);
-                window.location.href = '/';
-            }
-        }
-
-        // Call checkAuth immediately
-        checkAuth();
+        // (Removed: duplicate let currentUsername + duplicate async function checkAuth + duplicate checkAuth() call.
+        //  The canonical declarations live near the top of the script; the duplicate overrode the real checkAuth
+        //  via function hoisting and skipped loading the Arabic translations map.)
 
         function getChangedClass(currentData, previousData, fieldName) {
             // Only highlight if it's the current version AND we have previous data

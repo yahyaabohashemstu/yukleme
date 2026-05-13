@@ -178,9 +178,29 @@
                                 <input type="date" id="dateDayInput" oninput="applyAllFilters()"
                                     style="display: none; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
 
-                                <!-- Month Input -->
-                                <input type="month" id="dateMonthInput" oninput="applyAllFilters()"
-                                    style="display: none; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+                                <!-- Month Inputs (Year + Month selects) -->
+                                <div id="dateMonthInputs" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <select id="dateYearSelect" onchange="applyAllFilters()" title="Yıl"
+                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 100px; cursor: pointer;">
+                                        <option value="">Yıl seçin</option>
+                                    </select>
+                                    <select id="dateMonthSelect" onchange="applyAllFilters()" title="Ay"
+                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 130px; cursor: pointer;">
+                                        <option value="">Ay seçin</option>
+                                        <option value="01">Ocak (01)</option>
+                                        <option value="02">Şubat (02)</option>
+                                        <option value="03">Mart (03)</option>
+                                        <option value="04">Nisan (04)</option>
+                                        <option value="05">Mayıs (05)</option>
+                                        <option value="06">Haziran (06)</option>
+                                        <option value="07">Temmuz (07)</option>
+                                        <option value="08">Ağustos (08)</option>
+                                        <option value="09">Eylül (09)</option>
+                                        <option value="10">Ekim (10)</option>
+                                        <option value="11">Kasım (11)</option>
+                                        <option value="12">Aralık (12)</option>
+                                    </select>
+                                </div>
 
                                 <!-- Range Inputs -->
                                 <div id="dateRangeInputs" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -483,6 +503,7 @@
                 if (response.ok) {
                     loadingsData = data;
                     populateCustomerDatalist();
+                    populateYearOptions();
                     applyAllFilters(); // Respect any active filters when re-rendering
                     updateStats(data); // Stats always reflect full unfiltered set
                 } else {
@@ -598,9 +619,12 @@
                 return ld === v;
             }
             if (mode === 'month') {
-                const v = document.getElementById('dateMonthInput')?.value; // 'YYYY-MM'
-                if (!v) return true;
-                return ld.startsWith(v + '-');
+                const year = document.getElementById('dateYearSelect')?.value;   // 'YYYY' or ''
+                const month = document.getElementById('dateMonthSelect')?.value; // '01'-'12' or ''
+                if (!year && !month) return true;                                // nothing picked yet
+                if (year && ld.slice(0, 4) !== year) return false;
+                if (month && ld.slice(5, 7) !== month) return false;
+                return true;
             }
             if (mode === 'range') {
                 const from = document.getElementById('dateFromInput')?.value;
@@ -668,11 +692,11 @@
         function onDateModeChange() {
             const mode = document.getElementById('dateModeSelect')?.value || 'all';
             const day = document.getElementById('dateDayInput');
-            const month = document.getElementById('dateMonthInput');
+            const monthWrap = document.getElementById('dateMonthInputs');
             const range = document.getElementById('dateRangeInputs');
 
             if (day) day.style.display = mode === 'day' ? 'inline-block' : 'none';
-            if (month) month.style.display = mode === 'month' ? 'inline-block' : 'none';
+            if (monthWrap) monthWrap.style.display = mode === 'month' ? 'flex' : 'none';
             if (range) range.style.display = mode === 'range' ? 'flex' : 'none';
 
             applyAllFilters();
@@ -681,12 +705,34 @@
         function applyDatePreset(preset) {
             const select = document.getElementById('dateModeSelect');
             const dayInput = document.getElementById('dateDayInput');
-            const monthInput = document.getElementById('dateMonthInput');
+            const yearSelect = document.getElementById('dateYearSelect');
+            const monthSelect = document.getElementById('dateMonthSelect');
             const fromInput = document.getElementById('dateFromInput');
             const toInput = document.getElementById('dateToInput');
             if (!select) return;
 
             const today = new Date();
+
+            // Helper: ensure a year option exists in the Year select before assigning
+            const ensureYearOption = (year) => {
+                if (!yearSelect) return;
+                const yStr = String(year);
+                if (!Array.from(yearSelect.options).some(o => o.value === yStr)) {
+                    const opt = document.createElement('option');
+                    opt.value = yStr;
+                    opt.textContent = yStr;
+                    // Insert in descending order (skip the placeholder at index 0)
+                    let inserted = false;
+                    for (let i = 1; i < yearSelect.options.length; i++) {
+                        if (parseInt(yearSelect.options[i].value, 10) < year) {
+                            yearSelect.insertBefore(opt, yearSelect.options[i]);
+                            inserted = true;
+                            break;
+                        }
+                    }
+                    if (!inserted) yearSelect.appendChild(opt);
+                }
+            };
 
             if (preset === 'today') {
                 select.value = 'day';
@@ -709,13 +755,17 @@
                 const y = today.getFullYear();
                 const m = String(today.getMonth() + 1).padStart(2, '0');
                 select.value = 'month';
-                if (monthInput) monthInput.value = `${y}-${m}`;
+                ensureYearOption(y);
+                if (yearSelect) yearSelect.value = String(y);
+                if (monthSelect) monthSelect.value = m;
             } else if (preset === 'lastmonth') {
                 const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
                 const y = prev.getFullYear();
                 const m = String(prev.getMonth() + 1).padStart(2, '0');
                 select.value = 'month';
-                if (monthInput) monthInput.value = `${y}-${m}`;
+                ensureYearOption(y);
+                if (yearSelect) yearSelect.value = String(y);
+                if (monthSelect) monthSelect.value = m;
             }
 
             onDateModeChange();
@@ -726,7 +776,7 @@
             if (ps) ps.value = '';
             const sel = document.getElementById('dateModeSelect');
             if (sel) sel.value = 'all';
-            ['dateDayInput', 'dateMonthInput', 'dateFromInput', 'dateToInput', 'customerFilterInput'].forEach(id => {
+            ['dateDayInput', 'dateYearSelect', 'dateMonthSelect', 'dateFromInput', 'dateToInput', 'customerFilterInput'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -751,6 +801,33 @@
             });
         }
 
+        // Populate the Year <select> from the unique years present in loading_date.
+        // Always include the current year so the user can pick the current month
+        // even when there are no reports for it yet.
+        function populateYearOptions() {
+            const sel = document.getElementById('dateYearSelect');
+            if (!sel) return;
+
+            const years = new Set();
+            (loadingsData || []).forEach(l => {
+                if (l.loading_date && /^\d{4}-/.test(l.loading_date)) {
+                    years.add(l.loading_date.slice(0, 4));
+                }
+            });
+            years.add(String(new Date().getFullYear()));
+
+            const previous = sel.value;
+            const sorted = [...years].sort((a, b) => parseInt(b) - parseInt(a)); // newest first
+
+            sel.innerHTML = '<option value="">Yıl seçin</option>' +
+                sorted.map(y => `<option value="${y}">${y}</option>`).join('');
+
+            // Restore previously selected year if it still exists
+            if (previous && sorted.includes(previous)) {
+                sel.value = previous;
+            }
+        }
+
         function updateActiveFiltersSummary(filteredCount) {
             const summary = document.getElementById('activeFiltersSummary');
             const text = document.getElementById('activeFiltersText');
@@ -767,11 +844,20 @@
                 const v = document.getElementById('dateDayInput')?.value;
                 if (v) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📅 ${formatDate(v)}</span>`);
             } else if (mode === 'month') {
-                const v = document.getElementById('dateMonthInput')?.value;
-                if (v) {
-                    const [yy, mm] = v.split('-');
-                    const monthName = new Date(parseInt(yy), parseInt(mm) - 1, 1).toLocaleString('tr-TR', { month: 'long', year: 'numeric' });
-                    chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📆 ${monthName}</span>`);
+                const year = document.getElementById('dateYearSelect')?.value;
+                const month = document.getElementById('dateMonthSelect')?.value;
+                if (year || month) {
+                    let label;
+                    if (year && month) {
+                        label = new Date(parseInt(year), parseInt(month) - 1, 1).toLocaleString('tr-TR', { month: 'long', year: 'numeric' });
+                    } else if (year) {
+                        label = `Yıl: ${year}`;
+                    } else {
+                        const monthSel = document.getElementById('dateMonthSelect');
+                        const monthLabel = monthSel && monthSel.options[monthSel.selectedIndex]?.textContent || month;
+                        label = `Ay: ${monthLabel}`;
+                    }
+                    chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📆 ${escapeHtml(label)}</span>`);
                 }
             } else if (mode === 'range') {
                 const f = document.getElementById('dateFromInput')?.value;

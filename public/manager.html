@@ -313,6 +313,10 @@
 
         function getProductDisplayName(turkishName) {
             if (!turkishName) return '';
+            // Arabic display is enabled ONLY for the production manager (Fayık).
+            // Pinar and any other accounts keep the original Turkish.
+            if (currentUsername !== 'manager') return turkishName;
+
             // Exact match first
             if (productTrToAr[turkishName]) return productTrToAr[turkishName];
             // Trimmed fallback (defensive: DB may have trailing whitespace)
@@ -345,7 +349,11 @@
 
                 document.getElementById('userName').textContent = displayName;
                 currentUsername = username;
-                await loadProductTranslations(); // ensure map is ready before first render
+                // Only load Arabic mapping for the production manager (Fayık).
+                // Pinar and other accounts keep Turkish, so the fetch is skipped.
+                if (currentUsername === 'manager') {
+                    await loadProductTranslations();
+                }
                 loadLoadings();
             } catch (error) {
                 console.error('Auth check error:', error);
@@ -562,7 +570,9 @@
                     l.users?.username
                 ].map(v => (v || '').toLowerCase());
 
-                // Include both Turkish (DB) and Arabic (display) product names so search works in either language
+                // For the manager (Fayık) include both Turkish (DB) and Arabic (display)
+                // names so search works in either language. For Pinar/others,
+                // getProductDisplayName returns Turkish so only one entry is added.
                 const productNames = (l.products || []).flatMap(p => {
                     const tr = (p.name || '').toLowerCase();
                     const ar = (getProductDisplayName(p.name) || '').toLowerCase();

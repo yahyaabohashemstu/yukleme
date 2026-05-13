@@ -134,13 +134,108 @@
                     <div style="width: 100%; display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 18px;">🔍</span>
                         <input type="text" id="plateSearchInput"
-                            placeholder="🔍 Ara... (Plaka, müşteri, ülke, tarih, çalışan, mal adı...)" oninput="filterByPlate()"
+                            placeholder="🔍 Ara... (Plaka, müşteri, ülke, tarih, çalışan, mal adı...)" oninput="applyAllFilters()"
                             style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
-                        <button onclick="document.getElementById('plateSearchInput').value=''; filterByPlate()"
+                        <button onclick="document.getElementById('plateSearchInput').value=''; applyAllFilters()"
                             title="Temizle"
                             style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
                             ✕
                         </button>
+                    </div>
+
+                    <!-- Advanced Filters Panel -->
+                    <div class="filters-panel" style="width: 100%; background: var(--bg-secondary, rgba(0,0,0,0.02)); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px;">
+                        <!-- Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; font-size: 14px;">
+                                <span>🎯</span>
+                                <span>Gelişmiş Filtreler</span>
+                            </div>
+                            <button id="resetFiltersBtn" onclick="clearAllFilters()"
+                                style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;"
+                                onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                                ↻ Tüm Filtreleri Sıfırla
+                            </button>
+                        </div>
+
+                        <!-- Date Filter Row -->
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="font-size: 13px; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                <span>📅</span>
+                                <span>Yükleme Tarihi</span>
+                                <span style="font-size: 11px; color: var(--text-muted); font-weight: 400;">(rapor oluşturma değil, fiili yükleme tarihi)</span>
+                            </label>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                <select id="dateModeSelect" onchange="onDateModeChange()"
+                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 140px; cursor: pointer;">
+                                    <option value="all">Hepsi (filtre yok)</option>
+                                    <option value="day">📅 Belirli Gün</option>
+                                    <option value="month">📆 Belirli Ay</option>
+                                    <option value="range">📊 Tarih Aralığı</option>
+                                </select>
+
+                                <!-- Single Day Input -->
+                                <input type="date" id="dateDayInput" oninput="applyAllFilters()"
+                                    style="display: none; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+
+                                <!-- Month Input -->
+                                <input type="month" id="dateMonthInput" oninput="applyAllFilters()"
+                                    style="display: none; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+
+                                <!-- Range Inputs -->
+                                <div id="dateRangeInputs" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <input type="date" id="dateFromInput" oninput="applyAllFilters()" title="Başlangıç tarihi"
+                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+                                    <span style="color: var(--text-secondary); font-weight: 600;">→</span>
+                                    <input type="date" id="dateToInput" oninput="applyAllFilters()" title="Bitiş tarihi"
+                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+                                </div>
+
+                                <!-- Quick presets -->
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto;">
+                                    <button type="button" onclick="applyDatePreset('today')" title="Yükleme tarihi bugün olan raporlar"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'">Bugün</button>
+                                    <button type="button" onclick="applyDatePreset('yesterday')" title="Yükleme tarihi dün olan raporlar"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'">Dün</button>
+                                    <button type="button" onclick="applyDatePreset('thisweek')" title="Bu haftaki yüklemeler"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'">Bu Hafta</button>
+                                    <button type="button" onclick="applyDatePreset('thismonth')" title="Bu ayki yüklemeler"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'">Bu Ay</button>
+                                    <button type="button" onclick="applyDatePreset('lastmonth')" title="Geçen ayki yüklemeler"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'">Geçen Ay</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer Filter Row -->
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="font-size: 13px; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                <span>👤</span>
+                                <span>Müşteri</span>
+                            </label>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="text" id="customerFilterInput" list="customerOptions"
+                                    placeholder="Müşteri seçin veya yazın..." oninput="applyAllFilters()"
+                                    style="flex: 1; max-width: 400px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+                                <datalist id="customerOptions"></datalist>
+                                <button onclick="document.getElementById('customerFilterInput').value=''; applyAllFilters();"
+                                    title="Temizle"
+                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Active Filters Summary (shown when any filter is active) -->
+                        <div id="activeFiltersSummary" style="display: none; padding: 10px 12px; background: rgba(79,70,229,0.08); border: 1px solid rgba(79,70,229,0.3); border-radius: 8px; font-size: 13px; color: var(--primary, #4f46e5); flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+                            <span id="activeFiltersText" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;"></span>
+                            <span style="font-weight: 700; white-space: nowrap;">Sonuç: <span id="resultCount" style="font-size: 15px;">0</span> rapor</span>
+                        </div>
                     </div>
                 </div>
 
@@ -277,8 +372,9 @@
 
                 if (response.ok) {
                     loadingsData = data;
-                    renderLoadings(data);
-                    updateStats(data);
+                    populateCustomerDatalist();
+                    applyAllFilters(); // Respect any active filters when re-rendering
+                    updateStats(data); // Stats always reflect full unfiltered set
                 } else {
                     console.error('Error loading data:', data.error);
                 }
@@ -367,15 +463,65 @@
             }).join('');
         }
 
-        function filterByPlate() {
+        // ============ COMBINED FILTERS (search + date + customer) ============
+        // The date filter operates on loading_date (actual loading day), NOT created_at.
+        // All filters compose with AND logic.
+
+        function formatDateForInput(d) {
+            // Local-time YYYY-MM-DD to avoid timezone shifts that toISOString() can cause
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function matchesDateFilter(loading) {
+            const mode = document.getElementById('dateModeSelect')?.value || 'all';
+            if (mode === 'all') return true;
+
+            const ld = loading.loading_date; // Stored as 'YYYY-MM-DD' string from Postgres DATE
+            if (!ld) return false; // Hide records with no loading_date when a date filter is active
+
+            if (mode === 'day') {
+                const v = document.getElementById('dateDayInput')?.value;
+                if (!v) return true;
+                return ld === v;
+            }
+            if (mode === 'month') {
+                const v = document.getElementById('dateMonthInput')?.value; // 'YYYY-MM'
+                if (!v) return true;
+                return ld.startsWith(v + '-');
+            }
+            if (mode === 'range') {
+                const from = document.getElementById('dateFromInput')?.value;
+                const to = document.getElementById('dateToInput')?.value;
+                if (!from && !to) return true;
+                if (from && ld < from) return false;
+                if (to && ld > to) return false;
+                return true;
+            }
+            return true;
+        }
+
+        function matchesCustomerFilter(loading) {
+            const filter = (document.getElementById('customerFilterInput')?.value || '').trim().toLowerCase();
+            if (!filter) return true;
+            const customer = (loading.destination_customer || '').toLowerCase();
+            return customer.includes(filter);
+        }
+
+        function applyAllFilters() {
             const raw = (document.getElementById('plateSearchInput')?.value || '').toLowerCase();
             const query = raw.replace(/\s+/g, '');
-            if (!raw.trim()) {
-                renderLoadings(loadingsData);
-                return;
-            }
-            const filtered = loadingsData.filter(l => {
-                // Collect all searchable text fields
+            const hasTextSearch = !!raw.trim();
+
+            const filtered = (loadingsData || []).filter(l => {
+                if (!matchesDateFilter(l)) return false;
+                if (!matchesCustomerFilter(l)) return false;
+
+                if (!hasTextSearch) return true;
+
+                // Text search across many fields
                 const fields = [
                     l.plate1, l.plate2,
                     l.destination_customer, l.destination_company, l.destination_country,
@@ -388,15 +534,153 @@
                     l.users?.username
                 ].map(v => (v || '').toLowerCase());
 
-                // Also search product names
                 const productNames = (l.products || []).map(p => (p.name || '').toLowerCase());
-
                 const all = [...fields, ...productNames];
-                // Try both with-spaces and without-spaces for plates
+
                 return all.some(f => f.includes(raw.trim())) ||
                        all.some(f => f.replace(/\s+/g, '').includes(query));
             });
+
             renderLoadings(filtered);
+            updateActiveFiltersSummary(filtered.length);
+        }
+
+        // Backward-compat alias in case anything still calls filterByPlate
+        function filterByPlate() { applyAllFilters(); }
+
+        function onDateModeChange() {
+            const mode = document.getElementById('dateModeSelect')?.value || 'all';
+            const day = document.getElementById('dateDayInput');
+            const month = document.getElementById('dateMonthInput');
+            const range = document.getElementById('dateRangeInputs');
+
+            if (day) day.style.display = mode === 'day' ? 'inline-block' : 'none';
+            if (month) month.style.display = mode === 'month' ? 'inline-block' : 'none';
+            if (range) range.style.display = mode === 'range' ? 'flex' : 'none';
+
+            applyAllFilters();
+        }
+
+        function applyDatePreset(preset) {
+            const select = document.getElementById('dateModeSelect');
+            const dayInput = document.getElementById('dateDayInput');
+            const monthInput = document.getElementById('dateMonthInput');
+            const fromInput = document.getElementById('dateFromInput');
+            const toInput = document.getElementById('dateToInput');
+            if (!select) return;
+
+            const today = new Date();
+
+            if (preset === 'today') {
+                select.value = 'day';
+                if (dayInput) dayInput.value = formatDateForInput(today);
+            } else if (preset === 'yesterday') {
+                const y = new Date(today);
+                y.setDate(y.getDate() - 1);
+                select.value = 'day';
+                if (dayInput) dayInput.value = formatDateForInput(y);
+            } else if (preset === 'thisweek') {
+                // Monday as week start (Turkish convention)
+                const start = new Date(today);
+                const day = start.getDay(); // 0=Sun,1=Mon,...,6=Sat
+                const diff = day === 0 ? 6 : day - 1;
+                start.setDate(start.getDate() - diff);
+                select.value = 'range';
+                if (fromInput) fromInput.value = formatDateForInput(start);
+                if (toInput) toInput.value = formatDateForInput(today);
+            } else if (preset === 'thismonth') {
+                const y = today.getFullYear();
+                const m = String(today.getMonth() + 1).padStart(2, '0');
+                select.value = 'month';
+                if (monthInput) monthInput.value = `${y}-${m}`;
+            } else if (preset === 'lastmonth') {
+                const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const y = prev.getFullYear();
+                const m = String(prev.getMonth() + 1).padStart(2, '0');
+                select.value = 'month';
+                if (monthInput) monthInput.value = `${y}-${m}`;
+            }
+
+            onDateModeChange();
+        }
+
+        function clearAllFilters() {
+            const ps = document.getElementById('plateSearchInput');
+            if (ps) ps.value = '';
+            const sel = document.getElementById('dateModeSelect');
+            if (sel) sel.value = 'all';
+            ['dateDayInput', 'dateMonthInput', 'dateFromInput', 'dateToInput', 'customerFilterInput'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            onDateModeChange(); // hides date inputs and re-renders
+        }
+
+        function populateCustomerDatalist() {
+            const datalist = document.getElementById('customerOptions');
+            if (!datalist) return;
+
+            const customers = new Set();
+            (loadingsData || []).forEach(l => {
+                const c = (l.destination_customer || '').trim();
+                if (c) customers.add(c);
+            });
+
+            datalist.innerHTML = '';
+            [...customers].sort((a, b) => a.localeCompare(b, 'tr')).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                datalist.appendChild(opt);
+            });
+        }
+
+        function updateActiveFiltersSummary(filteredCount) {
+            const summary = document.getElementById('activeFiltersSummary');
+            const text = document.getElementById('activeFiltersText');
+            const count = document.getElementById('resultCount');
+            if (!summary || !text || !count) return;
+
+            const chips = [];
+
+            const search = (document.getElementById('plateSearchInput')?.value || '').trim();
+            if (search) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">🔍 "${escapeHtml(search)}"</span>`);
+
+            const mode = document.getElementById('dateModeSelect')?.value || 'all';
+            if (mode === 'day') {
+                const v = document.getElementById('dateDayInput')?.value;
+                if (v) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📅 ${formatDate(v)}</span>`);
+            } else if (mode === 'month') {
+                const v = document.getElementById('dateMonthInput')?.value;
+                if (v) {
+                    const [yy, mm] = v.split('-');
+                    const monthName = new Date(parseInt(yy), parseInt(mm) - 1, 1).toLocaleString('tr-TR', { month: 'long', year: 'numeric' });
+                    chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📆 ${monthName}</span>`);
+                }
+            } else if (mode === 'range') {
+                const f = document.getElementById('dateFromInput')?.value;
+                const t = document.getElementById('dateToInput')?.value;
+                if (f || t) {
+                    chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📊 ${f ? formatDate(f) : '…'} → ${t ? formatDate(t) : '…'}</span>`);
+                }
+            }
+
+            const cust = (document.getElementById('customerFilterInput')?.value || '').trim();
+            if (cust) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">👤 ${escapeHtml(cust)}</span>`);
+
+            if (chips.length > 0) {
+                summary.style.display = 'flex';
+                text.innerHTML = `<span style="margin-right: 4px; font-weight: 600;">Aktif:</span>${chips.join('')}`;
+                count.textContent = filteredCount;
+            } else {
+                summary.style.display = 'none';
+                text.innerHTML = '';
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
         }
 
         function updateStats(loadings) {

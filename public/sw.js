@@ -3,8 +3,8 @@
 // Version: 1.0.0
 // ============================================
 
-const CACHE_NAME = 'yukleme-cache-v38';
-const DYNAMIC_CACHE = 'yukleme-dynamic-v38';
+const CACHE_NAME = 'yukleme-cache-v39';
+const DYNAMIC_CACHE = 'yukleme-dynamic-v39';
 
 // Files to cache immediately on install
 const STATIC_ASSETS = [
@@ -14,6 +14,7 @@ const STATIC_ASSETS = [
   '/manager.html',
   '/styles.css',
   '/products.json',
+  '/products_tr_to_ar.json',
   '/manifest.json',
   '/offline.html',
   '/icons/icon-192x192.png',

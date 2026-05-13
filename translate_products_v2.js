@@ -481,12 +481,13 @@ function translateProductName(arabicName) {
     return translated.trim();
 }
 
-const turkishList = arabicProducts.map(translateProductName);
+// Exports for use by other scripts (e.g., scripts/build_ar_tr_map.js)
+module.exports = { arabicProducts, translations, translateProductName };
 
-// Sort alphabetically
-turkishList.sort();
-
-// Remove duplicates
-const uniqueList = [...new Set(turkishList)];
-
-console.log(JSON.stringify(uniqueList, null, 2));
+// Only run the console output when invoked directly
+if (require.main === module) {
+    const turkishList = arabicProducts.map(translateProductName);
+    turkishList.sort();
+    const uniqueList = [...new Set(turkishList)];
+    console.log(JSON.stringify(uniqueList, null, 2));
+}

@@ -295,6 +295,33 @@
         let loadingsData = [];
         let isArchiveView = false; // State for active tab
 
+        // Turkish → Arabic product-name map (manager-only display preference)
+        // The DB stores Turkish names (loaders enter Turkish); we only translate at render time.
+        let productTrToAr = {};
+
+        async function loadProductTranslations() {
+            try {
+                const response = await fetch('/products_tr_to_ar.json', { cache: 'no-cache' });
+                if (response.ok) {
+                    productTrToAr = await response.json();
+                }
+            } catch (e) {
+                console.warn('Could not load product translations; falling back to Turkish.', e);
+                productTrToAr = {};
+            }
+        }
+
+        function getProductDisplayName(turkishName) {
+            if (!turkishName) return '';
+            // Exact match first
+            if (productTrToAr[turkishName]) return productTrToAr[turkishName];
+            // Trimmed fallback (defensive: DB may have trailing whitespace)
+            const trimmed = String(turkishName).trim();
+            if (trimmed && productTrToAr[trimmed]) return productTrToAr[trimmed];
+            // No mapping → keep original Turkish
+            return turkishName;
+        }
+
         // Check authentication
         async function checkAuth() {
             try {
@@ -318,6 +345,7 @@
 
                 document.getElementById('userName').textContent = displayName;
                 currentUsername = username;
+                await loadProductTranslations(); // ensure map is ready before first render
                 loadLoadings();
             } catch (error) {
                 console.error('Auth check error:', error);
@@ -534,7 +562,12 @@
                     l.users?.username
                 ].map(v => (v || '').toLowerCase());
 
-                const productNames = (l.products || []).map(p => (p.name || '').toLowerCase());
+                // Include both Turkish (DB) and Arabic (display) product names so search works in either language
+                const productNames = (l.products || []).flatMap(p => {
+                    const tr = (p.name || '').toLowerCase();
+                    const ar = (getProductDisplayName(p.name) || '').toLowerCase();
+                    return ar && ar !== tr ? [tr, ar] : [tr];
+                });
                 const all = [...fields, ...productNames];
 
                 return all.some(f => f.includes(raw.trim())) ||
@@ -993,7 +1026,7 @@
                                 <tbody>
                                     ${products.map(p => `
                                         <tr>
-                                            <td>${p.name || '-'}</td>
+                                            <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${escapeHtml(getProductDisplayName(p.name) || '-')}</td>
                                             <td>${p.quantity || '-'}</td>
                                             <td>${p.pallets || '-'}</td>
                                         </tr>
@@ -1120,7 +1153,7 @@
                             const pallClass  = isCurrentVersion && prev && cellChanged(p.pallets,   prev.pallets)   ? 'field-changed' : '';
                             return `
                                 <tr style="${rowStyle}">
-                                    <td class="${nameClass}">${isNew ? '<span style="font-size:10px;color:var(--primary);font-weight:700;margin-right:4px;">YENİ</span>' : ''}${p.name || '-'}</td>
+                                    <td class="${nameClass}" dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${isNew ? '<span style="font-size:10px;color:var(--primary);font-weight:700;margin-right:4px;" dir="ltr">YENİ</span>' : ''}${escapeHtml(getProductDisplayName(p.name) || '-')}</td>
                                     <td class="${qtyClass}">${p.quantity || '-'}</td>
                                     <td class="${pallClass}">${p.pallets || '-'}</td>
                                 </tr>`;
@@ -1130,7 +1163,7 @@
                         const removedRows = isCurrentVersion && prevProducts.length > products.length
                             ? prevProducts.slice(products.length).map(p => `
                                 <tr style="background: rgba(220,38,38,0.08); border-left: 3px solid var(--danger); opacity: 0.7; text-decoration: line-through;">
-                                    <td><span style="font-size:10px;color:var(--danger);font-weight:700;margin-right:4px;">SİLİNDİ</span>${p.name || '-'}</td>
+                                    <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}"><span style="font-size:10px;color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr">SİLİNDİ</span>${escapeHtml(getProductDisplayName(p.name) || '-')}</td>
                                     <td>${p.quantity || '-'}</td>
                                     <td>${p.pallets || '-'}</td>
                                 </tr>`).join('')
@@ -1869,12 +1902,16 @@
                             </button>
                         </div>
                         <div id="editProductsContainer">
-                            ${products.map(p => `
+                            ${products.map(p => {
+                                const arName = getProductDisplayName(p.name);
+                                const hasArabic = arName && arName !== (p.name || '');
+                                return `
                             <div class="product-entry"
                                 style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
                                 <div class="form-group" style="margin: 0;">
                                     <label style="font-size: 11px;">Malın Adı</label>
-                                    <input type="text" class="edit-prod-name" value="${p.name || ''}" placeholder="Malın Adı">
+                                    <input type="text" class="edit-prod-name" value="${escapeHtml(p.name || '')}" placeholder="Malın Adı">
+                                    ${hasArabic ? `<div dir="rtl" style="text-align: right; font-size: 12px; color: var(--text-secondary); margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.04); border-radius: 4px;" title="Arapça karşılığı">🇸🇦 ${escapeHtml(arName)}</div>` : ''}
                                 </div>
                                 <div class="form-group" style="margin: 0;">
                                     <label style="font-size: 11px;">Sayısı</label>
@@ -1887,7 +1924,8 @@
                                 <button type="button" onclick="this.closest('.product-entry').remove()"
                                     style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
                             </div>
-                            `).join('')}
+                            `;
+                            }).join('')}
                         </div>
                     </div>
 
@@ -2144,7 +2182,7 @@
                 if (Array.isArray(loading.products) && loading.products.length > 0) {
                     dataRows.push(['Mal Adı', 'Miktar', 'Palet Sayısı']);
                     loading.products.forEach(p => {
-                        dataRows.push([p.name, p.quantity, p.pallets]);
+                        dataRows.push([getProductDisplayName(p.name), p.quantity, p.pallets]);
                     });
                 } else {
                     addRow('Mal Bilgisi', 'Yok');
@@ -2200,7 +2238,7 @@
                     // Header for products sub-table
                     dataRows.push(['Mal Adı', 'Miktar', 'Palet Sayısı']);
                     loading.products.forEach(p => {
-                        dataRows.push([p.name, p.quantity, p.pallets]);
+                        dataRows.push([getProductDisplayName(p.name), p.quantity, p.pallets]);
                     });
                 } else {
                     addRow('Mal Bilgisi', 'Yok');

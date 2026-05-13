@@ -3,8 +3,8 @@
 // Version: 1.0.0
 // ============================================
 
-const CACHE_NAME = 'yukleme-cache-v36';
-const DYNAMIC_CACHE = 'yukleme-dynamic-v36';
+const CACHE_NAME = 'yukleme-cache-v38';
+const DYNAMIC_CACHE = 'yukleme-dynamic-v38';
 
 // Files to cache immediately on install
 const STATIC_ASSETS = [
@@ -105,7 +105,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: Cache First, fallback to network
+  // HTML / navigation requests: Network First so UI updates ship immediately
+  const isHtmlRequest =
+    request.mode === 'navigate' ||
+    request.destination === 'document' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname === '/';
+
+  if (isHtmlRequest) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // Other static assets (CSS, JS, icons, manifest): Cache First, fallback to network
   event.respondWith(cacheFirst(request));
 });
 
@@ -185,6 +197,14 @@ async function networkFirst(request) {
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
+    }
+
+    // For navigation requests, show offline page
+    if (request.mode === 'navigate') {
+      const offlinePage = await caches.match('/offline.html');
+      if (offlinePage) {
+        return offlinePage;
+      }
     }
 
     // Return error response

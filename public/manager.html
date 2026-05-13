@@ -153,7 +153,7 @@
                                 <th>Tarih</th>
                                 <th>Varış Yeri</th>
                                 <th>Sisteme Giriş (Loader)</th>
-                                <th>Safwat</th>
+                                <th>Fayık</th>
                                 <th>Pinar</th>
                                 <th>İşlemler</th>
                             </tr>
@@ -216,7 +216,7 @@
                 let displayName = username;
 
                 if (username === 'manager') {
-                    displayName = 'Safwat';
+                    displayName = 'Fayık';
                 } else if (username === 'pinar') {
                     displayName = 'Pinar';
                 }
@@ -1008,7 +1008,7 @@
 
                 <!-- Record Button - Only show for current version -->
                 ${isCurrentVersion ? (() => {
-                    // Determine status based on current user (Safwat/Manager)
+                    // Determine status based on current user (Fayık/Manager)
                     let isRecorded = false;
                     let recordedAt = null;
 
@@ -1023,7 +1023,7 @@
 
                     return `
                     <div class="detail-section record-section">
-                        <h3>📝 Sistem Kayıt Durumu ${currentUsername !== 'pinar' ? '(Safwat)' : '(Pinar)'}</h3>
+                        <h3>📝 Sistem Kayıt Durumu ${currentUsername !== 'pinar' ? '(Fayık)' : '(Pinar)'}</h3>
                         ${isRecorded ? `
                             <div class="recorded-status">
                                 <span class="status-badge status-recorded large">✓ Kaydedildi</span>
@@ -1871,7 +1871,7 @@
                 addRow('Ürün Ağırlığı', loading.product_weight);
                 addRow('Toplam Yük Ağırlığı ⚖️', loading.vehicle_weight_after);
             } else {
-                // FULL VIEW for Safwat/Production Manager
+                // FULL VIEW for Fayık/Production Manager
 
                 // 1. General Info
                 addSection('Genel Bilgiler');

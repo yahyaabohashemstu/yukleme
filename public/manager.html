@@ -327,6 +327,79 @@
             return turkishName;
         }
 
+        // ============ COPY-TO-CLIPBOARD ============
+        // One-click copy for any displayed field. The actual value lives in the
+        // data-copy-value attribute so quotes/HTML inside values stay safe.
+
+        function copyValue(btn) {
+            const value = btn && btn.dataset ? (btn.dataset.copyValue || '') : '';
+            if (!value || value === '-') return;
+
+            const flashSuccess = () => {
+                const original = btn.innerHTML;
+                const origColor = btn.style.color;
+                const origBg = btn.style.background;
+                btn.innerHTML = '✓';
+                btn.style.color = '#16a34a';
+                btn.style.background = 'rgba(22,163,74,0.12)';
+                btn.style.opacity = '1';
+                setTimeout(() => {
+                    btn.innerHTML = original;
+                    btn.style.color = origColor;
+                    btn.style.background = origBg;
+                    btn.style.opacity = '';
+                }, 1200);
+            };
+
+            const flashFail = () => {
+                const original = btn.innerHTML;
+                btn.innerHTML = '✕';
+                btn.style.color = '#dc2626';
+                setTimeout(() => {
+                    btn.innerHTML = original;
+                    btn.style.color = '';
+                }, 1200);
+            };
+
+            const doFallback = () => {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = value;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.top = '-1000px';
+                    ta.style.left = '-1000px';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    if (ok) flashSuccess(); else flashFail();
+                } catch (e) {
+                    flashFail();
+                }
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+                navigator.clipboard.writeText(value).then(flashSuccess).catch(doFallback);
+            } else {
+                doFallback();
+            }
+        }
+
+        // Render a small copy button next to a value. Returns empty string for
+        // missing/dash values so empty cells don't get a useless button.
+        function copyBtn(value) {
+            const s = (value === null || value === undefined) ? '' : String(value);
+            const trimmed = s.trim();
+            if (!trimmed || trimmed === '-') return '';
+            return `<button type="button" class="copy-btn" data-copy-value="${escapeHtml(s)}" onclick="copyValue(this)" title="Kopyala"
+                style="background: transparent; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; opacity: 0.45; transition: opacity 0.15s ease, background 0.15s ease; font-size: 13px; margin: 0 4px; vertical-align: middle; line-height: 1;"
+                onmouseover="this.style.opacity='1'; this.style.background='rgba(79,70,229,0.1)'"
+                onmouseout="this.style.opacity='0.45'; this.style.background='transparent'"
+                dir="ltr">📋</button>`;
+        }
+
         // Check authentication
         async function checkAuth() {
             try {
@@ -982,19 +1055,19 @@
                         <div class="detail-grid">
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate1') : ''}">
                                 <label>Araç Plakası 1</label>
-                                <span>${loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-'}</span>
+                                <span>${loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-'}${copyBtn(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '')}</span>
                             </div>
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate2') : ''}">
                                 <label>Araç Plakası 2</label>
-                                <span>${loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-'}</span>
+                                <span>${loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-'}${copyBtn(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '')}</span>
                             </div>
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'container_no') : ''}">
                                 <label>Konteyner Numarası</label>
-                                <span>${loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-'}</span>
+                                <span>${loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-'}${copyBtn(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '')}</span>
                             </div>
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'loading_date') : ''}">
                                 <label>Tarih</label>
-                                <span>${formatDate(loading.loading_date)}</span>
+                                <span>${formatDate(loading.loading_date)}${copyBtn(formatDate(loading.loading_date))}</span>
                             </div>
                         </div>
                     </div>
@@ -1012,20 +1085,22 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${products.map(p => `
+                                    ${products.map(p => {
+                                        const displayName = getProductDisplayName(p.name) || '-';
+                                        return `
                                         <tr>
-                                            <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${escapeHtml(getProductDisplayName(p.name) || '-')}</td>
-                                            <td>${p.quantity || '-'}</td>
-                                            <td>${p.pallets || '-'}</td>
-                                        </tr>
-                                    `).join('')}
+                                            <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${escapeHtml(displayName)}${copyBtn(displayName)}</td>
+                                            <td>${p.quantity || '-'}${copyBtn(p.quantity)}</td>
+                                            <td>${p.pallets || '-'}${copyBtn(p.pallets)}</td>
+                                        </tr>`;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         ` : '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>'}
                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                                 <label>Toplam Yük Ağırlığı ⚖️</label>
-                                <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
+                                <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}${copyBtn(loading.vehicle_weight_after)}</span>
                             </div>
                         </div>
                     </div>
@@ -1073,15 +1148,15 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_company') : ''}">
                             <label>Şirket</label>
-                            <span>${loading.destination_company || '-'}</span>
+                            <span>${loading.destination_company || '-'}${copyBtn(loading.destination_company)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_country') : ''}">
                             <label>Ülke</label>
-                            <span>${loading.destination_country || '-'}</span>
+                            <span>${loading.destination_country || '-'}${copyBtn(loading.destination_country)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_customer') : ''}">
                             <label>Müşteri</label>
-                            <span>${loading.destination_customer || '-'}</span>
+                            <span>${loading.destination_customer || '-'}${copyBtn(loading.destination_customer)}</span>
                         </div>
                     </div>
                 </div>
@@ -1092,19 +1167,19 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate1') : ''}">
                             <label>Araç Plakası 1</label>
-                            <span>${loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-'}</span>
+                            <span>${loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-'}${copyBtn(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate2') : ''}">
                             <label>Araç Plakası 2</label>
-                            <span>${loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-'}</span>
+                            <span>${loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-'}${copyBtn(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'container_no') : ''}">
                             <label>Konteyner Numarası</label>
-                            <span>${loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-'}</span>
+                            <span>${loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-'}${copyBtn(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'loading_date') : ''}">
                             <label>Tarih</label>
-                            <span>${formatDate(loading.loading_date)}</span>
+                            <span>${formatDate(loading.loading_date)}${copyBtn(formatDate(loading.loading_date))}</span>
                         </div>
                     </div>
                 </div>
@@ -1139,22 +1214,26 @@
                             const nameClass  = isCurrentVersion && prev && cellChanged(p.name,     prev.name)     ? 'field-changed' : '';
                             const qtyClass   = isCurrentVersion && prev && cellChanged(p.quantity,  prev.quantity)  ? 'field-changed' : '';
                             const pallClass  = isCurrentVersion && prev && cellChanged(p.pallets,   prev.pallets)   ? 'field-changed' : '';
+                            const displayName = getProductDisplayName(p.name) || '-';
                             return `
                                 <tr style="${rowStyle}">
-                                    <td class="${nameClass}" dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${isNew ? '<span style="font-size:10px;color:var(--primary);font-weight:700;margin-right:4px;" dir="ltr">YENİ</span>' : ''}${escapeHtml(getProductDisplayName(p.name) || '-')}</td>
-                                    <td class="${qtyClass}">${p.quantity || '-'}</td>
-                                    <td class="${pallClass}">${p.pallets || '-'}</td>
+                                    <td class="${nameClass}" dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${isNew ? '<span style="font-size:10px;color:var(--primary);font-weight:700;margin-right:4px;" dir="ltr">YENİ</span>' : ''}${escapeHtml(displayName)}${copyBtn(displayName)}</td>
+                                    <td class="${qtyClass}">${p.quantity || '-'}${copyBtn(p.quantity)}</td>
+                                    <td class="${pallClass}">${p.pallets || '-'}${copyBtn(p.pallets)}</td>
                                 </tr>`;
                         }).join('');
 
                         // Detect removed rows (existed in prev but not current)
                         const removedRows = isCurrentVersion && prevProducts.length > products.length
-                            ? prevProducts.slice(products.length).map(p => `
+                            ? prevProducts.slice(products.length).map(p => {
+                                const displayName = getProductDisplayName(p.name) || '-';
+                                return `
                                 <tr style="background: rgba(220,38,38,0.08); border-left: 3px solid var(--danger); opacity: 0.7; text-decoration: line-through;">
-                                    <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}"><span style="font-size:10px;color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr">SİLİNDİ</span>${escapeHtml(getProductDisplayName(p.name) || '-')}</td>
+                                    <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}"><span style="font-size:10px;color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr">SİLİNDİ</span>${escapeHtml(displayName)}</td>
                                     <td>${p.quantity || '-'}</td>
                                     <td>${p.pallets || '-'}</td>
-                                </tr>`).join('')
+                                </tr>`;
+                            }).join('')
                             : '';
 
                         return `
@@ -1175,14 +1254,17 @@
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                             <label>Toplam Yük Ağırlığı ⚖️</label>
-                            <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
+                            <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}${copyBtn(loading.vehicle_weight_after)}</span>
                         </div>
-                        ${products.length > 0 ? `
+                        ${products.length > 0 ? (() => {
+                            const totalPallets = products.reduce((sum, p) => sum + (parseInt(p.pallets) || 0), 0);
+                            return `
                         <div class="detail-item">
                             <label>Toplam Pallet Sayısı 🟫</label>
-                            <span style="font-weight: 600; font-size: 1.1em; color: var(--success);">${products.reduce((sum, p) => sum + (parseInt(p.pallets) || 0), 0)} Pallet</span>
+                            <span style="font-weight: 600; font-size: 1.1em; color: var(--success);">${totalPallets} Pallet${copyBtn(totalPallets)}</span>
                         </div>
-                        ` : ''}
+                        `;
+                        })() : ''}
                     </div>
                 </div>
 
@@ -1192,28 +1274,28 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'manager') : ''}">
                             <label>Yönetici</label>
-                            <span>${loading.manager || '-'}</span>
+                            <span>${loading.manager || '-'}${copyBtn(loading.manager)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker1') : ''}">
                             <label>Birinci Eleman</label>
-                            <span>${loading.worker1 || '-'}</span>
+                            <span>${loading.worker1 || '-'}${copyBtn(loading.worker1)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker2') : ''}">
                             <label>İkinci Eleman</label>
-                            <span>${loading.worker2 || '-'}</span>
+                            <span>${loading.worker2 || '-'}${copyBtn(loading.worker2)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker3') : ''}">
                             <label>Üçüncü Eleman</label>
-                            <span>${loading.worker3 || '-'}</span>
+                            <span>${loading.worker3 || '-'}${copyBtn(loading.worker3)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker4') : ''}">
                             <label>Dördüncü Eleman</label>
-                            <span>${loading.worker4 || '-'}</span>
+                            <span>${loading.worker4 || '-'}${copyBtn(loading.worker4)}</span>
                         </div>
                         <!-- Moved Forklift Operator Here or separate? In HTML default it was here -->
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'forklift_operator') : ''}">
                             <label>Forklift Sürücüsü</label>
-                            <span>${loading.forklift_operator || '-'}</span>
+                            <span>${loading.forklift_operator || '-'}${copyBtn(loading.forklift_operator)}</span>
                         </div>
                     </div>
                 </div>
@@ -1224,7 +1306,7 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'driver_name') : ''}">
                             <label>Sürücü Adı</label>
-                            <span>${loading.driver_name || '-'}</span>
+                            <span>${loading.driver_name || '-'}${copyBtn(loading.driver_name)}</span>
                         </div>
                     </div>
                 </div>
@@ -1236,11 +1318,11 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'entry_time') : ''}">
                             <label>Giriş Zamanı</label>
-                            <span>${loading.entry_time || '-'}</span>
+                            <span>${loading.entry_time || '-'}${copyBtn(loading.entry_time)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'exit_time') : ''}">
                             <label>Çıkış Zamanı</label>
-                            <span>${loading.exit_time || '-'}</span>
+                            <span>${loading.exit_time || '-'}${copyBtn(loading.exit_time)}</span>
                         </div>
                     </div>
                 </div>

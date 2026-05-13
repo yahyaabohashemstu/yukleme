@@ -5,16 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Çevrimdışı | Yükleme Yönetim Sistemi</title>
-    
+
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#4f46e5">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Yükleme">
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- i18n -->
+    <script src="/i18n.js"></script>
     
     <style>
         :root {
@@ -214,33 +217,37 @@
 <body>
     <div class="offline-container">
         <div class="offline-icon">📡</div>
-        
-        <h1 class="offline-title">Çevrimdışısınız</h1>
-        <p class="offline-subtitle">
+
+        <h1 class="offline-title" data-i18n="offline.title">Çevrimdışısınız</h1>
+        <p class="offline-subtitle" data-i18n="offline.subtitle">
             İnternet bağlantınız kesilmiş görünüyor. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.
         </p>
-        
+
         <div class="offline-hint">
             <span class="offline-hint-icon">💡</span>
-            <span class="offline-hint-text">
+            <span class="offline-hint-text" data-i18n="offline.hint">
                 Daha önce görüntülediğiniz sayfalar çevrimdışı olarak kullanılabilir olabilir.
             </span>
         </div>
-        
+
         <button class="retry-btn" onclick="retryConnection()">
             <div class="spinner"></div>
-            <span class="btn-text">🔄 Tekrar Dene</span>
+            <span class="btn-text">🔄 <span data-i18n="offline.retry">Tekrar Dene</span></span>
         </button>
-        
+
         <div class="status-indicator">
             <span class="status-dot" id="statusDot"></span>
-            <span id="statusText">Bağlantı bekleniyor...</span>
+            <span id="statusText" data-i18n="offline.waiting">Bağlantı bekleniyor...</span>
         </div>
-        
+
+        <div style="display: flex; justify-content: center; margin-top: 20px;">
+            <div id="langSwitcherContainer"></div>
+        </div>
+
         <div class="offline-footer">
             <div class="offline-footer-brand">
                 <div class="brand-icon">🚛</div>
-                <span>Yükleme Yönetim Sistemi</span>
+                <span data-i18n="common.app_name">Yükleme Yönetim Sistemi</span>
             </div>
         </div>
     </div>
@@ -277,24 +284,34 @@
         function updateOnlineStatus() {
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
-            
+            const T = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
+
             if (navigator.onLine) {
                 dot.classList.add('online');
-                text.textContent = 'Bağlantı algılandı, yönlendiriliyor...';
-                
+                text.textContent = T('offline.detected', 'Bağlantı algılandı, yönlendiriliyor...');
+
                 // Wait a moment then redirect
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 1000);
             } else {
                 dot.classList.remove('online');
-                text.textContent = 'Bağlantı bekleniyor...';
+                text.textContent = T('offline.waiting', 'Bağlantı bekleniyor...');
             }
         }
-        
+
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
-        
+
+        // Mount language switcher
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.i18n) {
+                window.i18n.renderSwitcher(document.getElementById('langSwitcherContainer'));
+            }
+        });
+        // Re-run online check when language changes (text needs updating)
+        document.addEventListener('i18n:changed', updateOnlineStatus);
+
         // Initial check
         updateOnlineStatus();
         

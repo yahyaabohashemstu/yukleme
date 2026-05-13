@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş | Yükleme Yönetim Sistemi</title>
+    <title data-i18n-html="login.title_page">Giriş | Yükleme Yönetim Sistemi</title>
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#4f46e5">
@@ -31,6 +31,9 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
+
+    <!-- i18n: must load before any inline script that needs translations -->
+    <script src="/i18n.js"></script>
 </head>
 
 <body>
@@ -39,9 +42,12 @@
             <div class="login-card">
                 <div class="login-logo">
                     <div class="login-logo-icon">🚛</div>
-                    <h1>Yükleme Yönetim Sistemi</h1>
-                    <p>Yükleme Belgesi</p>
+                    <h1 data-i18n="common.app_name">Yükleme Yönetim Sistemi</h1>
+                    <p data-i18n="common.app_subtitle">Yükleme Belgesi</p>
                 </div>
+
+                <!-- Language switcher -->
+                <div id="langSwitcherContainer" style="display: flex; justify-content: center; margin-bottom: 20px;"></div>
 
                 <div class="login-error" id="loginError"></div>
 
@@ -51,8 +57,9 @@
                             <span class="icon">👤</span>
                         </div>
                         <div class="input-content">
-                            <label for="username">Kullanıcı Adı</label>
-                            <input type="text" id="username" name="username" placeholder="Örn: ahmet"
+                            <label for="username" data-i18n="login.username_label">Kullanıcı Adı</label>
+                            <input type="text" id="username" name="username"
+                                data-i18n-placeholder="login.username_placeholder" placeholder="Örn: ahmet"
                                 autocomplete="username" required>
                         </div>
                     </div>
@@ -62,14 +69,15 @@
                             <span class="icon">🔒</span>
                         </div>
                         <div class="input-content">
-                            <label for="password">Şifre</label>
-                            <input type="password" id="password" name="password" placeholder="••••••••"
+                            <label for="password" data-i18n="login.password_label">Şifre</label>
+                            <input type="password" id="password" name="password"
+                                data-i18n-placeholder="login.password_placeholder" placeholder="••••••••"
                                 autocomplete="current-password" required>
                         </div>
                     </div>
 
                     <button type="submit" class="login-btn" id="loginBtn">
-                        <span>Giriş Yap</span>
+                        <span data-i18n="login.submit">Giriş Yap</span>
                         <span>🔐</span>
                     </button>
                 </form>
@@ -111,13 +119,15 @@
             const password = document.getElementById('password').value;
 
             if (!username || !password) {
-                showError('Lütfen kullanıcı adı ve şifre girin');
+                showError(window.i18n ? window.i18n.t('login.error_required') : 'Lütfen kullanıcı adı ve şifre girin');
                 return;
             }
 
+            const T = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
+
             // Disable button and show loading
             loginBtn.disabled = true;
-            loginBtn.innerHTML = '<div class="spinner"></div><span>Giriş yapılıyor...</span>';
+            loginBtn.innerHTML = `<div class="spinner"></div><span>${T('login.signing_in', 'Giriş yapılıyor...')}</span>`;
 
             try {
                 const response = await fetch('/api/login', {
@@ -133,14 +143,14 @@
                 if (response.ok) {
                     redirectByRole(data.user.role);
                 } else {
-                    showError(data.error || 'Giriş yapılırken bir hata oluştu');
+                    showError(data.error || T('login.error_generic', 'Giriş yapılırken bir hata oluştu'));
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showError('Sunucuya bağlanırken bir hata oluştu');
+                showError(T('login.error_connection', 'Sunucuya bağlanırken bir hata oluştu'));
             } finally {
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<span>Giriş Yap</span><span>🔐</span>';
+                loginBtn.innerHTML = `<span>${T('login.submit', 'Giriş Yap')}</span><span>🔐</span>`;
             }
         });
 
@@ -153,6 +163,13 @@
                 errorDiv.classList.remove('show');
             }, 5000);
         }
+
+        // Mount the language switcher and check auth
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.i18n) {
+                window.i18n.renderSwitcher(document.getElementById('langSwitcherContainer'));
+            }
+        });
 
         // Check auth on load
         checkAuth();

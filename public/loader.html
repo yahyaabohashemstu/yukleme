@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yükleme Sorumlusu Paneli | Yükleme Yönetim Sistemi</title>
+    <!-- i18n keys used as title fallback: loader.title_page + common.app_name -->
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#4f46e5">
@@ -31,6 +32,9 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css?v=2">
+
+    <!-- i18n -->
+    <script src="/i18n.js"></script>
 </head>
 
 <body>
@@ -41,20 +45,21 @@
                 <div class="header-brand">
                     <div class="header-logo">🚛</div>
                     <div class="header-title">
-                        <h1>Yükleme Yönetim Sistemi</h1>
-                        <span>Yükleme Belgesi</span>
+                        <h1 data-i18n="common.app_name">Yükleme Yönetim Sistemi</h1>
+                        <span data-i18n="common.app_subtitle">Yükleme Belgesi</span>
                     </div>
                 </div>
                 <div class="header-actions">
+                    <div id="langSwitcherContainer"></div>
                     <div class="header-user">
                         <div class="header-user-avatar">👷</div>
                         <div class="header-user-info">
-                            <span class="header-user-name" id="userName">Yükleme Sorumlusu</span>
-                            <span class="header-user-role">Loader</span>
+                            <span class="header-user-name" id="userName" data-i18n="loader.user_default">Yükleme Sorumlusu</span>
+                            <span class="header-user-role" data-i18n="loader.role">Loader</span>
                         </div>
                     </div>
                     <button class="logout-btn" id="logoutBtn">
-                        <span>Çıkış Yap</span>
+                        <span data-i18n="common.logout">Çıkış Yap</span>
                         <span>🚪</span>
                     </button>
                 </div>
@@ -67,11 +72,11 @@
             <div class="tabs-container">
                 <button class="tab-btn active" id="tabForm" onclick="switchTab('form')">
                     <span class="tab-icon">📝</span>
-                    Yeni Form
+                    <span data-i18n="loader.tab_form">Yeni Form</span>
                 </button>
                 <button class="tab-btn" id="tabHistory" onclick="switchTab('history')" style="position: relative;">
                     <span class="tab-icon">🕒</span>
-                    Geçmiş Raporlarım
+                    <span data-i18n="loader.tab_history">Geçmiş Raporlarım</span>
                     <span id="historyTabBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; font-weight: bold; line-height: 18px; text-align: center;">!</span>
                 </button>
             </div>
@@ -82,18 +87,18 @@
                 <div id="miniDraftAlert" style="display:none; background: rgba(249,115,22,0.1); border: 1px solid #f97316; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: 0.2s; align-items: center; justify-content: space-between;" onclick="applyIssueFilter('draft');" onmouseover="this.style.background='rgba(249,115,22,0.15)'" onmouseout="this.style.background='rgba(249,115,22,0.1)'">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 20px; animation: pulse 2s infinite;">📝</span>
-                        <h3 style="color: #ea580c; margin: 0; font-size: 15px;">Taslak Raporunuz Var!</h3>
+                        <h3 style="color: #ea580c; margin: 0; font-size: 15px;" data-i18n="loader.alert_draft_title">Taslak Raporunuz Var!</h3>
                     </div>
-                    <span style="color: #ea580c; font-size: 13px; font-weight: 500;">Filtrele →</span>
+                    <span style="color: #ea580c; font-size: 13px; font-weight: 500;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
                 </div>
 
                 <!-- Mini Improvement Alert -->
                 <div id="miniImprovementAlert" style="display:none; background: rgba(59,130,246,0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: 0.2s; align-items: center; justify-content: space-between;" onclick="applyIssueFilter('improvement');" onmouseover="this.style.background='rgba(59,130,246,0.15)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 20px; animation: pulse 2s infinite;">⚠️</span>
-                        <h3 style="color: #3b82f6; margin: 0; font-size: 15px;">Dikkat, Düzeltme İsteği!</h3>
+                        <h3 style="color: #3b82f6; margin: 0; font-size: 15px;" data-i18n="loader.alert_improvement_title">Dikkat, Düzeltme İsteği!</h3>
                     </div>
-                    <span style="color: #3b82f6; font-size: 13px; font-weight: 500;">Filtrele →</span>
+                    <span style="color: #3b82f6; font-size: 13px; font-weight: 500;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
                 </div>
             </div>
 
@@ -104,38 +109,38 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">👥</div>
                         <div class="form-card-title">
-                            <h2>Ekip Bilgileri</h2>
-                            <p>Team Information</p>
+                            <h2 data-i18n="loader.section_team">Ekip Bilgileri</h2>
+                            <p data-i18n="loader.section_team_en">Team Information</p>
                         </div>
                     </div>
                     <div class="form-grid form-grid-2">
                         <div class="form-group">
-                            <label for="manager">Yönetici</label>
-                            <input type="text" id="manager" name="manager" placeholder="Yönetici adı" required>
+                            <label for="manager" data-i18n="loader.field_manager">Yönetici</label>
+                            <input type="text" id="manager" name="manager" data-i18n-placeholder="loader.field_manager_placeholder" placeholder="Yönetici adı" required>
                         </div>
                         <div class="form-group">
-                            <label for="worker1">Birinci Eleman</label>
-                            <input type="text" id="worker1" name="worker1" placeholder="Birinci eleman adı" required>
+                            <label for="worker1" data-i18n="loader.field_worker1">Birinci Eleman</label>
+                            <input type="text" id="worker1" name="worker1" data-i18n-placeholder="loader.field_worker1_placeholder" placeholder="Birinci eleman adı" required>
                         </div>
                         <div class="form-group">
-                            <label for="worker2">İkinci Eleman</label>
-                            <input type="text" id="worker2" name="worker2" placeholder="İkinci eleman adı" required>
+                            <label for="worker2" data-i18n="loader.field_worker2">İkinci Eleman</label>
+                            <input type="text" id="worker2" name="worker2" data-i18n-placeholder="loader.field_worker2_placeholder" placeholder="İkinci eleman adı" required>
                         </div>
                         <div class="form-group">
-                            <label for="worker3">Üçüncü Eleman</label>
-                            <input type="text" id="worker3" name="worker3" placeholder="Üçüncü eleman adı" required>
+                            <label for="worker3" data-i18n="loader.field_worker3">Üçüncü Eleman</label>
+                            <input type="text" id="worker3" name="worker3" data-i18n-placeholder="loader.field_worker3_placeholder" placeholder="Üçüncü eleman adı" required>
                         </div>
                         <div class="form-group">
-                            <label for="worker4">Dördüncü Eleman</label>
-                            <input type="text" id="worker4" name="worker4" placeholder="Dördüncü eleman adı" required>
+                            <label for="worker4" data-i18n="loader.field_worker4">Dördüncü Eleman</label>
+                            <input type="text" id="worker4" name="worker4" data-i18n-placeholder="loader.field_worker4_placeholder" placeholder="Dördüncü eleman adı" required>
                         </div>
                     </div>
 
                     <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border-color);">
                         <div class="form-group">
-                            <label for="forklift_operator">Forklift Sürücüsünün Adı</label>
+                            <label for="forklift_operator" data-i18n="loader.field_forklift">Forklift Sürücüsünün Adı</label>
                             <input type="text" id="forklift_operator" name="forklift_operator"
-                                placeholder="Forklift sürücüsü adı" required>
+                                data-i18n-placeholder="loader.field_forklift_placeholder" placeholder="Forklift sürücüsü adı" required>
                         </div>
                     </div>
                 </div>
@@ -145,26 +150,26 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">🚚</div>
                         <div class="form-card-title">
-                            <h2>Araç Bilgileri</h2>
-                            <p>Vehicle Information</p>
+                            <h2 data-i18n="loader.section_vehicle">Araç Bilgileri</h2>
+                            <p data-i18n="loader.section_vehicle_en">Vehicle Information</p>
                         </div>
                     </div>
                     <div class="form-grid form-grid-3">
                         <div class="form-group">
-                            <label for="plate1">Araç Plakası 1</label>
-                            <input type="text" id="plate1" name="plate1" placeholder="Birinci plaka numarası" required>
+                            <label for="plate1" data-i18n="loader.field_plate1">Araç Plakası 1</label>
+                            <input type="text" id="plate1" name="plate1" data-i18n-placeholder="loader.field_plate1_placeholder" placeholder="Birinci plaka numarası" required>
                         </div>
                         <div class="form-group">
-                            <label for="plate2">Araç Plakası 2</label>
-                            <input type="text" id="plate2" name="plate2" placeholder="İkinci plaka numarası" required>
+                            <label for="plate2" data-i18n="loader.field_plate2">Araç Plakası 2</label>
+                            <input type="text" id="plate2" name="plate2" data-i18n-placeholder="loader.field_plate2_placeholder" placeholder="İkinci plaka numarası" required>
                         </div>
                         <div class="form-group">
-                            <label for="container_no">Konteyner Numarası</label>
-                            <input type="text" id="container_no" name="container_no" placeholder="Konteyner numarası"
+                            <label for="container_no" data-i18n="loader.field_container">Konteyner Numarası</label>
+                            <input type="text" id="container_no" name="container_no" data-i18n-placeholder="loader.field_container_placeholder" placeholder="Konteyner numarası"
                                 required>
                         </div>
                         <div class="form-group">
-                            <label for="loading_date">Tarih</label>
+                            <label for="loading_date" data-i18n="loader.field_date">Tarih</label>
                             <input type="date" id="loading_date" name="loading_date" required>
                         </div>
                     </div>
@@ -176,23 +181,23 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">📍</div>
                         <div class="form-card-title">
-                            <h2>Varış Bilgileri</h2>
+                            <h2 data-i18n="loader.section_destination">Varış Bilgileri</h2>
                             <p>Destination Information</p>
                         </div>
                     </div>
                     <div class="form-grid form-grid-3">
                         <div class="form-group">
-                            <label for="destination_company">Şirket Adı</label>
+                            <label for="destination_company" data-i18n="loader.field_destination_company">Şirket Adı</label>
                             <input type="text" id="destination_company" name="destination_company"
                                 placeholder="Şirket adı">
                         </div>
                         <div class="form-group">
-                            <label for="destination_country">Ülke Adı</label>
+                            <label for="destination_country" data-i18n="loader.field_destination_country">Ülke Adı</label>
                             <input type="text" id="destination_country" name="destination_country"
                                 placeholder="Ülke adı" required>
                         </div>
                         <div class="form-group">
-                            <label for="destination_customer">Müşteri Adı</label>
+                            <label for="destination_customer" data-i18n="loader.field_destination_customer">Müşteri Adı</label>
                             <input type="text" id="destination_customer" name="destination_customer"
                                 placeholder="Müşteri adı" required>
                         </div>
@@ -204,17 +209,17 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">🧑</div>
                         <div class="form-card-title">
-                            <h2>Sürücü Bilgileri</h2>
+                            <h2 data-i18n="loader.section_driver">Sürücü Bilgileri</h2>
                             <p>Driver Information</p>
                         </div>
                     </div>
                     <div class="form-grid form-grid-3">
                         <div class="form-group">
-                            <label for="driver_name">Araç Sürücüsünün Adı</label>
+                            <label for="driver_name" data-i18n="loader.field_driver_name">Araç Sürücüsünün Adı</label>
                             <input type="text" id="driver_name" name="driver_name" placeholder="Sürücü adı">
                         </div>
                         <div class="form-group">
-                            <label for="driver_phone">Araç Şoförünün Telefon Numarası</label>
+                            <label for="driver_phone" data-i18n="loader.field_driver_phone">Araç Şoförünün Telefon Numarası</label>
                             <input type="tel" id="driver_phone" name="driver_phone" placeholder="Telefon numarası">
                         </div>
 
@@ -226,7 +231,7 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">📦</div>
                         <div class="form-card-title">
-                            <h2>Yüklenen Mallar</h2>
+                            <h2 data-i18n="loader.section_products">Yüklenen Mallar</h2>
                             <p>Products to Load</p>
                         </div>
                     </div>
@@ -235,10 +240,10 @@
                         <table class="products-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 50%;">Yüklenecek Malın Adı</th>
-                                    <th style="width: 20%;">Sayısı</th>
-                                    <th style="width: 20%;">Pallet Sayısı</th>
-                                    <th style="width: 10%;">Sil</th>
+                                    <th style="width: 50%;" data-i18n="loader.field_product_name">Yüklenecek Malın Adı</th>
+                                    <th style="width: 20%;" data-i18n="loader.field_product_qty">Sayısı</th>
+                                    <th style="width: 20%;" data-i18n="loader.field_product_pallets">Pallet Sayısı</th>
+                                    <th style="width: 10%;" data-i18n="common.delete">Sil</th>
                                 </tr>
                             </thead>
                             <tbody id="productsTableBody">
@@ -256,12 +261,12 @@
                     </div>
                     <button type="button" class="add-row-btn" onclick="addProductRow()">
                         <span>➕</span>
-                        <span>Yeni Satır Ekle</span>
+                        <span data-i18n="loader.add_product">Yeni Satır Ekle</span>
                     </button>
                     <!-- Vehicle Weight After - shown inside products card -->
                     <div class="form-group"
                         style="margin-top: 18px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                        <label for="vehicle_weight_after">Toplam Yük Ağırlığı ⚖️</label>
+                        <label for="vehicle_weight_after" data-i18n="loader.field_vehicle_weight_after">Toplam Yük Ağırlığı ⚖️</label>
                         <input type="text" id="vehicle_weight_after" name="vehicle_weight_after"
                             placeholder="Örnek: 12000 kg" style="max-width: 300px;" required>
                     </div>
@@ -269,7 +274,7 @@
 
                 <div class="form-grid form-grid-2" style="margin-top: 24px;">
                     <div class="form-group">
-                        <label>Araç Giriş Zamanı</label>
+                        <label data-i18n="loader.field_entry_time">Araç Giriş Zamanı</label>
                         <div class="time-picker-wrapper">
                             <div class="time-picker" id="entryTimePicker">
                                 <div class="time-picker-display" onclick="toggleTimePicker('entry')">
@@ -301,7 +306,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Araç Çıkış Zamanı</label>
+                        <label data-i18n="loader.field_exit_time">Araç Çıkış Zamanı</label>
                         <div class="time-picker-wrapper">
                             <div class="time-picker" id="exitTimePicker">
                                 <div class="time-picker-display" onclick="toggleTimePicker('exit')">
@@ -339,8 +344,8 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">📷</div>
                         <div class="form-card-title">
-                            <h2>Resimler (Zorunlu)</h2>
-                            <p style="color: var(--warning); font-size: 13px; margin-top: 4px;">⚠️ Dikkat: En az 1 fotoğraf eklenmezse rapor müdüre gönderilmez, <strong>Taslak</strong> olarak kaydedilir.</p>
+                            <h2 data-i18n="loader.section_photos">Resimler (Zorunlu)</h2>
+                            <p style="color: var(--warning); font-size: 13px; margin-top: 4px;" data-i18n-html="loader.photos_warning">⚠️ Dikkat: En az 1 fotoğraf eklenmezse rapor müdüre gönderilmez, <strong>Taslak</strong> olarak kaydedilir.</p>
                         </div>
                     </div>
                     <div class="products-table-container">
@@ -348,7 +353,7 @@
                             <thead>
                                 <tr>
                                     <th style="width: 90%;">Dosya Seç</th>
-                                    <th style="width: 10%;">Sil</th>
+                                    <th style="width: 10%;" data-i18n="common.delete">Sil</th>
                                 </tr>
                             </thead>
                             <tbody id="photosTableBody">
@@ -362,7 +367,7 @@
                     </div>
                     <button type="button" class="add-row-btn" onclick="addPhotoRow()">
                         <span>➕</span>
-                        <span>Yeni Resim Ekle</span>
+                        <span data-i18n="loader.add_photo">Yeni Resim Ekle</span>
                     </button>
                 </div>
 
@@ -371,20 +376,20 @@
                     <div class="form-card-header">
                         <div class="form-card-icon">💬</div>
                         <div class="form-card-title">
-                            <h2>Yorumlar</h2>
-                            <p>Comments</p>
+                            <h2 data-i18n="loader.section_comments">Yorumlar</h2>
+                            <p data-i18n="loader.section_comments_en">Comments</p>
                         </div>
                     </div>
                     <div class="form-group">
                         <textarea id="comments" name="comments"
-                            placeholder="Ek yorumlarınızı buraya ekleyin..."></textarea>
+                            data-i18n-placeholder="loader.comments_placeholder" placeholder="Ek yorumlarınızı buraya ekleyin..."></textarea>
                     </div>
                 </div>
 
                 <!-- Submit Section -->
                 <div class="submit-section">
                     <button type="submit" class="submit-btn" id="submitBtn">
-                        <span>Yükleme Verilerini Gönder</span>
+                        <span data-i18n="loader.submit_button">Yükleme Verilerini Gönder</span>
                         <span>📤</span>
                     </button>
                 </div>
@@ -400,11 +405,11 @@
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <span style="font-size: 28px; animation: pulse 2s infinite;">📝</span>
                             <div>
-                                <h3 style="color: #ea580c; margin: 0 0 5px 0;">Taslak Raporunuz Var!</h3>
-                                <p style="margin: 0; color: var(--text-primary); font-size: 14px;">Müdürün görmesi için zorunlu olan <strong>fotoğrafı yüklenmemiş</strong> <strong id="draftAlertCount" style="color:#ea580c; font-size:16px;">0</strong> raporunuz var. (Turuncu çerçeveli raporlar).</p>
+                                <h3 style="color: #ea580c; margin: 0 0 5px 0;" data-i18n="loader.alert_draft_title">Taslak Raporunuz Var!</h3>
+                                <p style="margin: 0; color: var(--text-primary); font-size: 14px;"><span data-i18n="loader.alert_draft_pre">Müdürün görmesi için zorunlu olan</span> <strong data-i18n="loader.alert_draft_required">fotoğrafı yüklenmemiş</strong> <strong id="draftAlertCount" style="color:#ea580c; font-size:16px;">0</strong> <span data-i18n="loader.alert_draft_post">raporunuz var. (Turuncu çerçeveli raporlar).</span></p>
                             </div>
                         </div>
-                        <span style="color: #ea580c; font-size: 13px; font-weight: 600; white-space: nowrap;">Filtrele →</span>
+                        <span style="color: #ea580c; font-size: 13px; font-weight: 600; white-space: nowrap;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
                     </div>
                 </div>
 
@@ -414,21 +419,21 @@
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <span style="font-size: 28px; animation: pulse 2s infinite;">⚠️</span>
                             <div>
-                                <h3 style="color: #3b82f6; margin: 0 0 5px 0;">Dikkat, Düzeltme İsteği!</h3>
-                                <p style="margin: 0; color: var(--text-primary); font-size: 14px;">Müdür tarafından eksik/hatalı bulunup düzeltilmesi istenen <strong id="improvementAlertCount" style="color:#ef4444; font-size:16px;">0</strong> raporunuz var. Lütfen aşağıdan mavi çerçeveli raporları inceleyin.</p>
+                                <h3 style="color: #3b82f6; margin: 0 0 5px 0;" data-i18n="loader.alert_improvement_title">Dikkat, Düzeltme İsteği!</h3>
+                                <p style="margin: 0; color: var(--text-primary); font-size: 14px;"><span data-i18n="loader.alert_improvement_detail_pre">Müdür tarafından eksik/hatalı bulunup düzeltilmesi istenen</span> <strong id="improvementAlertCount" style="color:#ef4444; font-size:16px;">0</strong> <span data-i18n="loader.alert_improvement_detail_post">raporunuz var. Lütfen aşağıdan mavi çerçeveli raporları inceleyin.</span></p>
                             </div>
                         </div>
-                        <span style="color: #3b82f6; font-size: 13px; font-weight: 600; white-space: nowrap;">Filtrele →</span>
+                        <span style="color: #3b82f6; font-size: 13px; font-weight: 600; white-space: nowrap;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
                     </div>
                 </div>
 
                 <div class="table-card">
                     <div class="table-header">
                         <div class="table-title">
-                            <h2>Gönderilen Raporlar</h2>
+                            <h2 data-i18n="loader.history_title">Gönderilen Raporlar</h2>
                         </div>
                         <button class="refresh-btn" onclick="fetchHistory()">
-                            <span>🔄</span> Yenile
+                            <span>🔄</span> <span data-i18n="common.refresh">Yenile</span>
                         </button>
                     </div>
                     <!-- Active Issue Filter Chip (hidden by default) -->
@@ -439,9 +444,11 @@
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
                         <span style="font-size: 18px;">🔍</span>
                         <input type="text" id="plateSearchInput"
+                            data-i18n-placeholder="loader.search_placeholder"
                             placeholder="🔍 Ara... (Plaka, müşteri, ülke, tarih, çalışan, mal adı...)" oninput="filterHistoryByPlate()"
                             style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
                         <button onclick="document.getElementById('plateSearchInput').value=''; filterHistoryByPlate()"
+                            data-i18n-title="common.clear"
                             title="Temizle"
                             style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
                             ✕
@@ -451,13 +458,13 @@
                         <table class="loadings-table">
                             <thead>
                                 <tr>
-                                    <th>Müşteri</th>
-                                    <th>Araç Plakası</th>
-                                    <th>Varış Yeri</th>
-                                    <th>Sisteme Giriş (Loader)</th>
+                                    <th data-i18n="loader.table_customer">Müşteri</th>
+                                    <th data-i18n="loader.table_plate">Araç Plakası</th>
+                                    <th data-i18n="loader.table_destination">Varış Yeri</th>
+                                    <th data-i18n="loader.table_loader_entry">Sisteme Giriş (Loader)</th>
                                     <th>Fayık</th>
                                     <th>Pinar</th>
-                                    <th>İşlemler</th>
+                                    <th data-i18n="common.actions">İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody id="historyTableBody">
@@ -467,13 +474,13 @@
                     </div>
                     <div id="historyEmptyState" class="empty-state" style="display: none;">
                         <div class="empty-state-icon">📂</div>
-                        <h3>Henüz rapor bulunmuyor</h3>
-                        <p>Gönderdiğiniz raporlar burada listelenecektir.</p>
+                        <h3 data-i18n="loader.empty_title">Henüz rapor bulunmuyor</h3>
+                        <p data-i18n="loader.empty_subtitle">Gönderdiğiniz raporlar burada listelenecektir.</p>
                     </div>
                     <div id="historyLoading" class="empty-state" style="display: none;">
                         <div class="spinner"
                             style="margin: 0 auto; border-color: var(--primary); border-top-color: transparent;"></div>
-                        <p style="margin-top: 16px;">Yükleniyor...</p>
+                        <p style="margin-top: 16px;" data-i18n="common.loading">Yükleniyor...</p>
                     </div>
                 </div>
             </div>
@@ -534,6 +541,11 @@
 
                 document.getElementById('userName').textContent = data.user.username;
 
+                // Mount the language switcher in the header
+                if (window.i18n) {
+                    window.i18n.renderSwitcher(document.getElementById('langSwitcherContainer'));
+                }
+
                 // Preload report history immediately so alert badges appear on first open.
                 fetchHistory();
             } catch (error) {
@@ -541,6 +553,21 @@
                 window.location.href = '/';
             }
         }
+
+        // Re-render dynamic JS-built content when the language changes
+        document.addEventListener('i18n:changed', () => {
+            if (typeof renderHistoryRows === 'function' && Array.isArray(myLoadingsData)) {
+                if (typeof filterHistoryByPlate === 'function') {
+                    filterHistoryByPlate();
+                } else {
+                    renderHistoryRows(myLoadingsData);
+                }
+            }
+            // Refresh active filter chip text if filter is on
+            if (typeof updateFilterChip === 'function') {
+                updateFilterChip();
+            }
+        });
 
         // Logout
         document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -928,48 +955,53 @@
 
             if (!data || data.length === 0) {
                 // Tailor empty-state copy to whatever filter is active
+                const T = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
                 const hasSearch = !!(document.getElementById('plateSearchInput')?.value || '').trim();
                 let icon = '📂';
-                let title = 'Henüz rapor bulunmuyor';
-                let desc = 'Gönderdiğiniz raporlar burada listelenecektir.';
+                let title = T('loader.empty_title', 'Henüz rapor bulunmuyor');
+                let desc = T('loader.empty_subtitle', 'Gönderdiğiniz raporlar burada listelenecektir.');
 
                 if (currentIssueFilter === 'draft') {
                     icon = '📝';
-                    title = 'Taslak rapor kalmadı';
+                    title = T('loader.empty_draft_title', 'Taslak rapor kalmadı');
                     desc = hasSearch
-                        ? 'Aramanızla eşleşen taslak rapor bulunamadı.'
-                        : 'Tüm taslak raporlar tamamlandı veya hiç taslak yok.';
+                        ? T('loader.empty_draft_desc_no_match', 'Aramanızla eşleşen taslak rapor bulunamadı.')
+                        : T('loader.empty_draft_desc_done', 'Tüm taslak raporlar tamamlandı veya hiç taslak yok.');
                 } else if (currentIssueFilter === 'improvement') {
                     icon = '⚠️';
-                    title = 'Düzeltme bekleyen rapor yok';
+                    title = T('loader.empty_improvement_title', 'Düzeltme bekleyen rapor yok');
                     desc = hasSearch
-                        ? 'Aramanızla eşleşen düzeltme isteği bulunamadı.'
-                        : 'Tüm düzeltme istekleri tamamlandı.';
+                        ? T('loader.empty_improvement_desc_no_match', 'Aramanızla eşleşen düzeltme isteği bulunamadı.')
+                        : T('loader.empty_improvement_desc_done', 'Tüm düzeltme istekleri tamamlandı.');
                 } else if (hasSearch) {
                     icon = '🔍';
-                    title = 'Sonuç bulunamadı';
-                    desc = 'Aramanızla eşleşen rapor yok.';
+                    title = T('loader.empty_search_title', 'Sonuç bulunamadı');
+                    desc = T('loader.empty_search_desc', 'Aramanızla eşleşen rapor yok.');
                 }
 
                 emptyState.innerHTML = `
                     <div class="empty-state-icon">${icon}</div>
                     <h3>${title}</h3>
                     <p>${desc}</p>
-                    ${currentIssueFilter ? `<button onclick="clearIssueFilter()" style="margin-top:12px;padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;">Tüm Raporları Göster</button>` : ''}
+                    ${currentIssueFilter ? `<button onclick="clearIssueFilter()" style="margin-top:12px;padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;">${T('loader.filter_show_all_btn', 'Tüm Raporları Göster')}</button>` : ''}
                 `;
                 emptyState.style.display = 'block';
                 return;
             }
             emptyState.style.display = 'none';
 
+            const T = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
+            const recordedText = T('status.recorded', '✓ Kaydedildi');
+            const pendingText = T('status.pending', '⏳ Bekliyor');
+
             data.forEach(item => {
                 const row = document.createElement('tr');
                 const safwatStatus = item.safwat_recorded_at
-                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
-                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
+                    ? `<span class="status-badge status-recorded">${recordedText}</span>`
+                    : `<span class="status-badge status-pending">${pendingText}</span>`;
                 const pinarStatus = item.pinar_recorded_at
-                    ? '<span class="status-badge status-recorded">✓ Kaydedildi</span>'
-                    : '<span class="status-badge status-pending">⏳ Bekliyor</span>';
+                    ? `<span class="status-badge status-recorded">${recordedText}</span>`
+                    : `<span class="status-badge status-pending">${pendingText}</span>`;
 
                 const plate1 = (item.plate1 || '-').replace(/\s+/g, '');
                 const plate2 = item.plate2 ? ' / ' + item.plate2.replace(/\s+/g, '') : '';
@@ -1001,7 +1033,7 @@
                         : '<span title="Kağıt teslim edilmedi" style="font-size:16px; opacity:0.35;">📄</span>';
                 
                 const improvementBadge = needsImprovement ? '<span title="Düzeltme bekleniyor" style="font-size:16px; margin-right:4px;">⚠️</span>' : '';
-                const draftBadge = isDraft ? '<span title="Taslak - Fotoğraf eksik" style="font-size:12px; color: #ea580c; background: #ffedd5; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right:4px;">📝 Taslak</span>' : '';
+                const draftBadge = isDraft ? `<span title="${T('status.draft', '📝 Taslak')}" style="font-size:12px; color: #ea580c; background: #ffedd5; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right:4px;">${T('status.draft', '📝 Taslak')}</span>` : '';
 
                 row.innerHTML = `
                     <td>${item.destination_customer || '-'}</td>
@@ -1018,7 +1050,7 @@
                     <td>
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                             <div style="display: flex; align-items: center;">${draftBadge}${improvementBadge}${paperBadge}</div>
-                            <button class="view-btn" onclick="viewDetails('${item.id}')">Detayları Gör</button>
+                            <button class="view-btn" onclick="viewDetails('${item.id}')">${T('common.view_details', 'Detayları Gör')}</button>
                         </div>
                     </td>`;
                 tbody.appendChild(row);
@@ -1058,6 +1090,7 @@
         function updateFilterChip() {
             const chip = document.getElementById('activeFilterChip');
             if (!chip) return;
+            const T = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
 
             if (currentIssueFilter === 'draft') {
                 chip.style.display = 'flex';
@@ -1067,11 +1100,11 @@
                 chip.innerHTML = `
                     <span style="display:flex;align-items:center;gap:8px;">
                         <span style="font-size:18px;">📝</span>
-                        <span><strong>Aktif Filtre:</strong> Sadece Taslak Raporlar</span>
+                        <span>${T('loader.filter_chip_draft', 'Aktif Filtre: Sadece Taslak Raporlar')}</span>
                     </span>
-                    <button onclick="clearIssueFilter()" title="Filtreyi kaldır"
+                    <button onclick="clearIssueFilter()" title="${T('common.clear', 'Filtreyi kaldır')}"
                         style="background:#fff;border:1px solid #f97316;color:#ea580c;cursor:pointer;font-size:13px;padding:6px 12px;border-radius:6px;font-weight:600;white-space:nowrap;">
-                        ✕ Tümünü Göster
+                        ${T('loader.filter_show_all', '✕ Tümünü Göster')}
                     </button>
                 `;
             } else if (currentIssueFilter === 'improvement') {
@@ -1082,11 +1115,11 @@
                 chip.innerHTML = `
                     <span style="display:flex;align-items:center;gap:8px;">
                         <span style="font-size:18px;">⚠️</span>
-                        <span><strong>Aktif Filtre:</strong> Düzeltme Bekleyen Raporlar</span>
+                        <span>${T('loader.filter_chip_improvement', 'Aktif Filtre: Düzeltme Bekleyen Raporlar')}</span>
                     </span>
-                    <button onclick="clearIssueFilter()" title="Filtreyi kaldır"
+                    <button onclick="clearIssueFilter()" title="${T('common.clear', 'Filtreyi kaldır')}"
                         style="background:#fff;border:1px solid #3b82f6;color:#3b82f6;cursor:pointer;font-size:13px;padding:6px 12px;border-radius:6px;font-weight:600;white-space:nowrap;">
-                        ✕ Tümünü Göster
+                        ${T('loader.filter_show_all', '✕ Tümünü Göster')}
                     </button>
                 `;
             } else {

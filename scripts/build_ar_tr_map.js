@@ -93,6 +93,46 @@ arabicProducts.forEach(ar => {
     trToAr[key] = ar;
 });
 
+// ---------------------------------------------------------------------------
+// Arabic word-boundary insertion
+// The original arabicProducts list has many entries where a brand sits glued
+// to the following noun (e.g. "برودوكسابودرة" instead of "برودوكسا بودرة"),
+// or a digit sits glued to an Arabic word (e.g. "12يونيفرسال").
+// Translation preserved those quirks. We normalize them here so the rendered
+// product name reads correctly in the manager view.
+//
+// Strategy: ensure a space appears BEFORE each known word when it follows
+// another Arabic letter or a digit without one. Short unit letters (كغ, غ,
+// مل) are NOT in the list, so "3كغ" stays "3كغ".
+// ---------------------------------------------------------------------------
+const ARABIC_BOUNDARY_WORDS = [
+    // Brand names (proper nouns)
+    'برودوكسا', 'برودوكسة', 'أيلوكس', 'ايلوكس', 'التونسا', 'إلتونسا',
+    'أوروبلس', 'اوروبلس', 'ديوكس', 'نايسي', 'افراح', 'أفراح',
+    'فيفا', 'سور', 'موك', 'اسوتا', 'إيفيل', 'ايفيل', 'درغام', 'بابيل',
+    // Common product nouns
+    'بودرة', 'ماتيك', 'يدوي', 'صابون', 'سائل', 'كلور', 'مطري',
+    'معطر', 'منظف', 'ملمع', 'مزيل', 'سوبر', 'جل', 'شامبو',
+    'هدية', 'حاوية', 'شوال', 'فلاش', 'نصف', 'مصنع', 'كرتون',
+    'كيس', 'رول', 'يونيفرسال', 'يونيفيرسال', 'للغسيل'
+    // Note: do NOT add bare "غسيل" — it would break the valid compound
+    // "للغسيل" ("for washing") into "لل غسيل".
+];
+
+function normalizeArabicSpacing(s) {
+    if (!s) return s;
+    let r = String(s);
+    for (const w of ARABIC_BOUNDARY_WORDS) {
+        // 1. Arabic letter + word (no space) → "letter word"
+        r = r.replace(new RegExp(`([ء-ۿ])(${w})`, 'g'), '$1 $2');
+        // 2. Digit + word (no space) → "digit word"
+        r = r.replace(new RegExp(`(\\d)(${w})`, 'g'), '$1 $2');
+    }
+    // Collapse multiple spaces and trim
+    r = r.replace(/[ \t]+/g, ' ').trim();
+    return r;
+}
+
 // Apply manual overrides BEFORE generating suffix variants so the variants
 // are based on the curated Arabic name (not whatever the generator produced).
 const overrideCount = { added: 0, replaced: 0 };
@@ -104,6 +144,18 @@ for (const [tr, ar] of Object.entries(MANUAL_OVERRIDES)) {
     if (trToAr[tr]) overrideCount.replaced++;
     else overrideCount.added++;
     trToAr[tr] = ar;
+}
+
+// Apply Arabic spacing normalization to every value in the map BEFORE
+// variant generation so the variants inherit the fix.
+let spacingFixCount = 0;
+for (const k of Object.keys(trToAr)) {
+    const before = trToAr[k];
+    const after = normalizeArabicSpacing(before);
+    if (before !== after) {
+        spacingFixCount++;
+        trToAr[k] = after;
+    }
 }
 
 // Auto-generate suffix variants so DB records carrying common parenthetical
@@ -132,6 +184,7 @@ fs.writeFileSync(outPath, JSON.stringify(trToAr, null, 2), 'utf8');
 console.log(`✓ Wrote ${Object.keys(trToAr).length} total mappings to ${outPath}`);
 console.log(`  Base entries from products.json: ${actualProducts.length}`);
 console.log(`  Manual overrides applied: ${overrideCount.added} new, ${overrideCount.replaced} replaced`);
+console.log(`  Arabic-spacing fixes applied: ${spacingFixCount}`);
 console.log(`  Suffix variants added (${SUFFIX_VARIANTS.join(', ')}): ${Object.keys(variantAdditions).length}`);
 console.log(`  Source: ${arabicProducts.length} Arabic product names`);
 console.log(`  Conflicts (same TR ⇐ multiple AR): ${Object.keys(conflicts).length}`);

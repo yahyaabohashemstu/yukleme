@@ -721,9 +721,9 @@
             if (monthStr === '_unknown') {
                 return T('common.unknown', 'Tarihsiz');
             }
+            // Numeric "MM\YYYY" form, language-independent (e.g. "05\2026").
             const [year, month] = monthStr.split('-');
-            const monthName = T(`manager.month.${month}`, monthStr);
-            return `${monthName} ${year}`;
+            return `${month}\\${year}`;
         }
 
         function setPageMonth(m) {

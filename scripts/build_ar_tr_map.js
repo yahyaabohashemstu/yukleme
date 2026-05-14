@@ -81,6 +81,22 @@ arabicProducts.forEach(ar => {
     trToAr[key] = ar;
 });
 
+// Auto-generate suffix variants so DB records carrying common parenthetical
+// tags ("(BARKODSUZ)", "(BARKODLU)") still resolve. The runtime also strips
+// these dynamically, but baking them into the map keeps the JSON inspectable
+// and lets the offline cache cover them too.
+const SUFFIX_VARIANTS = ['(BARKODSUZ)', '(BARKODLU)'];
+const variantAdditions = {};
+for (const [tr, ar] of Object.entries(trToAr)) {
+    for (const suffix of SUFFIX_VARIANTS) {
+        const withSuffix = `${tr} ${suffix}`;
+        if (!trToAr[withSuffix] && !variantAdditions[withSuffix]) {
+            variantAdditions[withSuffix] = ar;
+        }
+    }
+}
+Object.assign(trToAr, variantAdditions);
+
 // Sanity check: any products.json entries that ended up without a mapping
 const mappedKeys = new Set(Object.keys(trToAr));
 const missingFromMap = actualProducts.filter(p => !mappedKeys.has(p));
@@ -88,7 +104,9 @@ const missingFromMap = actualProducts.filter(p => !mappedKeys.has(p));
 const outPath = path.join(__dirname, '..', 'public', 'products_tr_to_ar.json');
 fs.writeFileSync(outPath, JSON.stringify(trToAr, null, 2), 'utf8');
 
-console.log(`✓ Wrote ${Object.keys(trToAr).length} / ${actualProducts.length} mappings to ${outPath}`);
+console.log(`✓ Wrote ${Object.keys(trToAr).length} total mappings to ${outPath}`);
+console.log(`  Base entries from products.json: ${actualProducts.length}`);
+console.log(`  Suffix variants added (${SUFFIX_VARIANTS.join(', ')}): ${Object.keys(variantAdditions).length}`);
 console.log(`  Source: ${arabicProducts.length} Arabic product names`);
 console.log(`  Conflicts (same TR ⇐ multiple AR): ${Object.keys(conflicts).length}`);
 console.log(`  Unmatched Arabic entries: ${unmatched.length}`);

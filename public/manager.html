@@ -348,20 +348,64 @@
             }
         }
 
+        // Cached normalized index built lazily on first miss.
+        // Keys: normalized form of every map key. Values: the Arabic translation.
+        // Normalization strips whitespace, common separators, and case so trivial
+        // variations between DB-stored names and products.json names still match.
+        let _normalizedProductIndex = null;
+        function _normalizeProductKey(s) {
+            return String(s)
+                .toLowerCase()
+                .replace(/[\s\/\-_*+()]+/g, '')
+                .replace(/i̇/g, 'i'); // Turkish dotted-i
+        }
+        function _buildNormalizedIndex() {
+            const idx = {};
+            for (const [tr, ar] of Object.entries(productTrToAr || {})) {
+                idx[_normalizeProductKey(tr)] = ar;
+            }
+            return idx;
+        }
+
         function getProductDisplayName(turkishName) {
             if (!turkishName) return '';
             // Arabic display is enabled ONLY for the production manager (Fayık).
-            // Pinar and any other accounts keep the original Turkish.
+            // Pinar and any other accounts keep the original Turkish regardless of UI language.
             if (currentUsername !== 'manager') return turkishName;
 
-            // Exact match first
+            // 1. Exact match (fastest path, covers the typical case)
             if (productTrToAr[turkishName]) return productTrToAr[turkishName];
-            // Trimmed fallback (defensive: DB may have trailing whitespace)
+
+            // 2. Trimmed match (DB sometimes has stray whitespace)
             const trimmed = String(turkishName).trim();
             if (trimmed && productTrToAr[trimmed]) return productTrToAr[trimmed];
-            // No mapping → keep original Turkish
+
+            // 3. Strip a trailing parenthetical such as "(BARKODSUZ)" / "(BARKODLU)" / "(YENİ)" / etc.
+            //    Many DB records carry an extra suffix that products.json doesn't.
+            const noTrailingParen = trimmed.replace(/\s*\([^)]*\)\s*$/, '').trim();
+            if (noTrailingParen && noTrailingParen !== trimmed && productTrToAr[noTrailingParen]) {
+                return productTrToAr[noTrailingParen];
+            }
+
+            // 4. Normalized lookup: lowercased, punctuation/whitespace-stripped.
+            //    Builds the index once and reuses it. Try both the original and the
+            //    parenthetical-stripped variants so leftover suffixes don't block a match.
+            if (!_normalizedProductIndex) _normalizedProductIndex = _buildNormalizedIndex();
+            const normHit = _normalizedProductIndex[_normalizeProductKey(trimmed)]
+                         || _normalizedProductIndex[_normalizeProductKey(noTrailingParen)];
+            if (normHit) return normHit;
+
+            // 5. Give up gracefully: keep Turkish, but log so the gap can be filled
+            //    in products_tr_to_ar.json on the next maintenance pass.
+            if (typeof console !== 'undefined' && console.warn) {
+                console.warn('[i18n] No Arabic mapping for product:', JSON.stringify(turkishName));
+            }
             return turkishName;
         }
+
+        // Invalidate the cached normalized index when the translation map reloads
+        // (e.g., when checkAuth fires loadProductTranslations).
+        function _invalidateProductIndex() { _normalizedProductIndex = null; }
 
         // ============ COPY-TO-CLIPBOARD ============
         // One-click copy for any displayed field. The actual value lives in the

@@ -354,10 +354,17 @@
         // variations between DB-stored names and products.json names still match.
         let _normalizedProductIndex = null;
         function _normalizeProductKey(s) {
+            // Turkish has TWO lowercase i variants (i / ı) and two uppercase
+            // (İ / I). Default JS toLowerCase() doesn't apply Turkish rules,
+            // so I→i and İ→i̇ (i + combining dot), while ı stays ı.
+            // That means "ÇAMAŞIR" (loader uppercase) and "Çamaşır" (catalog)
+            // normalize to different strings unless we fold all i-variants
+            // to plain "i" here.
             return String(s)
                 .toLowerCase()
                 .replace(/[\s\/\-_*+()]+/g, '')
-                .replace(/i̇/g, 'i'); // Turkish dotted-i
+                .replace(/i̇/g, 'i')   // combining-dot i (from İ.toLowerCase())
+                .replace(/ı/g, 'i');   // Turkish dotless ı
         }
         function _buildNormalizedIndex() {
             const idx = {};

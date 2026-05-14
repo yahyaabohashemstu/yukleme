@@ -26,6 +26,17 @@ const { arabicProducts, translateProductName } = require('../translate_products_
 const productsJsonPath = path.join(__dirname, '..', 'public', 'products.json');
 const actualProducts = JSON.parse(fs.readFileSync(productsJsonPath, 'utf8'));
 
+// ---------------------------------------------------------------------------
+// MANUAL OVERRIDES
+// Translations for products that don't exist (or don't translate cleanly) via
+// the Arabic source list in translate_products_v2.js. Add an entry here when
+// a product appears in products.json but its Arabic name is curated by hand.
+// Keys MUST match the canonical Turkish spelling in products.json exactly.
+// ---------------------------------------------------------------------------
+const MANUAL_OVERRIDES = {
+    'EIFFEL Renkli Çamaşır Suyu': 'إيفيل كلور ملون'
+};
+
 // Words that the translation function produces but products.json spells differently.
 // Order matters: longer/more-specific replacements first.
 const postReplacements = [
@@ -36,7 +47,8 @@ function normalizeForMatch(s) {
     return String(s)
         .toLowerCase()
         .replace(/[\s\/\-_*+()]+/g, '') // strip whitespace, separators, and a few symbols
-        .replace(/i̇/g, 'i');             // Turkish dotted-i normalization
+        .replace(/i̇/g, 'i')              // combining-dot i (from İ.toLowerCase())
+        .replace(/ı/g, 'i');              // Turkish dotless ı — fold all i-variants together
 }
 
 // Build a normalized → original index of products.json so we can match by shape
@@ -81,6 +93,19 @@ arabicProducts.forEach(ar => {
     trToAr[key] = ar;
 });
 
+// Apply manual overrides BEFORE generating suffix variants so the variants
+// are based on the curated Arabic name (not whatever the generator produced).
+const overrideCount = { added: 0, replaced: 0 };
+for (const [tr, ar] of Object.entries(MANUAL_OVERRIDES)) {
+    if (!actualProducts.includes(tr)) {
+        console.warn(`  ⚠️ Manual override key not in products.json: "${tr}"`);
+        continue;
+    }
+    if (trToAr[tr]) overrideCount.replaced++;
+    else overrideCount.added++;
+    trToAr[tr] = ar;
+}
+
 // Auto-generate suffix variants so DB records carrying common parenthetical
 // tags ("(BARKODSUZ)", "(BARKODLU)") still resolve. The runtime also strips
 // these dynamically, but baking them into the map keeps the JSON inspectable
@@ -106,6 +131,7 @@ fs.writeFileSync(outPath, JSON.stringify(trToAr, null, 2), 'utf8');
 
 console.log(`✓ Wrote ${Object.keys(trToAr).length} total mappings to ${outPath}`);
 console.log(`  Base entries from products.json: ${actualProducts.length}`);
+console.log(`  Manual overrides applied: ${overrideCount.added} new, ${overrideCount.replaced} replaced`);
 console.log(`  Suffix variants added (${SUFFIX_VARIANTS.join(', ')}): ${Object.keys(variantAdditions).length}`);
 console.log(`  Source: ${arabicProducts.length} Arabic product names`);
 console.log(`  Conflicts (same TR ⇐ multiple AR): ${Object.keys(conflicts).length}`);

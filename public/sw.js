@@ -3,8 +3,8 @@
 // Version: 1.0.0
 // ============================================
 
-const CACHE_NAME = 'yukleme-cache-v46';
-const DYNAMIC_CACHE = 'yukleme-dynamic-v46';
+const CACHE_NAME = 'yukleme-cache-v47';
+const DYNAMIC_CACHE = 'yukleme-dynamic-v47';
 
 // Files to cache immediately on install
 const STATIC_ASSETS = [

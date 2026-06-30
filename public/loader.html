@@ -109,20 +109,20 @@
                     <h3 id="voiceQuestion" style="margin: 10px 0 6px; min-height: 28px;"></h3>
                     <div id="voiceMic" style="font-size: 44px; line-height: 1; margin: 6px 0;">🎙️</div>
                     <div id="voiceState" style="font-size: 13px; color: var(--text-secondary, #888); margin-bottom: 8px;"></div>
-                    <input id="voiceAnswer" type="text" style="width: 100%; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; text-align: start; font-size: 16px;" placeholder="إجابتك تظهر هنا (يمكنك تعديلها)">
+                    <input id="voiceAnswer" type="text" data-i18n-placeholder="loader.voice_answer_ph" style="width: 100%; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; text-align: start; font-size: 16px;" placeholder="إجابتك تظهر هنا (يمكنك تعديلها)">
                     <div id="voiceControls1" style="display: flex; gap: 8px; margin-top: 14px;">
-                        <button type="button" onclick="voiceRepeat()" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">🔁 إعادة</button>
-                        <button type="button" onclick="voiceSkip()" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">⏭️ تخطّي</button>
-                        <button type="button" onclick="voiceNext()" style="flex: 1.4; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">✅ التالي</button>
+                        <button type="button" onclick="voiceRepeat()" data-i18n="loader.voice_repeat" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">🔁 إعادة</button>
+                        <button type="button" onclick="voiceSkip()" data-i18n="loader.voice_skip" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">⏭️ تخطّي</button>
+                        <button type="button" onclick="voiceNext()" data-i18n="loader.voice_next" style="flex: 1.4; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">✅ التالي</button>
                     </div>
                     <div id="voiceControls2" style="display: flex; gap: 8px; margin-top: 10px;">
-                        <button type="button" onclick="voiceFinish()" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">إنهاء ومعالجة</button>
-                        <button type="button" onclick="cancelVoiceFill()" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">إلغاء</button>
+                        <button type="button" onclick="voiceFinish()" data-i18n="loader.voice_finish" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">إنهاء ومعالجة</button>
+                        <button type="button" onclick="cancelVoiceFill()" data-i18n="loader.voice_cancel" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">إلغاء</button>
                     </div>
                     <!-- Shown only when processing fails: retry or close-and-fill-manually -->
                     <div id="voiceErrorActions" style="display: none; gap: 8px; margin-top: 12px;">
-                        <button type="button" onclick="voiceFinish()" style="flex: 1; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">🔁 أعد المحاولة</button>
-                        <button type="button" onclick="voiceManual()" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">✍️ أكمل يدويًا</button>
+                        <button type="button" onclick="voiceFinish()" data-i18n="loader.voice_retry" style="flex: 1; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">🔁 أعد المحاولة</button>
+                        <button type="button" onclick="voiceManual()" data-i18n="loader.voice_manual" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">✍️ أكمل يدويًا</button>
                     </div>
                 </div>
             </div>
@@ -133,10 +133,10 @@
                 <!-- 🎙️ Smart voice fill button -->
                 <div style="margin-bottom: 16px;">
                     <button type="button" id="voiceFillBtn" onclick="startVoiceFill()" style="width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        🎙️ <span>التعبئة الصوتية الذكية</span>
+                        🎙️ <span data-i18n="loader.voice_btn">التعبئة الصوتية الذكية</span>
                     </button>
-                    <div id="voiceUnsupported" style="display: none; margin-top: 8px; font-size: 13px; color: var(--text-secondary, #888); text-align: center;">التعرّف الصوتي غير مدعوم في هذا المتصفّح — استخدم Chrome على أندرويد.</div>
-                    <div id="voiceReviewBanner" style="display: none; margin-top: 12px; background: #fff7cc; border: 1px solid #f5d97a; color: #7a5c00; border-radius: 10px; padding: 10px 14px; font-size: 14px;">📝 تمّ ملء الحقول من إجاباتك (المظلّلة بالأصفر). <b>راجِعها وصحّح ما يلزم قبل الحفظ.</b></div>
+                    <div id="voiceUnsupported" data-i18n="loader.voice_unsupported" style="display: none; margin-top: 8px; font-size: 13px; color: var(--text-secondary, #888); text-align: center;">التعرّف الصوتي غير مدعوم في هذا المتصفّح — استخدم Chrome على أندرويد.</div>
+                    <div id="voiceReviewBanner" data-i18n="loader.voice_review" style="display: none; margin-top: 12px; background: #fff7cc; border: 1px solid #f5d97a; color: #7a5c00; border-radius: 10px; padding: 10px 14px; font-size: 14px;">📝 تمّ ملء الحقول من إجاباتك (المظلّلة بالأصفر). راجِعها وصحّح ما يلزم قبل الحفظ.</div>
                 </div>
 
 
@@ -662,8 +662,13 @@
             { key: 'comments',             q: { ar: 'هل لديك ملاحظات؟',                        tr: 'Eklemek istediğiniz not var mı?',           en: 'Any comments?' } },
         ];
         let vIndex = 0, vAnswers = {}, vRec = null, vAdvanceTimer = null, vSpeakTimer = null, vActive = false;
+        // The loaders always SPEAK their answers in Turkish (names, places, products
+        // are Turkish), so speech recognition is fixed to Turkish regardless of UI.
+        const VOICE_INPUT_LANG = 'tr-TR';   // STT (input) — Turkish only
+        const VOICE_EXTRACT_LANG = 'tr';    // tell Gemini the answers are Turkish
+        // The QUESTIONS (text + spoken) follow the selected UI language.
         function voiceLang() { return (window.i18n && typeof window.i18n.getLang === 'function') ? window.i18n.getLang() : 'ar'; }
-        function voiceLangTag() { const l = voiceLang(); return l === 'tr' ? 'tr-TR' : l === 'en' ? 'en-US' : 'ar-SA'; }
+        function voiceTtsLangTag() { const l = voiceLang(); return l === 'tr' ? 'tr-TR' : l === 'en' ? 'en-US' : 'ar-SA'; }
         // i18n lookup for the voice UI (real translation, fallback to the literal).
         function vT(key, fallback) { return (window.i18n && typeof window.i18n.t === 'function') ? window.i18n.t(key, fallback) : fallback; }
 
@@ -719,35 +724,56 @@
             document.getElementById('voiceState').textContent = '…';
             speakVoice(qText, listenVoiceAnswer);
         }
-        // Speak a question aloud (TTS), then run `after` — but ONLY while still in the
-        // Q&A loop, so a late onend/safety callback after Finish can't restart listening.
-        function speakVoice(text, after) {
-            let done = false;
-            const go = () => { if (done) return; done = true; clearTimeout(vSpeakTimer); if (vActive) after(); };
+        // Pick a TTS voice for a BCP-47 tag (exact match, else same language family).
+        function pickVoice(langTag) {
             try {
-                if (window.speechSynthesis) {
-                    window.speechSynthesis.cancel();
-                    const u = new SpeechSynthesisUtterance(text);
-                    u.lang = voiceLangTag();
-                    u.onend = go; u.onerror = go;
-                    window.speechSynthesis.speak(u);
-                    vSpeakTimer = setTimeout(go, 6000); // safety: never get stuck if TTS never fires onend
-                    return;
-                }
-            } catch (e) {}
-            go();
+                const vs = window.speechSynthesis.getVoices() || [];
+                const tag = langTag.toLowerCase(), two = tag.slice(0, 2);
+                return vs.find((v) => (v.lang || '').toLowerCase() === tag)
+                    || vs.find((v) => (v.lang || '').toLowerCase().slice(0, 2) === two) || null;
+            } catch (e) { return null; }
         }
-        // Listen for the spoken answer to the current field (auto-advances when done).
+        // READ the question aloud (TTS, in the UI language), THEN run `after` (listen).
+        // Waits for voices to load on Android, and never gets stuck if no voice exists.
+        function speakVoice(text, after) {
+            let done = false, spoke = false;
+            const go = () => { if (done) return; done = true; clearTimeout(vSpeakTimer); if (vActive) after(); };
+            const ss = window.speechSynthesis;
+            if (!ss) { go(); return; }
+            const doSpeak = () => {
+                if (spoke || !vActive) return; spoke = true;
+                try {
+                    ss.cancel();
+                    const u = new SpeechSynthesisUtterance(text);
+                    u.lang = voiceTtsLangTag();
+                    const v = pickVoice(u.lang); if (v) u.voice = v;
+                    u.rate = 0.95;
+                    u.onend = go; u.onerror = go;     // listen only AFTER the question is read
+                    ss.speak(u);
+                    // Safety: continue even if onend never fires (e.g. no installed voice),
+                    // scaled to the sentence length so long questions aren't cut off.
+                    vSpeakTimer = setTimeout(go, Math.min(15000, 3500 + text.length * 90));
+                } catch (e) { go(); }
+            };
+            const voices = (typeof ss.getVoices === 'function' && ss.getVoices()) || [];
+            if (voices.length) { doSpeak(); }
+            else {
+                // Voices not ready yet (common on first use in Android Chrome).
+                try { ss.onvoiceschanged = () => { ss.onvoiceschanged = null; doSpeak(); }; } catch (e) {}
+                vSpeakTimer = setTimeout(doSpeak, 400); // fallback if voiceschanged never fires
+            }
+        }
+        // Listen for the spoken answer (INPUT is always Turkish), auto-advances when done.
         function listenVoiceAnswer() {
             if (!vActive) return; // don't start listening once we've left the Q&A loop
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) return;
             try { if (vRec) vRec.abort(); } catch (e) {}
             vRec = new SR();
-            vRec.lang = voiceLangTag();
+            vRec.lang = VOICE_INPUT_LANG; // Turkish only, regardless of UI language
             vRec.continuous = false;
             vRec.interimResults = true;
-            document.getElementById('voiceState').textContent = (vT('loader.voice_speak', 'تكلّم الآن…'));
+            document.getElementById('voiceState').textContent = (vT('loader.voice_speak', '🎤 تكلّم الآن بالتركية…'));
             document.getElementById('voiceMic').classList.add('rec');
             let finalTxt = '';
             vRec.onresult = (e) => {
@@ -822,15 +848,15 @@
                 const r = await fetch('/api/voice-extract', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers: vAnswers, lang: voiceLang() }),
+                    body: JSON.stringify({ answers: vAnswers, lang: VOICE_EXTRACT_LANG }),
                     signal: signal,
                 });
                 let j = {};
                 try { j = await r.json(); } catch (_) { j = {}; }
                 if (!r.ok) {
                     const fallback = r.status === 503
-                        ? 'ميزة التعبئة الصوتية غير مُفعّلة على الخادم بعد (مفتاح Gemini مفقود). أكمل التقرير يدويًا.'
-                        : ('تعذّرت المعالجة (' + r.status + '). أعد المحاولة أو أكمل يدويًا.');
+                        ? vT('loader.voice_err_503', 'ميزة التعبئة الصوتية غير مُفعّلة على الخادم بعد (مفتاح Gemini مفقود). أكمل التقرير يدويًا.')
+                        : vT('loader.voice_err_http', 'تعذّرت المعالجة ({status}). أعد المحاولة أو أكمل يدويًا.').replace('{status}', r.status);
                     throw new Error(j.error || fallback);
                 }
                 fillFormFromVoice(j.fields || {});
@@ -844,8 +870,8 @@
                     /* cancelled by the user — nothing to show */
                 } else {
                     const msg = isAbort
-                        ? 'استغرقت المعالجة وقتًا طويلًا. تحقّق من الاتصال وأعد المحاولة، أو أكمل التقرير يدويًا.'
-                        : (e.message || 'فشل المعالجة');
+                        ? vT('loader.voice_err_timeout', 'استغرقت المعالجة وقتًا طويلًا. تحقّق من الاتصال وأعد المحاولة، أو أكمل التقرير يدويًا.')
+                        : (e.message || vT('loader.voice_err_generic', 'فشل المعالجة'));
                     voiceSetPhase('error', msg);
                 }
             } finally {

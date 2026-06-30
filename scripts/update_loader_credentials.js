@@ -1,72 +1,48 @@
-const { createClient } = require('@supabase/supabase-js');
+// Set (or create) a user's password by USERNAME.
+// Usage: node scripts/update_loader_credentials.js <username> <password> [role]
+//   role defaults to 'loader' and is only used when creating a new user.
+const { supabase } = require('../database');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+async function run() {
+    const username = process.argv[2] || 'murat';
+    const password = process.argv[3] || (username + '123');
+    const role = process.argv[4] || 'loader';
 
-if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase credentials in .env file');
-    process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-async function updateLoaderCredentials() {
-    console.log('🔄 Updating loader credentials...');
-
+    console.log(`🔄 Setting credentials for "${username}"...`);
     try {
-        // Hash the new password
-        const newPassword = await bcrypt.hash('murat123', 10);
-        const newUsername = 'murat';
+        const hashed = await bcrypt.hash(password, 10);
 
-        // Check if 'loader' user exists
-        const { data: loaderUser, error: findError } = await supabase
+        // Look the user up by its UNIQUE username (NOT by role — there can be
+        // several loaders, which would make .single() return a PGRST116 error).
+        const { data: user, error: findError } = await supabase
             .from('users')
             .select('*')
-            .eq('role', 'loader')
-            .single(); // Assuming only one loader role user for now based on previous code
+            .eq('username', username)
+            .single();
 
-        if (findError && findError.code !== 'PGRST116') { // PGRST116 is "The result contains 0 rows"
-            console.error('❌ Error finding loader user:', findError);
+        if (findError && findError.code !== 'PGRST116') {
+            console.error('❌ Error finding user:', findError);
             return;
         }
 
-        if (loaderUser) {
-            console.log(`Found user with role 'loader': ${loaderUser.username}`);
-            // Update the existing user
-            const { error: updateError } = await supabase
+        if (user) {
+            const { error } = await supabase
                 .from('users')
-                .update({
-                    username: newUsername,
-                    password: newPassword
-                })
-                .eq('id', loaderUser.id);
-
-            if (updateError) {
-                console.error('❌ Error updating user:', updateError);
-            } else {
-                console.log(`✅ Successfully updated user credentials to: ${newUsername} / murat123`);
-            }
+                .update({ password: hashed })
+                .eq('id', user.id);
+            if (error) console.error('❌ Error updating user:', error);
+            else console.log(`✅ Password updated for "${username}".`);
         } else {
-            console.log("⚠️ No user with role 'loader' found. Creating new user...");
-            // If not found (maybe deleted?), insert new one
-            const { error: insertError } = await supabase
+            const { error } = await supabase
                 .from('users')
-                .insert([
-                    { username: newUsername, password: newPassword, role: 'loader' }
-                ]);
-
-            if (insertError) {
-                console.error('❌ Error creating user:', insertError);
-            } else {
-                console.log(`✅ Successfully created user: ${newUsername} / murat123`);
-            }
+                .insert([{ username, password: hashed, role }]);
+            if (error) console.error('❌ Error creating user:', error);
+            else console.log(`✅ Created user "${username}" (role: ${role}).`);
         }
-
     } catch (error) {
         console.error('❌ Unexpected error:', error);
     }
 }
 
-updateLoaderCredentials();
+run();

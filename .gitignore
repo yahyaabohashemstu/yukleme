@@ -1,4 +1,23 @@
 node_modules/
 .env
+.env.*
+!.env.example
+*.bak
 .DS_Store
 *.log
+.claude/
+
+# SQLite database files (data lives in a Coolify volume / locally in ./data)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Locally-downloaded / uploaded media (lives in a Coolify volume in prod)
+uploads/
+
+# Migration artifacts
+migrate/output/
+
+# Local backup of the original Supabase database.js (kept for rollback)
+database.supabase.js.bak

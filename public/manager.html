@@ -332,6 +332,12 @@
         </div>
     </div>
 
+    <!-- Image Modal (popup in the same page — no new tab) -->
+    <div class="modal-overlay" id="imageModal" style="z-index: 2000; background: rgba(0,0,0,0.9);">
+        <button class="modal-close" id="closeImageModal" style="position: absolute; top: 20px; right: 20px; z-index: 2001;">✕</button>
+        <img id="imageModalContent" src="" style="max-width: 90%; max-height: 90vh; object-fit: contain;">
+    </div>
+
     <script>
         let loadingsData = [];
         let isArchiveView = false; // State for active tab
@@ -661,19 +667,19 @@
                 return `
                 <tr ${rowStyle}>
                     <td>
-                        <span style="font-weight: 500;">${loading.destination_customer || '-'}</span>
+                        <span style="font-weight: 500;">${escapeHtml(loading.destination_customer || '-')}</span>
                     </td>
-                    <td>${plate1}${plate2}</td>
+                    <td>${escapeHtml(plate1)}${escapeHtml(plate2)}</td>
                     <td>
                         <span style="font-weight: 500; white-space: nowrap; color: ${loading.loading_date ? 'var(--text-primary)' : 'var(--text-muted)'};">
                             ${loading.loading_date ? formatDate(loading.loading_date) : '-'}
                         </span>
                     </td>
-                    <td>${loading.destination_company || '-'} - ${loading.destination_country || '-'}</td>
+                    <td>${escapeHtml(loading.destination_company || '-')} - ${escapeHtml(loading.destination_country || '-')}</td>
                     <td>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.created_at)}</span>
-                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;">👤 ${creatorName}</span>
+                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;">👤 ${escapeHtml(creatorName)}</span>
                         </div>
                     </td>
                     <td>${safwatHtml}</td>
@@ -1124,10 +1130,13 @@
         }
 
         function escapeHtml(s) {
-            return String(s).replace(/[&<>"']/g, c => ({
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
             }[c]));
         }
+
+        function thumbOf(u){ return (typeof u==='string' && u.indexOf('/uploads/')===0 && u.indexOf('/uploads/thumbs/')!==0) ? u.replace('/uploads/','/uploads/thumbs/') : u; }
+        function jsStr(v){ return JSON.stringify(String(v==null?'':v)); }
 
         function updateStats(loadings) {
             document.getElementById('totalLoadings').textContent = loadings.length;
@@ -1355,7 +1364,7 @@
                     <span style="font-size: 24px;">👤</span>
                     <div>
                         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Bu sürümü düzenleyen</div>
-                        <div style="font-size: 15px; font-weight: bold; color: var(--text-primary); margin-top: 2px;">${editorName}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: var(--text-primary); margin-top: 2px;">${escapeHtml(editorName)}</div>
                     </div>
                 </div>
             ` : '';
@@ -1367,9 +1376,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 15px;">
                         ${loading.loaded_vehicle_photos.map(url => `
                             <div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                <a href="${url}" target="_blank" style="display: block; width: 100%; height: 100%;">
-                                    <img src="${url}" style="width: 100%; height: 100%; object-fit: cover;" alt="Yükleme Fotoğrafı">
-                                </a>
+                                <img src="${escapeHtml(thumbOf(url))}" onclick="openImage(${escapeHtml(jsStr(url))})" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" alt="Yükleme Fotoğrafı">
                             </div>
                         `).join('')}
                     </div>
@@ -1387,15 +1394,15 @@
                         <div class="detail-grid">
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate1') : ''}">
                                 <label>${T('manager.field_plate1', 'Araç Plakası 1')}</label>
-                                <span>${loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-'}${copyBtn(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '')}</span>
+                                <span>${escapeHtml(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-')}${copyBtn(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '')}</span>
                             </div>
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate2') : ''}">
                                 <label>${T('manager.field_plate2', 'Araç Plakası 2')}</label>
-                                <span>${loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-'}${copyBtn(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '')}</span>
+                                <span>${escapeHtml(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-')}${copyBtn(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '')}</span>
                             </div>
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'container_no') : ''}">
                                 <label>${T('manager.field_container', 'Konteyner Numarası')}</label>
-                                <span>${loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-'}${copyBtn(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '')}</span>
+                                <span>${escapeHtml(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-')}${copyBtn(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '')}</span>
                             </div>
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'loading_date') : ''}">
                                 <label>${T('manager.field_date', 'Tarih')}</label>
@@ -1422,8 +1429,8 @@
                                         return `
                                         <tr>
                                             <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${escapeHtml(displayName)}${copyBtn(displayName)}</td>
-                                            <td>${p.quantity || '-'}${copyBtn(p.quantity)}</td>
-                                            <td>${p.pallets || '-'}${copyBtn(p.pallets)}</td>
+                                            <td>${escapeHtml(p.quantity || '-')}${copyBtn(p.quantity)}</td>
+                                            <td>${escapeHtml(p.pallets || '-')}${copyBtn(p.pallets)}</td>
                                         </tr>`;
                                     }).join('')}
                                 </tbody>
@@ -1432,7 +1439,7 @@
                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                                 <label>${T('manager.total_weight', 'Toplam Yük Ağırlığı ⚖️')}</label>
-                                <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}${copyBtn(loading.vehicle_weight_after)}</span>
+                                <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${escapeHtml(loading.vehicle_weight_after || '-')}${copyBtn(loading.vehicle_weight_after)}</span>
                             </div>
                         </div>
                     </div>
@@ -1480,15 +1487,15 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_company') : ''}">
                             <label>${T('manager.field_company', 'Şirket')}</label>
-                            <span>${loading.destination_company || '-'}${copyBtn(loading.destination_company)}</span>
+                            <span>${escapeHtml(loading.destination_company || '-')}${copyBtn(loading.destination_company)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_country') : ''}">
                             <label>${T('manager.field_country', 'Ülke')}</label>
-                            <span>${loading.destination_country || '-'}${copyBtn(loading.destination_country)}</span>
+                            <span>${escapeHtml(loading.destination_country || '-')}${copyBtn(loading.destination_country)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'destination_customer') : ''}">
                             <label>${T('manager.field_customer', 'Müşteri')}</label>
-                            <span>${loading.destination_customer || '-'}${copyBtn(loading.destination_customer)}</span>
+                            <span>${escapeHtml(loading.destination_customer || '-')}${copyBtn(loading.destination_customer)}</span>
                         </div>
                     </div>
                 </div>
@@ -1499,15 +1506,15 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate1') : ''}">
                             <label>Araç Plakası 1</label>
-                            <span>${loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-'}${copyBtn(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '')}</span>
+                            <span>${escapeHtml(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-')}${copyBtn(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate2') : ''}">
                             <label>Araç Plakası 2</label>
-                            <span>${loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-'}${copyBtn(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '')}</span>
+                            <span>${escapeHtml(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-')}${copyBtn(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'container_no') : ''}">
                             <label>Konteyner Numarası</label>
-                            <span>${loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-'}${copyBtn(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '')}</span>
+                            <span>${escapeHtml(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-')}${copyBtn(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'loading_date') : ''}">
                             <label>Tarih</label>
@@ -1550,8 +1557,8 @@
                             return `
                                 <tr style="${rowStyle}">
                                     <td class="${nameClass}" dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${isNew ? '<span style="font-size:10px;color:var(--primary);font-weight:700;margin-right:4px;" dir="ltr">YENİ</span>' : ''}${escapeHtml(displayName)}${copyBtn(displayName)}</td>
-                                    <td class="${qtyClass}">${p.quantity || '-'}${copyBtn(p.quantity)}</td>
-                                    <td class="${pallClass}">${p.pallets || '-'}${copyBtn(p.pallets)}</td>
+                                    <td class="${qtyClass}">${escapeHtml(p.quantity || '-')}${copyBtn(p.quantity)}</td>
+                                    <td class="${pallClass}">${escapeHtml(p.pallets || '-')}${copyBtn(p.pallets)}</td>
                                 </tr>`;
                         }).join('');
 
@@ -1562,8 +1569,8 @@
                                 return `
                                 <tr style="background: rgba(220,38,38,0.08); border-left: 3px solid var(--danger); opacity: 0.7; text-decoration: line-through;">
                                     <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}"><span style="font-size:10px;color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr">SİLİNDİ</span>${escapeHtml(displayName)}</td>
-                                    <td>${p.quantity || '-'}</td>
-                                    <td>${p.pallets || '-'}</td>
+                                    <td>${escapeHtml(p.quantity || '-')}</td>
+                                    <td>${escapeHtml(p.pallets || '-')}</td>
                                 </tr>`;
                             }).join('')
                             : '';
@@ -1586,7 +1593,7 @@
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                             <label>Toplam Yük Ağırlığı ⚖️</label>
-                            <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}${copyBtn(loading.vehicle_weight_after)}</span>
+                            <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${escapeHtml(loading.vehicle_weight_after || '-')}${copyBtn(loading.vehicle_weight_after)}</span>
                         </div>
                         ${products.length > 0 ? (() => {
                             const totalPallets = products.reduce((sum, p) => sum + (parseInt(p.pallets) || 0), 0);
@@ -1606,28 +1613,28 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'manager') : ''}">
                             <label>${T('manager.field_manager', 'Yönetici')}</label>
-                            <span>${loading.manager || '-'}${copyBtn(loading.manager)}</span>
+                            <span>${escapeHtml(loading.manager || '-')}${copyBtn(loading.manager)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker1') : ''}">
                             <label>${T('manager.field_worker1', 'Birinci Eleman')}</label>
-                            <span>${loading.worker1 || '-'}${copyBtn(loading.worker1)}</span>
+                            <span>${escapeHtml(loading.worker1 || '-')}${copyBtn(loading.worker1)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker2') : ''}">
                             <label>${T('manager.field_worker2', 'İkinci Eleman')}</label>
-                            <span>${loading.worker2 || '-'}${copyBtn(loading.worker2)}</span>
+                            <span>${escapeHtml(loading.worker2 || '-')}${copyBtn(loading.worker2)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker3') : ''}">
                             <label>${T('manager.field_worker3', 'Üçüncü Eleman')}</label>
-                            <span>${loading.worker3 || '-'}${copyBtn(loading.worker3)}</span>
+                            <span>${escapeHtml(loading.worker3 || '-')}${copyBtn(loading.worker3)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'worker4') : ''}">
                             <label>${T('manager.field_worker4', 'Dördüncü Eleman')}</label>
-                            <span>${loading.worker4 || '-'}${copyBtn(loading.worker4)}</span>
+                            <span>${escapeHtml(loading.worker4 || '-')}${copyBtn(loading.worker4)}</span>
                         </div>
                         <!-- Moved Forklift Operator Here or separate? In HTML default it was here -->
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'forklift_operator') : ''}">
                             <label>${T('manager.field_forklift', 'Forklift Sürücüsü')}</label>
-                            <span>${loading.forklift_operator || '-'}${copyBtn(loading.forklift_operator)}</span>
+                            <span>${escapeHtml(loading.forklift_operator || '-')}${copyBtn(loading.forklift_operator)}</span>
                         </div>
                     </div>
                 </div>
@@ -1638,7 +1645,7 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'driver_name') : ''}">
                             <label>${T('manager.field_driver_name', 'Sürücü Adı')}</label>
-                            <span>${loading.driver_name || '-'}${copyBtn(loading.driver_name)}</span>
+                            <span>${escapeHtml(loading.driver_name || '-')}${copyBtn(loading.driver_name)}</span>
                         </div>
                     </div>
                 </div>
@@ -1650,11 +1657,11 @@
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'entry_time') : ''}">
                             <label>${T('manager.field_entry_time', 'Giriş Zamanı')}</label>
-                            <span>${loading.entry_time || '-'}${copyBtn(loading.entry_time)}</span>
+                            <span>${escapeHtml(loading.entry_time || '-')}${copyBtn(loading.entry_time)}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'exit_time') : ''}">
                             <label>${T('manager.field_exit_time', 'Çıkış Zamanı')}</label>
-                            <span>${loading.exit_time || '-'}${copyBtn(loading.exit_time)}</span>
+                            <span>${escapeHtml(loading.exit_time || '-')}${copyBtn(loading.exit_time)}</span>
                         </div>
                     </div>
                 </div>
@@ -1669,9 +1676,9 @@
                             <h3 style="color: #3b82f6;">⚠️ Düzeltme Talebi Gönderildi</h3>
                             <div style="margin-top: 10px;">
                                 <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Tarih: ${new Date(loading.needs_improvement_at).toLocaleString('tr-TR')}</p>
-                                <p><strong>Bölüm:</strong> ${loading.needs_improvement_reason?.section || '-'}</p>
-                                <p><strong>Alan:</strong> ${loading.needs_improvement_reason?.field || '-'}</p>
-                                <p style="margin-top: 8px;"><strong>Mesaj:</strong><br/>${loading.needs_improvement_reason?.comment || '-'}</p>
+                                <p><strong>Bölüm:</strong> ${escapeHtml(loading.needs_improvement_reason?.section || '-')}</p>
+                                <p><strong>Alan:</strong> ${escapeHtml(loading.needs_improvement_reason?.field || '-')}</p>
+                                <p style="margin-top: 8px;"><strong>Mesaj:</strong><br/>${escapeHtml(loading.needs_improvement_reason?.comment || '-')}</p>
                             </div>
                             <p style="margin-top:10px; font-size:13px; color:var(--text-secondary);">Loader bu raporu düzenlediğinde bu talep otomatik olarak kapanacaktır.</p>
                         </div>
@@ -1721,7 +1728,7 @@
                 ${loading.comments ? `
                     <div class="detail-section ${isCurrentVersion ? getChangedClass(loading, previousData, 'comments') : ''}">
                         <h3>💬 Yorumlar</h3>
-                        <p style="color: var(--gray-200); line-height: 1.8;">${loading.comments}</p>
+                        <p style="color: var(--gray-200); line-height: 1.8;">${escapeHtml(loading.comments)}</p>
                     </div>
                 ` : ''}
 
@@ -2132,16 +2139,16 @@
             const input = (label, name, value, type = 'text', required = false) => `
                 <div class="form-group">
                     <label>${label}</label>
-                    <input type="${type}" name="${name}" value="${value || ''}" ${required ? 'required' : ''}>
+                    <input type="${type}" name="${name}" value="${escapeHtml(value || '')}" ${required ? 'required' : ''}>
                 </div>`;
 
             // Helper for Photos Section (Existing + New)
             const photoSection = (title, fieldName, existingPhotos, existingFieldName) => {
                 const existingHtml = (existingPhotos || []).map(p => `
                 <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
-                    <img src="${p}"
+                    <img src="${escapeHtml(thumbOf(p))}" loading="lazy"
                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
-                    <input type="hidden" name="${existingFieldName}" value="${p}">
+                    <input type="hidden" name="${existingFieldName}" value="${escapeHtml(p)}">
                     <button type="button" onclick="this.parentElement.remove()"
                         style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
@@ -2241,11 +2248,11 @@
                             <div class="form-group">
                                 <label>${T('manager.field_entry_time', 'Giriş Zamanı')}</label>
                                 <div class="time-picker-wrapper">
-                                    <input type="hidden" id="editEntry_time" name="entry_time" value="${loading.entry_time || ''}">
+                                    <input type="hidden" id="editEntry_time" name="entry_time" value="${escapeHtml(loading.entry_time || '')}">
                                     <div class="time-picker" id="editEntryTimePicker">
                                         <div class="time-picker-display" onclick="toggleTimePicker('editEntry')">
                                             <span class="time-icon">🕐</span>
-                                            <span class="time-value" id="editEntryTimeDisplay">${loading.entry_time || 'Zaman seçin'}</span>
+                                            <span class="time-value" id="editEntryTimeDisplay">${escapeHtml(loading.entry_time || 'Zaman seçin')}</span>
                                             <span class="time-arrow">▼</span>
                                         </div>
                                         <div class="time-picker-dropdown" id="editEntryTimeDropdown">
@@ -2268,11 +2275,11 @@
                             <div class="form-group">
                                 <label>${T('manager.field_exit_time', 'Çıkış Zamanı')}</label>
                                 <div class="time-picker-wrapper">
-                                    <input type="hidden" id="editExit_time" name="exit_time" value="${loading.exit_time || ''}">
+                                    <input type="hidden" id="editExit_time" name="exit_time" value="${escapeHtml(loading.exit_time || '')}">
                                     <div class="time-picker" id="editExitTimePicker">
                                         <div class="time-picker-display" onclick="toggleTimePicker('editExit')">
                                             <span class="time-icon">🕐</span>
-                                            <span class="time-value" id="editExitTimeDisplay">${loading.exit_time || 'Zaman seçin'}</span>
+                                            <span class="time-value" id="editExitTimeDisplay">${escapeHtml(loading.exit_time || 'Zaman seçin')}</span>
                                             <span class="time-arrow">▼</span>
                                         </div>
                                         <div class="time-picker-dropdown" id="editExitTimeDropdown">
@@ -2317,11 +2324,11 @@
                                 </div>
                                 <div class="form-group" style="margin: 0;">
                                     <label style="font-size: 11px;">Sayısı</label>
-                                    <input type="number" class="edit-prod-qty" value="${p.quantity || ''}" placeholder="0">
+                                    <input type="number" class="edit-prod-qty" value="${escapeHtml(p.quantity || '')}" placeholder="0">
                                 </div>
                                 <div class="form-group" style="margin: 0;">
                                     <label style="font-size: 11px;">Palet</label>
-                                    <input type="number" class="edit-prod-pallets" value="${p.pallets || ''}" placeholder="0">
+                                    <input type="number" class="edit-prod-pallets" value="${escapeHtml(p.pallets || '')}" placeholder="0">
                                 </div>
                                 <button type="button" onclick="this.closest('.product-entry').remove()"
                                     style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
@@ -2335,7 +2342,7 @@
                     <div class="detail-section">
                         <h3>💬 Yorumlar</h3>
                         <textarea name="comments" rows="4"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); resize: vertical;">${loading.comments || ''}</textarea>
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); resize: vertical;">${escapeHtml(loading.comments || '')}</textarea>
                     </div>
 
                     <div class="detail-section">
@@ -2679,6 +2686,23 @@
             }
         });
 
+        // Image popup (same-page lightbox) — opens the full-size photo in a modal
+        // instead of a new browser tab.
+        function openImage(src) {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('imageModalContent');
+            img.src = src;
+            modal.classList.add('show');
+        }
+        document.getElementById('closeImageModal').addEventListener('click', () => {
+            document.getElementById('imageModal').classList.remove('show');
+        });
+        document.getElementById('imageModal').addEventListener('click', (e) => {
+            if (e.target.id === 'imageModal') {
+                document.getElementById('imageModal').classList.remove('show');
+            }
+        });
+
         // Refresh
         document.getElementById('refreshBtn').addEventListener('click', loadLoadings);
 
@@ -2715,6 +2739,7 @@
             </div>
         </div>
     </div>
+
     <script>
         // ===== Toast Notifications =====
         function showToast(message, type = 'info', title = null) {

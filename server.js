@@ -3,28 +3,122 @@ const cookieSession = require('cookie-session');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
+const compression = require('compression');
+const sharp = require('sharp');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 require('dotenv').config();
 
-const { supabase, initializeDatabase } = require('./database');
+const { supabase, initializeDatabase, db } = require('./database');
+const { serialize, deserializeRow } = require('./lib/supabase-sqlite');
 const { sendNotification } = require('./utils/telegramBot');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Local storage directory for uploaded photos/videos.
+// In production (Coolify) set UPLOADS_DIR=/app/uploads (a PERSISTENT volume).
+// Locally it defaults to ./uploads.
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// Cached thumbnails live in a subfolder of the uploads volume.
+const THUMBS_DIR = path.join(UPLOADS_DIR, 'thumbs');
+fs.mkdirSync(THUMBS_DIR, { recursive: true });
+
 // Trust proxy is required for secure cookies on Render/Heroku
 app.set('trust proxy', 1);
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(compression()); // gzip text responses (HTML/CSS/JS/JSON); skips already-compressed images
+
+// Baseline security headers. We deliberately do NOT set an app-wide CSP because
+// the UI relies on inline <script> blocks and inline event handlers; a strict
+// CSP would break it. nosniff + frame-options + referrer-policy are safe.
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'same-origin');
+    next();
+});
+
+// Same-origin only (no third-party browser clients need cross-origin access).
+app.use(cors({ origin: false }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// On-the-fly cached thumbnails for fast galleries. The frontend points grid
+// <img> tags at /uploads/thumbs/<name>; the full image stays at /uploads/<name>
+// (used for click-to-enlarge). Thumbnails are generated once with sharp, cached
+// to disk, and served as webp. MUST be registered BEFORE the /uploads static.
+app.get('/uploads/thumbs/:name', async (req, res) => {
+    const name = path.basename(req.params.name); // guard against path traversal
+    const src = path.join(UPLOADS_DIR, name);
+    const dest = path.join(THUMBS_DIR, name);
+    const serve = () => {
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.type('image/webp');
+        const rs = fs.createReadStream(dest);
+        rs.on('error', (err) => {
+            console.error('thumb stream error for', name, err.message);
+            if (!res.headersSent) res.status(404).end();
+            else res.destroy();
+        });
+        rs.pipe(res);
+    };
+    if (fs.existsSync(dest)) return serve();
+    if (!fs.existsSync(src)) return res.status(404).end();
+    const tmp = `${dest}.tmp-${crypto.randomBytes(4).toString('hex')}`;
+    try {
+        await sharp(src, { failOn: 'none', animated: false })
+            .rotate() // honour EXIF orientation
+            .resize(480, 480, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: 75 })
+            .toFile(tmp);
+        fs.renameSync(tmp, dest); // atomic publish (avoids partial files under concurrency)
+        return serve();
+    } catch (e) {
+        // Not a raster image sharp can process (e.g. a video) -> fall back to original.
+        try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch (_) {} // never leak temp files
+        return res.redirect(302, '/uploads/' + encodeURIComponent(name));
+    }
+});
+
+// Serve user-uploaded photos/videos from the local uploads directory.
+// These were previously served by Supabase Storage; they now live on disk and
+// are referenced by relative URLs like /uploads/<filename>.
+app.use('/uploads', express.static(UPLOADS_DIR, {
+    maxAge: '365d',
+    immutable: true,
+    setHeaders: (res) => {
+        // Defense-in-depth: even if a legacy SVG/HTML file exists here, neutralise
+        // any embedded script when it is opened directly as a document.
+        res.setHeader('Content-Disposition', 'inline');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    },
+}));
+
+// Session secret: REQUIRED (>=32 chars) in production — never fall back to a
+// public constant (that would let anyone forge a signed session cookie).
+// In development, generate a random ephemeral secret so `npm start` still works.
+let SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET || SESSION_SECRET.length < 32 || SESSION_SECRET === 'change-me-to-a-long-random-string') {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('FATAL: SESSION_SECRET must be set to a long random value (>=32 chars) in production.');
+        console.error('Generate one: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
+        process.exit(1);
+    }
+    SESSION_SECRET = crypto.randomBytes(48).toString('hex');
+    console.warn('⚠️  SESSION_SECRET not set — using a temporary random secret for this dev run (sessions reset on restart).');
+}
 
 // Session configuration
 app.use(cookieSession({
     name: 'session',
-    secret: process.env.SESSION_SECRET || 'yukleme-secret-key',
+    secret: SESSION_SECRET,
     maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year (Never log out)
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -35,11 +129,12 @@ app.use(cookieSession({
 
 
 
-// Multer setup (Memory Storage for Supabase)
+// Multer setup (memory storage). The mimetype here is a first, weak gate only —
+// it is attacker-controlled, so the REAL validation happens in saveUploadedFile.
 const storage = multer.memoryStorage();
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 25 * 1024 * 1024, files: 30 }, // 25MB/file, max 30 files
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
             cb(null, true);
@@ -49,29 +144,55 @@ const upload = multer({
     }
 });
 
-// Helper: Upload file to Supabase Storage
-async function uploadToSupabase(file) {
-    const fileExt = path.extname(file.originalname);
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
-    const filePath = `${fileName}`;
+// Sniff a video container from magic bytes -> a safe, server-chosen extension.
+function sniffVideoExt(buf) {
+    if (!buf || buf.length < 12) return null;
+    if (buf.slice(4, 8).toString('ascii') === 'ftyp') { // ISO BMFF (mp4/mov)
+        const brand = buf.slice(8, 12).toString('ascii');
+        return brand.startsWith('qt') ? '.mov' : '.mp4';
+    }
+    if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return '.webm';
+    return null;
+}
 
-    const { data, error } = await supabase
-        .storage
-        .from('loading-photos')
-        .upload(filePath, file.buffer, {
-            contentType: file.mimetype,
-            upsert: false
-        });
+// Helper: save an uploaded file SAFELY and return a relative /uploads/<name> URL.
+// Security: the stored extension is chosen by the SERVER from validated content,
+// never from the attacker-controlled originalname/mimetype. Images are re-encoded
+// through sharp (which rasterises SVG and strips any embedded script), guaranteeing
+// a real raster image. Videos are magic-byte sniffed and allowlisted. Anything
+// else is rejected — so a .html/.svg/.js can never be stored and served back.
+async function saveUploadedFile(file) {
+    const base = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
 
-    if (error) throw error;
+    // Try image first.
+    try {
+        const meta = await sharp(file.buffer, { failOn: 'none' }).metadata();
+        if (meta && meta.format) {
+            const animated = meta.pages && meta.pages > 1;
+            // Keep png/webp/gif as-is (re-encoded); everything else -> jpeg.
+            const targetFmt = ['png', 'webp', 'gif'].includes(meta.format) ? meta.format : 'jpeg';
+            const ext = { png: '.png', webp: '.webp', gif: '.gif', jpeg: '.jpg' }[targetFmt];
+            const out = await sharp(file.buffer, { failOn: 'none', animated })
+                .rotate()
+                .toFormat(targetFmt, targetFmt === 'jpeg' ? { quality: 90 } : {})
+                .toBuffer();
+            const fileName = base + ext;
+            fs.writeFileSync(path.join(UPLOADS_DIR, fileName), out);
+            return `/uploads/${fileName}`;
+        }
+    } catch (e) {
+        // not an image sharp can read -> fall through to video sniff
+    }
 
-    // Get Public URL
-    const { data: { publicUrl } } = supabase
-        .storage
-        .from('loading-photos')
-        .getPublicUrl(filePath);
+    // Video?
+    const vext = sniffVideoExt(file.buffer);
+    if (vext) {
+        const fileName = base + vext;
+        fs.writeFileSync(path.join(UPLOADS_DIR, fileName), file.buffer);
+        return `/uploads/${fileName}`;
+    }
 
-    return publicUrl;
+    throw new Error('UNSUPPORTED_FILE'); // not a valid image or allowlisted video
 }
 
 // Auth middleware
@@ -105,7 +226,18 @@ const requireManager = (req, res, next) => {
 // ============ AUTH ROUTES ============
 
 // Login
-app.post('/api/login', async (req, res) => {
+// Throttle login attempts to blunt brute-force (in-memory; fine for a single
+// low-traffic instance). trust proxy=1 is set, so the real client IP is used.
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { error: 'Çok fazla başarısız deneme. Lütfen 15 dakika sonra tekrar deneyin.' },
+});
+
+app.post('/api/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -174,7 +306,7 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
         // Upload Photos to Supabase
         const uploadedUrls = [];
         if (req.files && req.files.length > 0) {
-            const uploadPromises = req.files.map(file => uploadToSupabase(file));
+            const uploadPromises = req.files.map(file => saveUploadedFile(file));
             const results = await Promise.all(uploadPromises);
             uploadedUrls.push(...results);
         }
@@ -251,8 +383,6 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
         try {
             if (!loadingData.is_draft) {
                 await sendNotification(data, 'new');
-            } else {
-                console.log(`Report ${data.id} created as draft (no photo). No Telegram notification sent.`);
             }
         } catch (notifyError) {
             console.error('Notification failed:', notifyError);
@@ -264,14 +394,16 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
         });
     } catch (error) {
         console.error('Create loading error:', error);
-        res.status(500).json({ error: 'حدث خطأ في الخادم: ' + error.message });
+        if (error && error.message === 'UNSUPPORTED_FILE') {
+            return res.status(400).json({ error: 'Geçersiz dosya türü. Sadece resim ve video yüklenebilir.' });
+        }
+        res.status(500).json({ error: 'حدث خطأ في الخادم' });
     }
 });
 
 // Get my loadings (loader only)
 app.get('/api/my-loadings', requireLoader, async (req, res) => {
     try {
-        console.log('Fetching all active loadings for loader view');
         const { data, error } = await supabase
             .from('loadings')
             .select('*, users!created_by(username)')
@@ -283,10 +415,6 @@ app.get('/api/my-loadings', requireLoader, async (req, res) => {
             return res.status(500).json({ error: 'حدث خطأ أثناء جلب البيانات' });
         }
 
-        console.log('Found loadings:', data ? data.length : 0);
-        if (data && data.length > 0) {
-            console.log('Sample loading data (first item):', JSON.stringify(data[0], null, 2));
-        }
         res.json(data || []);
     } catch (error) {
         console.error('Get my loadings error:', error);
@@ -383,33 +511,13 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             return res.status(404).json({ error: 'التقرير غير موجود' });
         }
 
-        // 2. Archive current data
-        const { count, error: countError } = await supabase
-            .from('loading_versions')
-            .select('*', { count: 'exact', head: true })
-            .eq('loading_id', id);
-
-        const nextVersion = (count || 0) + 1;
-
-        const { error: archiveError } = await supabase
-            .from('loading_versions')
-            .insert([{
-                loading_id: id,
-                version_number: nextVersion,
-                data: current,
-                archived_by: currentUser.id
-            }]);
-
-        if (archiveError) {
-            console.error('Archive error:', archiveError);
-            return res.status(500).json({ error: 'فشل في أرشفة النسخة الحالية' });
-        }
-
-        // 3. Process Photos
+        // 2. Process Photos
+        // (Version archiving + the update are done together atomically in step 5,
+        //  AFTER all async photo work, so they cannot partially fail.)
         // New uploads
         const newUploadedUrls = [];
         if (req.files && req.files.length > 0) {
-            const uploadPromises = req.files.map(file => uploadToSupabase(file));
+            const uploadPromises = req.files.map(file => saveUploadedFile(file));
             const results = await Promise.all(uploadPromises);
             newUploadedUrls.push(...results);
         }
@@ -491,8 +599,6 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             is_recorded: false,
             recorded_at: null,
             recorded_by: null,
-            recorded_at: null,
-            recorded_by: null,
             // Clear specific manager records
             safwat_recorded_at: null,
             pinar_recorded_at: null,
@@ -512,17 +618,32 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             updateData.is_draft = false;
         }
 
-        // 5. Update
-        const { data: updated, error: updateError } = await supabase
-            .from('loadings')
-            .update(updateData)
-            .eq('id', id)
-            .select()
-            .single();
+        // 5. Atomically archive the current version AND apply the update.
+        // Computing the next version number with MAX()+1 INSIDE the transaction
+        // removes the COUNT-then-INSERT race; wrapping both writes in one
+        // transaction means we can never leave an archived version without its
+        // update applied (or vice-versa) — important for a data-loss-averse owner.
+        let updated;
+        try {
+            const applyUpdate = db.transaction(() => {
+                const nextVersion = db
+                    .prepare('SELECT COALESCE(MAX(version_number), 0) + 1 AS n FROM loading_versions WHERE loading_id = ?')
+                    .get(id).n;
+                db.prepare(
+                    'INSERT INTO loading_versions (id, loading_id, version_number, data, archived_at, archived_by) VALUES (?, ?, ?, ?, ?, ?)'
+                ).run(crypto.randomUUID(), id, nextVersion, JSON.stringify(current), new Date().toISOString(), currentUser.id);
 
-        if (updateError) {
-            console.error('Update error:', updateError);
-            return res.status(500).json({ error: 'فشل تديث البيانات' });
+                const cols = Object.keys(updateData);
+                const setSql = cols.map((c) => `${c} = ?`).join(', ');
+                const vals = cols.map((c) => serialize('loadings', c, updateData[c]));
+                db.prepare(`UPDATE loadings SET ${setSql} WHERE id = ?`).run(...vals, id);
+
+                return db.prepare('SELECT * FROM loadings WHERE id = ?').get(id);
+            });
+            updated = deserializeRow('loadings', applyUpdate());
+        } catch (txErr) {
+            console.error('Update transaction error:', txErr);
+            return res.status(500).json({ error: 'فشل تحديث البيانات' });
         }
 
         // Send Telegram Notification (Conditional)
@@ -841,6 +962,11 @@ app.patch('/api/loadings/:id/view', requireManager, async (req, res) => {
     }
 });
 
+// Health check (no auth) — used by Coolify/Traefik to verify the container is up
+app.get('/healthz', (req, res) => {
+    res.status(200).json({ status: 'ok', time: new Date().toISOString() });
+});
+
 // Redirect routes based on role
 app.get('/loader', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'loader.html'));
@@ -850,21 +976,48 @@ app.get('/manager', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'manager.html'));
 });
 
+// Final error handler — catches anything routes didn't (e.g. multer errors,
+// oversized bodies) and returns a generic message without leaking internals.
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err && err.message);
+    if (res.headersSent) return next(err);
+    if (err && (err.code === 'LIMIT_FILE_SIZE' || err.code === 'LIMIT_FILE_COUNT')) {
+        return res.status(400).json({ error: 'Dosya çok büyük veya çok fazla dosya.' });
+    }
+    res.status(500).json({ error: 'حدث خطأ في الخادم' });
+});
+
 // Start server
 async function startServer() {
     const dbReady = await initializeDatabase();
     if (!dbReady) {
-        console.log('\n⚠️  Please set up the database tables in Supabase first.\n');
+        console.log('\n⚠️  Database initialization reported a problem. Check logs above.\n');
     }
 
-    app.listen(PORT, () => {
-        console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-        console.log(`\n📋 Default users:`);
-        console.log(`   Loader 1: username=murat, password=murat123`);
-        console.log(`   Loader 2: username=mahmud, password=mahmud123`);
-        console.log(`   Manager: username=manager, password=manager123`);
-        console.log(`   Manager: username=pinar, password=pinar123\n`);
+    const server = app.listen(PORT, () => {
+        console.log(`\n🚀 Server running on port ${PORT} (env: ${process.env.NODE_ENV || 'development'})`);
     });
+
+    // Graceful shutdown: on redeploy/restart, stop accepting connections and
+    // checkpoint the SQLite WAL into the main DB file so no committed data is
+    // left only in the -wal sidecar.
+    const shutdown = (signal) => {
+        console.log(`\n${signal} received — shutting down gracefully...`);
+        server.close(() => {
+            try {
+                db.pragma('wal_checkpoint(TRUNCATE)');
+                db.close();
+                console.log('SQLite checkpointed and closed. Bye.');
+            } catch (e) {
+                console.error('Error during DB shutdown:', e.message);
+            }
+            process.exit(0);
+        });
+        // Hard cap so a hung connection can't block the deploy forever.
+        setTimeout(() => process.exit(0), 10000).unref();
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 startServer();

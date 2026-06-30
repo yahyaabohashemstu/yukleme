@@ -513,6 +513,10 @@
     </div>
 
     <script>
+        function escapeHtml(v){ return String(v==null?'':v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function thumbOf(u){ return (typeof u==='string' && u.indexOf('/uploads/')===0 && u.indexOf('/uploads/thumbs/')!==0) ? u.replace('/uploads/','/uploads/thumbs/') : u; }
+        function jsStr(v){ return JSON.stringify(String(v==null?'':v)); }
+
         // Load products for dropdown
         async function loadProducts() {
             try {
@@ -521,7 +525,7 @@
                 const products = await response.json();
 
                 const dataList = document.getElementById('productList');
-                dataList.innerHTML = products.map(p => `<option value="${p}">`).join('');
+                dataList.innerHTML = products.map(p => `<option value="${escapeHtml(p)}">`).join('');
             } catch (error) {
                 console.error('Error loading products:', error);
             }
@@ -1036,13 +1040,13 @@
                 const draftBadge = isDraft ? `<span title="${T('status.draft', '📝 Taslak')}" style="font-size:12px; color: #ea580c; background: #ffedd5; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right:4px;">${T('status.draft', '📝 Taslak')}</span>` : '';
 
                 row.innerHTML = `
-                    <td>${item.destination_customer || '-'}</td>
-                    <td>${plate1}${plate2}</td>
-                    <td>${item.destination_company || '-'} - ${item.destination_country || '-'}</td>
+                    <td>${escapeHtml(item.destination_customer || '-')}</td>
+                    <td>${escapeHtml(plate1)}${escapeHtml(plate2)}</td>
+                    <td>${escapeHtml(item.destination_company || '-')} - ${escapeHtml(item.destination_country || '-')}</td>
                     <td>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(item.created_at)}</span>
-                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;">👤 ${creatorName}</span>
+                            <span style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(formatDateTime(item.created_at))}</span>
+                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;">👤 ${escapeHtml(creatorName)}</span>
                         </div>
                     </td>
                     <td>${safwatStatus}</td>
@@ -1268,7 +1272,7 @@
                     <span style="font-size: 24px;">👤</span>
                     <div>
                         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Bu sürümü düzenleyen</div>
-                        <div style="font-size: 15px; font-weight: bold; color: var(--text-primary); margin-top: 2px;">${editorName}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: var(--text-primary); margin-top: 2px;">${escapeHtml(editorName)}</div>
                     </div>
                 </div>
             ` : '';
@@ -1308,9 +1312,9 @@
                                 <span style="font-size:20px;">⚠️</span> Müdürden Düzeltme Talebi
                             </h3>
                             <div style="margin-top: 10px; color: var(--text-primary);">
-                                <p><strong>Bölüm:</strong> ${loading.needs_improvement_reason?.section || '-'}</p>
-                                <p><strong>Alan:</strong> ${loading.needs_improvement_reason?.field || '-'}</p>
-                                <p style="margin-top: 8px; font-size: 15px; background: var(--bg-card); padding: 10px; border-radius: 6px; border-left: 4px solid #3b82f6;"><strong>Mesaj:</strong><br/>${loading.needs_improvement_reason?.comment || '-'}</p>
+                                <p><strong>Bölüm:</strong> ${escapeHtml(loading.needs_improvement_reason?.section || '-')}</p>
+                                <p><strong>Alan:</strong> ${escapeHtml(loading.needs_improvement_reason?.field || '-')}</p>
+                                <p style="margin-top: 8px; font-size: 15px; background: var(--bg-card); padding: 10px; border-radius: 6px; border-left: 4px solid #3b82f6;"><strong>Mesaj:</strong><br/>${escapeHtml(loading.needs_improvement_reason?.comment || '-')}</p>
                             </div>
                             <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
                                 <button class="primary-btn" onclick="toggleEditMode()" style="background: #3b82f6; border: none; padding: 10px 20px; box-shadow: 0 4px 6px rgba(59,130,246,0.3);">
@@ -1324,16 +1328,16 @@
                         <div class="detail-section">
                             <h3>👥 Ekip Bilgileri</h3>
                             <div class="detail-grid">
-                                <div class="detail-item"><label>Yönetici</label><span>${loading.manager || '-'}</span>
+                                <div class="detail-item"><label>Yönetici</label><span>${escapeHtml(loading.manager || '-')}</span>
                                 </div>
-                                <div class="detail-item"><label>Birinci Eleman</label><span>${loading.worker1 ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>İkinci Eleman</label><span>${loading.worker2 ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>Üçüncü Eleman</label><span>${loading.worker3 ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>Dördüncü Eleman</label><span>${loading.worker4 ||
-                '-'}</span></div>
+                                <div class="detail-item"><label>Birinci Eleman</label><span>${escapeHtml(loading.worker1 ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>İkinci Eleman</label><span>${escapeHtml(loading.worker2 ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>Üçüncü Eleman</label><span>${escapeHtml(loading.worker3 ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>Dördüncü Eleman</label><span>${escapeHtml(loading.worker4 ||
+                '-')}</span></div>
                             </div>
                         </div>
 
@@ -1341,11 +1345,11 @@
                         <div class="detail-section">
                             <h3>🚚 Araç Bilgileri</h3>
                             <div class="detail-grid">
-                                <div class="detail-item"><label>Araç Plakası 1</label><span>${loading.plate1 ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>Araç Plakası 2</label><span>${loading.plate2 ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>Tarih</label><span>${loading.loading_date || '-'}</span>
+                                <div class="detail-item"><label>Araç Plakası 1</label><span>${escapeHtml(loading.plate1 ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>Araç Plakası 2</label><span>${escapeHtml(loading.plate2 ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>Tarih</label><span>${escapeHtml(loading.loading_date || '-')}</span>
                                 </div>
                             </div>
                         </div>
@@ -1354,10 +1358,10 @@
                         <div class="detail-section">
                             <h3>⚖️ Ağırlık Bilgileri</h3>
                             <div class="detail-grid">
-                                <div class="detail-item"><label>Ürün Ağırlığı</label><span>${loading.product_weight ||
-                '-'}</span></div>
+                                <div class="detail-item"><label>Ürün Ağırlığı</label><span>${escapeHtml(loading.product_weight ||
+                '-')}</span></div>
                                 <div class="detail-item"><label>Tartıdan Sonra Araç
-                                        Ağırlığı</label><span>${loading.vehicle_weight_after || '-'}</span></div>
+                                        Ağırlığı</label><span>${escapeHtml(loading.vehicle_weight_after || '-')}</span></div>
                             </div>
                         </div>
 
@@ -1365,12 +1369,12 @@
                         <div class="detail-section">
                             <h3>📍 Varış Bilgileri</h3>
                             <div class="detail-grid">
-                                <div class="detail-item"><label>Şirket</label><span>${loading.destination_company ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>Ülke</label><span>${loading.destination_country ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>Müşteri</label><span>${loading.destination_customer ||
-                '-'}</span></div>
+                                <div class="detail-item"><label>Şirket</label><span>${escapeHtml(loading.destination_company ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>Ülke</label><span>${escapeHtml(loading.destination_country ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>Müşteri</label><span>${escapeHtml(loading.destination_customer ||
+                '-')}</span></div>
                             </div>
                         </div>
 
@@ -1378,12 +1382,12 @@
                         <div class="detail-section">
                             <h3>🧑‍✈️ Sürücü Bilgileri</h3>
                             <div class="detail-grid">
-                                <div class="detail-item"><label>Sürücü Adı</label><span>${loading.driver_name ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>Sürücü Telefonu</label><span>${loading.driver_phone ||
-                '-'}</span></div>
+                                <div class="detail-item"><label>Sürücü Adı</label><span>${escapeHtml(loading.driver_name ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>Sürücü Telefonu</label><span>${escapeHtml(loading.driver_phone ||
+                '-')}</span></div>
                                 <div class="detail-item"><label>Forklift
-                                        Sürücüsü</label><span>${loading.forklift_operator || '-'}</span></div>
+                                        Sürücüsü</label><span>${escapeHtml(loading.forklift_operator || '-')}</span></div>
                             </div>
                         </div>
 
@@ -1402,9 +1406,9 @@
                                     <tbody>
                                         ${products.length > 0 ? products.map(p => `
                                         <tr>
-                                            <td>${p.name || '-'}</td>
-                                            <td>${p.quantity || '-'}</td>
-                                            <td>${p.pallets || '-'}</td>
+                                            <td>${escapeHtml(p.name || '-')}</td>
+                                            <td>${escapeHtml(p.quantity || '-')}</td>
+                                            <td>${escapeHtml(p.pallets || '-')}</td>
                                         </tr>
                                         `).join('') : '<tr><td colspan="3" style="text-align: center;">Mal bilgisi yok</td></tr>'}
                                     </tbody>
@@ -1414,7 +1418,7 @@
                             <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color); display: flex; gap: 20px; flex-wrap: wrap;">
                                 <div class="detail-item">
                                     <label>Toplam Yük Ağırlığı ⚖️</label>
-                                    <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${loading.vehicle_weight_after || '-'}</span>
+                                    <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${escapeHtml(loading.vehicle_weight_after || '-')}</span>
                                 </div>
                                 <div class="detail-item">
                                     <label>Toplam Pallet Sayısı 🟫</label>
@@ -1428,10 +1432,10 @@
                         <div class="detail-section">
                             <h3>🕐 Zamanlar</h3>
                             <div class="detail-grid">
-                                <div class="detail-item"><label>Giriş Zamanı</label><span>${loading.entry_time ||
-                '-'}</span></div>
-                                <div class="detail-item"><label>Çıkış Zamanı</label><span>${loading.exit_time ||
-                '-'}</span></div>
+                                <div class="detail-item"><label>Giriş Zamanı</label><span>${escapeHtml(loading.entry_time ||
+                '-')}</span></div>
+                                <div class="detail-item"><label>Çıkış Zamanı</label><span>${escapeHtml(loading.exit_time ||
+                '-')}</span></div>
                             </div>
                         </div>
 
@@ -1443,8 +1447,8 @@
                             <h3>🧾 Kantar Fiş Resmi</h3>
                             <div class="detail-photos">
                                 <div class="detail-photo">
-                                    <img src="${loading.scale_receipt_photo}" alt="Kantar Fişi"
-                                        onclick="openImage('${loading.scale_receipt_photo}')">
+                                    <img src="${escapeHtml(thumbOf(loading.scale_receipt_photo))}" loading="lazy" alt="Kantar Fişi"
+                                        onclick="openImage(${escapeHtml(jsStr(loading.scale_receipt_photo))})">
                                 </div>
                             </div>
                         </div>
@@ -1456,7 +1460,7 @@
                 ${loading.comments ? `
                         <div class="detail-section">
                             <h3>💬 Yorumlar</h3>
-                            <p style="color: var(--text-secondary); line-height: 1.8;">${loading.comments}</p>
+                            <p style="color: var(--text-secondary); line-height: 1.8;">${escapeHtml(loading.comments)}</p>
                         </div>
                         ` : ''
                 }
@@ -1534,16 +1538,16 @@
             const input = (label, name, value, type = 'text', required = false) => `
                 <div class="form-group">
                             <label>${label}</label>
-                            <input type="${type}" name="${name}" value="${value || ''}" ${required ? 'required' : ''}>
+                            <input type="${type}" name="${name}" value="${escapeHtml(value || '')}" ${required ? 'required' : ''}>
                         </div>`;
 
             // Helper for Photos Section (Existing + New)
             const photoSection = (title, fieldName, existingPhotos, existingFieldName) => {
                 const existingHtml = (existingPhotos || []).map(p => `
                 <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
-                    <img src="${p}"
+                    <img src="${escapeHtml(thumbOf(p))}" loading="lazy"
                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
-                    <input type="hidden" name="${existingFieldName}" value="${p}">
+                    <input type="hidden" name="${existingFieldName}" value="${escapeHtml(p)}">
                     <button type="button" onclick="this.parentElement.remove()"
                         style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
@@ -1645,12 +1649,12 @@
                                         <label>Giriş Zamanı</label>
                                         <div class="time-picker-wrapper">
                                             <input type="hidden" id="editEntry_time" name="entry_time"
-                                                value="${loading.entry_time || ''}">
+                                                value="${escapeHtml(loading.entry_time || '')}">
                                                 <div class="time-picker" id="editEntryTimePicker">
                                                     <div class="time-picker-display"
                                                         onclick="toggleTimePicker('editEntry')">
                                                         <span class="time-icon">🕐</span>
-                                                        <span class="time-value" id="editEntryTimeDisplay">${loading.entry_time || 'Zaman seçin'}</span>
+                                                        <span class="time-value" id="editEntryTimeDisplay">${escapeHtml(loading.entry_time || 'Zaman seçin')}</span>
                                                         <span class="time-arrow">▼</span>
                                                     </div>
                 <div class="time-picker-dropdown" id="editEntryTimeDropdown">
@@ -1674,11 +1678,11 @@
                     <label>Çıkış Zamanı</label>
                     <div class="time-picker-wrapper">
                         <input type="hidden" id="editExit_time" name="exit_time"
-                            value="${loading.exit_time || ''}">
+                            value="${escapeHtml(loading.exit_time || '')}">
                             <div class="time-picker" id="editExitTimePicker">
                                 <div class="time-picker-display" onclick="toggleTimePicker('editExit')">
                                     <span class="time-icon">🕐</span>
-                                    <span class="time-value" id="editExitTimeDisplay">${loading.exit_time || 'Zaman seçin'}</span>
+                                    <span class="time-value" id="editExitTimeDisplay">${escapeHtml(loading.exit_time || 'Zaman seçin')}</span>
                                     <span class="time-arrow">▼</span>
                                 </div>
                                 <div class="time-picker-dropdown" id="editExitTimeDropdown">
@@ -1717,17 +1721,17 @@
                                         style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
                                         <div class="form-group" style="margin: 0;">
                                             <label style="font-size: 11px;">Malın Adı</label>
-                                            <input type="text" class="edit-prod-name" value="${p.name || ''}"
+                                            <input type="text" class="edit-prod-name" value="${escapeHtml(p.name || '')}"
                                                 placeholder="Malın Adı">
                                         </div>
                                         <div class="form-group" style="margin: 0;">
                                             <label style="font-size: 11px;">Sayısı</label>
-                                            <input type="number" class="edit-prod-qty" value="${p.quantity || ''}"
+                                            <input type="number" class="edit-prod-qty" value="${escapeHtml(p.quantity || '')}"
                                                 placeholder="0">
                                         </div>
                                         <div class="form-group" style="margin: 0;">
                                             <label style="font-size: 11px;">Palet</label>
-                                            <input type="number" class="edit-prod-pallets" value="${p.pallets || ''}"
+                                            <input type="number" class="edit-prod-pallets" value="${escapeHtml(p.pallets || '')}"
                                                 placeholder="0">
                                         </div>
                                         <button type="button" onclick="this.closest('.product-entry').remove()"
@@ -1740,7 +1744,7 @@
                             <div class="detail-section" style="margin-top: -10px; padding-top: 0; border-top: none;">
                                 <div class="form-group">
                                     <label>Toplam Yük Ağırlığı ⚖️</label>
-                                    <input type="text" name="vehicle_weight_after" value="${loading.vehicle_weight_after || ''}" placeholder="Örnek: 12000 kg" style="max-width: 300px;" required>
+                                    <input type="text" name="vehicle_weight_after" value="${escapeHtml(loading.vehicle_weight_after || '')}" placeholder="Örnek: 12000 kg" style="max-width: 300px;" required>
                                 </div>
                             </div>
 
@@ -1876,7 +1880,7 @@
                     <div class="detail-photos">
                         ${photos.map(photo => `
                         <div class="detail-photo">
-                            <img src="${photo}" alt="${title}" onclick="openImage('${photo}')">
+                            <img src="${escapeHtml(thumbOf(photo))}" loading="lazy" alt="${title}" onclick="openImage(${escapeHtml(jsStr(photo))})">
                         </div>
                         `).join('')}
                     </div>

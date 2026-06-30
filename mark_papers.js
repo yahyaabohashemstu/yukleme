@@ -1,7 +1,6 @@
 require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY);
+// Migrated to the local SQLite adapter (was the Supabase client).
+const { supabase } = require('./database');
 
 async function markAllPapersDelivered() {
     const now = new Date().toISOString();

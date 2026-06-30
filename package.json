@@ -2,26 +2,31 @@
   "name": "yukleme-belgesi",
   "version": "1.0.0",
   "description": "نظام إدارة التحميل - Loading Management System",
+  "private": true,
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "migrate": "node migrate/migrate.js",
+    "migrate:dry": "node migrate/migrate.js --dry-run",
+    "thumbs": "node scripts/gen_thumbs.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.11.1",
+    "compression": "^1.8.1",
     "cookie-session": "^2.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.5.2",
     "multer": "^2.0.2",
     "node-telegram-bot-api": "^0.67.0",
+    "sharp": "^0.34.5",
     "xlsx": "^0.18.5"
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "devDependencies": {
-    "sharp": "^0.34.5"
   }
 }

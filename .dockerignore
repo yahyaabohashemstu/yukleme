@@ -1,0 +1,32 @@
+# Never copy these into the build context / image
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+*.bak
+database.supabase.js.bak
+
+# Local data must NEVER be baked into the image — it lives only in volumes.
+data
+*.db
+*.db-wal
+*.db-shm
+uploads
+
+# Dev / editor / docs noise
+.vscode
+.claude
+*.md
+Altunsa.xlsx
+.DS_Store
+
+# One-off local tooling / data scripts not needed in the running image
+debug_db.js
+fix_regex.js
+read_products.js
+translate_products_v2.js
+generate-icons.js
+supabase_setup.sql
+migrate/output

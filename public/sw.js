@@ -3,8 +3,8 @@
 // Version: 1.0.0
 // ============================================
 
-const CACHE_NAME = 'yukleme-cache-v50';
-const DYNAMIC_CACHE = 'yukleme-dynamic-v50';
+const CACHE_NAME = 'yukleme-cache-v51';
+const DYNAMIC_CACHE = 'yukleme-dynamic-v51';
 
 // Files to cache immediately on install
 const STATIC_ASSETS = [
@@ -99,14 +99,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip Supabase storage requests (external images)
+  // Skip Supabase storage requests (legacy external images, if any remain)
   if (url.hostname.includes('supabase')) {
     return;
   }
 
-  // API requests: Network First, fallback to cache
-  if (API_ROUTES.some(route => url.pathname.startsWith(route))) {
-    event.respondWith(networkFirst(request));
+  // Don't intercept locally-served uploads (photos/videos/thumbnails). They can
+  // be large and change per-report — let the browser fetch them from network
+  // (they carry a long immutable cache header, so the browser caches them anyway).
+  if (url.pathname.startsWith('/uploads/')) {
+    return;
+  }
+
+  // API requests: NETWORK ONLY. We deliberately do NOT cache API responses — they
+  // are per-user, auth-sensitive data; a cached copy keyed only by URL could be
+  // shown to a different user on a shared device, or shown stale. Offline -> 503.
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkOnly(request));
     return;
   }
 
@@ -219,6 +228,23 @@ async function networkFirst(request) {
       headers: new Headers({
         'Content-Type': 'application/json'
       })
+    });
+  }
+}
+
+/**
+ * Network Only Strategy (for /api/*)
+ * - Always go to the network; NEVER read or write the cache.
+ * - On failure (offline), return a clear 503 JSON — never stale/cross-user data.
+ */
+async function networkOnly(request) {
+  try {
+    return await fetch(request);
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'Çevrimdışı - Offline' }), {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: new Headers({ 'Content-Type': 'application/json' })
     });
   }
 }

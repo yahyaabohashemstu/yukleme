@@ -1,119 +1,94 @@
-const { createClient } = require('@supabase/supabase-js');
+// =============================================================================
+// database.js — SQLite backend (drop-in replacement for the old Supabase client)
+//
+// Exposes the SAME interface the rest of the app imports:
+//     const { supabase, initializeDatabase } = require('./database');
+// where `supabase` is a Supabase-compatible adapter (see lib/supabase-sqlite.js)
+// backed by a local better-sqlite3 database file.
+//
+// The original Supabase version is preserved at database.supabase.js.bak for
+// rollback (`git checkout main` also fully restores the old setup).
+// =============================================================================
+
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const Database = require('better-sqlite3');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const { createClient } = require('./lib/supabase-sqlite');
 
-if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase credentials in .env file');
-    process.exit(1);
-}
+// ---- Resolve the DB file location ----
+// In production (Coolify) set DB_PATH=/app/data/app.db (a PERSISTENT volume).
+// Locally it defaults to ./data/app.db.
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'app.db');
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// ---- Open the database & set pragmas ----
+const db = new Database(DB_PATH);
+db.pragma('journal_mode = WAL'); // better read/write concurrency for a web app
+db.pragma('busy_timeout = 5000'); // wait up to 5s instead of throwing SQLITE_BUSY
+db.pragma('synchronous = NORMAL'); // safe with WAL, much faster than FULL
+db.pragma('foreign_keys = ON');
+db.pragma('cache_size = -16000'); // ~16MB page cache in RAM
+db.pragma('mmap_size = 268435456'); // 256MB memory-mapped I/O for fast reads
+db.pragma('temp_store = MEMORY'); // keep temp tables/indexes in RAM
 
-// Initialize database tables
+// ---- Create tables if they don't exist ----
+const schema = fs.readFileSync(path.join(__dirname, 'lib', 'sqlite-schema.sql'), 'utf8');
+db.exec(schema);
+
+// ---- The Supabase-compatible adapter ----
+const supabase = createClient(db);
+
+// Seed users — ONLY inserted when the users table is EMPTY (i.e. a brand-new
+// install with no migration). After the data migration this is a no-op, so real
+// users/passwords are never touched.
+//
+// Each password is read from an env var (SEED_<USERNAME>_PASSWORD); the weak
+// "<username>123" value is a LAST-RESORT dev fallback only and triggers a loud
+// warning. Production should set strong passwords via env (or rely on migration).
+const SEED_USERS = [
+    { username: 'murat', role: 'loader' },
+    { username: 'mahmud', role: 'loader' },
+    { username: 'manager', role: 'manager' },
+    { username: 'pinar', role: 'manager' },
+];
+
 async function initializeDatabase() {
-    console.log('Checking database tables...');
-
-    // Check if users table has data, if not, create default users
-    const { data: existingUsers, error: usersError } = await supabase
-        .from('users')
-        .select('id')
-        .limit(1);
-
-    if (usersError) {
-        console.log('Users table might not exist. Please run the SQL setup in Supabase.');
-        console.log('SQL to run in Supabase SQL Editor:');
-        console.log(`
--- Create users table
-CREATE TABLE IF NOT EXISTS users (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('loader', 'manager')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create loadings table
-CREATE TABLE IF NOT EXISTS loadings (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    
-    -- Team info
-    manager TEXT,
-    worker1 TEXT,
-    worker2 TEXT,
-    worker3 TEXT,
-    worker4 TEXT,
-    
-    -- Vehicle info
-    plate1 TEXT,
-    plate2 TEXT,
-    loading_date DATE,
-    
-    -- Weight info
-    product_weight TEXT,
-    vehicle_weight_after TEXT,
-    destination_company TEXT,
-    destination_country TEXT,
-    destination_customer TEXT,
-    
-    -- Driver info
-    driver_name TEXT,
-    driver_phone TEXT,
-    forklift_operator TEXT,
-    
-    -- Products (JSON array)
-    products JSONB DEFAULT '[]',
-    
-    -- Documentation
-    goods_photos TEXT[] DEFAULT '{}',
-    damaged_goods_photos TEXT[] DEFAULT '{}',
-    scale_receipt_photo TEXT,
-    loaded_vehicle_photos TEXT[] DEFAULT '{}',
-    
-    -- Times
-    entry_time TIME,
-    exit_time TIME,
-    
-    -- Comments
-    comments TEXT,
-    
-    -- Metadata
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create storage bucket for images (run this separately)
--- INSERT INTO storage.buckets (id, name, public) VALUES ('loading-images', 'loading-images', true);
-        `);
+    try {
+        const { c } = db.prepare('SELECT COUNT(*) AS c FROM users').get();
+        if (c === 0) {
+            const now = new Date().toISOString();
+            const insert = db.prepare(
+                'INSERT INTO users (id, username, password, role, created_at) VALUES (?, ?, ?, ?, ?)'
+            );
+            let usedFallback = false;
+            const prepared = [];
+            for (const u of SEED_USERS) {
+                const envPass = process.env['SEED_' + u.username.toUpperCase() + '_PASSWORD'];
+                const password = envPass || (u.username + '123');
+                if (!envPass) usedFallback = true;
+                prepared.push([crypto.randomUUID(), u.username, await bcrypt.hash(password, 10), u.role, now]);
+            }
+            const tx = db.transaction((rows) => {
+                for (const r of rows) insert.run(...r);
+            });
+            tx(prepared);
+            console.log(`Seeded ${prepared.length} initial users.`);
+            if (usedFallback) {
+                console.warn(
+                    '⚠️  SECURITY: one or more seed users use the weak default password "<username>123". ' +
+                    'Change them immediately (set SEED_<USERNAME>_PASSWORD env vars or update via the scripts).'
+                );
+            }
+        }
+        return true;
+    } catch (error) {
+        console.error('initializeDatabase error:', error);
         return false;
     }
-
-    if (!existingUsers || existingUsers.length === 0) {
-        console.log('Creating default users...');
-        const bcrypt = require('bcryptjs');
-
-        const loaderPassword = await bcrypt.hash('murat123', 10);
-        const managerPassword = await bcrypt.hash('manager123', 10);
-        const pinarPassword = await bcrypt.hash('pinar123', 10);
-
-        const { error: insertError } = await supabase
-            .from('users')
-            .insert([
-                { username: 'murat', password: loaderPassword, role: 'loader' },
-                { username: 'mahmud', password: await bcrypt.hash('mahmud123', 10), role: 'loader' },
-                { username: 'manager', password: managerPassword, role: 'manager' },
-                { username: 'pinar', password: pinarPassword, role: 'manager' }
-            ]);
-
-        if (insertError) {
-            console.error('Error creating default users:', insertError);
-            return false;
-        }
-        console.log('Default users created successfully!');
-    }
-
-    return true;
 }
 
-module.exports = { supabase, initializeDatabase };
+module.exports = { supabase, initializeDatabase, db, DB_PATH };

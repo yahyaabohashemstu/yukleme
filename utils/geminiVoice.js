@@ -15,6 +15,10 @@
 //   GEMINI_TIMEOUT_MS   (default 25000)
 // =============================================================================
 
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
 const TTS_MODEL = () => process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
 const TTS_VOICE = () => process.env.GEMINI_TTS_VOICE || 'Kore';
 const STT_MODEL = () => process.env.GEMINI_STT_MODEL || process.env.GEMINI_MODEL || 'gemini-2.0-flash';
@@ -73,21 +77,35 @@ function parseRate(mimeType) {
     return m ? parseInt(m[1], 10) : 24000;
 }
 
-// text -> spoken audio (base64 WAV).
+// Where generated question audio is cached on disk. The 16 questions are static,
+// so each is generated ONCE (per voice/model) and reused forever — keeping the
+// API-call count (and quota usage) low.
+function ttsCacheDir() {
+    return process.env.TTS_CACHE_DIR || path.join(process.env.UPLOADS_DIR || path.join(__dirname, '..', 'uploads'), 'tts-cache');
+}
+
+// text -> spoken audio (base64 WAV). Served from the on-disk cache when available.
 async function ttsSpeak(text) {
+    const model = TTS_MODEL(), voice = TTS_VOICE();
+    const key = crypto.createHash('sha1').update(model + '|' + voice + '|' + String(text || '')).digest('hex');
+    const dir = ttsCacheDir();
+    const file = path.join(dir, key + '.wav');
+    try { if (fs.existsSync(file)) return { audio: fs.readFileSync(file).toString('base64'), mimeType: 'audio/wav', cached: true }; } catch (e) {}
+
     const body = {
         contents: [{ parts: [{ text: String(text || '').slice(0, 2000) }] }],
         generationConfig: {
             responseModalities: ['AUDIO'],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: TTS_VOICE() } } },
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
         },
     };
-    const data = await geminiPost(TTS_MODEL(), body);
+    const data = await geminiPost(model, body);
     const parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
     const part = Array.isArray(parts) ? parts.find((p) => p && p.inlineData && p.inlineData.data) : null;
     if (!part) throw new Error('Gemini TTS returned no audio');
-    const rate = parseRate(part.inlineData.mimeType);
-    return { audio: pcmToWav(part.inlineData.data, rate), mimeType: 'audio/wav' };
+    const wav = pcmToWav(part.inlineData.data, parseRate(part.inlineData.mimeType));
+    try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(file, Buffer.from(wav, 'base64')); } catch (e) {}
+    return { audio: wav, mimeType: 'audio/wav', cached: false };
 }
 
 // recorded audio (base64) -> transcript text (Turkish).

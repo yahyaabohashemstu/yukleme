@@ -372,7 +372,7 @@ app.post('/api/voice-tts', requireLoader, async (req, res) => {
         if (!text.trim()) return res.status(400).json({ error: 'Boş metin.', detail: 'Empty text.', diag });
         const t0 = Date.now();
         const out = await ttsSpeak(text);
-        res.json({ audio: out.audio, mimeType: out.mimeType, diag: { ...diag, ms: Date.now() - t0 } });
+        res.json({ audio: out.audio, mimeType: out.mimeType, diag: { ...diag, ms: Date.now() - t0, cached: !!out.cached } });
     } catch (error) {
         console.error('voice-tts error:', error.message);
         res.status(502).json({ error: 'Seslendirme başarısız.', detail: String(error && error.message || error).slice(0, 500), diag });

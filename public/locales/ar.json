@@ -247,7 +247,7 @@
   "loader.voice_log_empty": "(السجلّ فارغ — ابدأ التعبئة الصوتية)",
   "loader.voice_log_details": "📋 عرض السجلّ والتفاصيل",
   "loader.voice_reading": "🔊 يقرأ السؤال…",
-  "loader.voice_recording": "🔴 يسجّل… تكلّم بالتركية ثم اضغط التالي",
+  "loader.voice_recording": "🔴 تكلّم بالتركية… سيتوقّف تلقائيًا عند انتهائك",
   "loader.voice_transcribing": "⏳ يحوّل كلامك إلى نص…",
   "loader.voice_mic_denied": "تعذّر الوصول للميكروفون — اكتب الإجابة ثم اضغط التالي"
 }

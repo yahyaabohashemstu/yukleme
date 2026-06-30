@@ -693,6 +693,15 @@
         function vT(key, fallback) { return (window.i18n && typeof window.i18n.t === 'function') ? window.i18n.t(key, fallback) : fallback; }
         // Audio playback + microphone-recording state.
         let vAudioEl = null, vMicStream = null, vAudioCtx = null, vSource = null, vProcessor = null, vRecChunks = null, vRecording = false;
+        // Voice-activity detection (auto-stop the moment the loader stops talking) +
+        // per-question TTS prefetch (generate the NEXT question while recording).
+        let vSpeechSeen = false, vSilenceMs = 0, vSpeechMs = 0, vRecElapsed = 0, vNoiseSum = 0, vNoiseN = 0, vSpeechThresh = 0.012;
+        const vTtsCache = new Map();
+        const VAD_CALIB_MS = 350;     // measure the noise floor at the start
+        const VAD_MIN_SPEECH_MS = 150; // sustained energy before we count it as speech
+        const VAD_HANG_MS = 800;      // stop this long after the loader stops speaking
+        const VAD_MAX_MS = 14000;     // hard cap on a single answer
+        const VAD_NOSPEECH_MS = 8000; // give up if no speech at all
 
         // ---- 📋 Voice-system log (monitoring + troubleshooting) -----------------
         const voiceLog = [];          // [{ ts, msg, data }]
@@ -801,24 +810,38 @@
                 } catch (e) { resolve(); }
             });
         }
-        // READ the question with Gemini's voice (server /api/voice-tts), THEN `after`.
-        // If TTS fails the question text stays on screen, so the flow still continues.
+        // Fetch (or reuse a prefetched) TTS clip for `text`. Cached + in-flight aware,
+        // so the next question can be generated WHILE the loader answers the current one.
+        function fetchTtsAudio(text) {
+            if (vTtsCache.has(text)) return vTtsCache.get(text);
+            const p = (async () => {
+                try {
+                    const r = await fetch('/api/voice-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+                    let j = {}; try { j = await r.json(); } catch (_) { j = {}; }
+                    if (j && j.diag) voiceDiagInfo = j.diag;
+                    if (!r.ok || !j.audio) { vlog('tts.error', { status: r.status, detail: j.detail || j.error }); return null; }
+                    return { audio: j.audio, mimeType: j.mimeType, ms: j.diag && j.diag.ms };
+                } catch (e) { vlog('tts.exception', String(e && e.message || e)); return null; }
+            })();
+            vTtsCache.set(text, p);
+            return p;
+        }
+        function prefetchTts(text) { if (text) { vlog('tts.prefetch', { chars: text.length }); fetchTtsAudio(text); } }
+        // READ the question with Gemini's voice, THEN `after`. If TTS fails the question
+        // text stays on screen, so the flow still continues.
         async function speakVoice(text, after) {
             const go = () => { if (vActive) after(); };
             const mic = document.getElementById('voiceMic');
             if (mic) mic.textContent = '🔊';
             document.getElementById('voiceState').textContent = vT('loader.voice_reading', '🔊 يقرأ السؤال…');
-            try {
-                vlog('tts.request', { chars: text.length });
-                const r = await fetch('/api/voice-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
-                let j = {}; try { j = await r.json(); } catch (_) { j = {}; }
-                if (j && j.diag) voiceDiagInfo = j.diag;
-                if (!r.ok || !j.audio) { vlog('tts.error', { status: r.status, detail: j.detail || j.error }); go(); return; }
-                vlog('tts.play', { ms: j.diag && j.diag.ms });
-                if (!vActive) return;
-                await playAudio(j.audio, j.mimeType);
-                go();
-            } catch (e) { vlog('tts.exception', String(e && e.message || e)); go(); }
+            const cached = vTtsCache.has(text);
+            vlog('tts.request', { chars: text.length, cached });
+            const data = await fetchTtsAudio(text);
+            if (!vActive) return;
+            if (!data) { go(); return; } // no audio — text is on screen, answer anyway
+            vlog('tts.play', { ms: data.ms, cached });
+            await playAudio(data.audio, data.mimeType);
+            go();
         }
         // ---- 🎤 Microphone capture -> 16 kHz mono WAV (a format Gemini accepts) ----
         async function ensureMic() {
@@ -828,7 +851,31 @@
             vAudioCtx = new AC();
             vSource = vAudioCtx.createMediaStreamSource(vMicStream);
             vProcessor = vAudioCtx.createScriptProcessor(4096, 1, 1);
-            vProcessor.onaudioprocess = (e) => { if (vRecording && vRecChunks) vRecChunks.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+            vProcessor.onaudioprocess = (e) => {
+                if (!vRecording || !vRecChunks) return;
+                const data = e.inputBuffer.getChannelData(0);
+                vRecChunks.push(new Float32Array(data));
+                // --- voice-activity detection: auto-stop when the loader goes quiet ---
+                let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+                const rms = Math.sqrt(sum / data.length);
+                const frameMs = (data.length / ((vAudioCtx && vAudioCtx.sampleRate) || 48000)) * 1000;
+                vRecElapsed += frameMs;
+                if (vRecElapsed <= VAD_CALIB_MS) { // calibrate the noise floor first
+                    vNoiseSum += rms; vNoiseN++;
+                    vSpeechThresh = Math.max(0.012, (vNoiseSum / vNoiseN) * 3);
+                    return;
+                }
+                if (rms > vSpeechThresh) { vSpeechMs += frameMs; vSilenceMs = 0; if (vSpeechMs >= VAD_MIN_SPEECH_MS) vSpeechSeen = true; }
+                else { if (vSpeechSeen) vSilenceMs += frameMs; vSpeechMs = 0; }
+                let stop = null;
+                if (vSpeechSeen && vSilenceMs >= VAD_HANG_MS) stop = 'silence';
+                else if (vRecElapsed >= VAD_MAX_MS) stop = 'max';
+                else if (!vSpeechSeen && vRecElapsed >= VAD_NOSPEECH_MS) stop = 'nospeech';
+                if (stop) {
+                    vlog('rec.autostop', { reason: stop, ms: Math.round(vRecElapsed), spoke: vSpeechSeen });
+                    if (stop === 'nospeech') voiceSkip(); else voiceNext();
+                }
+            };
             const silent = vAudioCtx.createGain(); silent.gain.value = 0; // route to output silently so onaudioprocess fires
             vSource.connect(vProcessor); vProcessor.connect(silent); silent.connect(vAudioCtx.destination);
         }
@@ -851,10 +898,14 @@
             if (!vActive) return;
             try { if (vAudioCtx && vAudioCtx.state === 'suspended') vAudioCtx.resume(); } catch (e) {}
             vRecChunks = []; vRecording = true;
+            vSpeechSeen = false; vSilenceMs = 0; vSpeechMs = 0; vRecElapsed = 0; vNoiseSum = 0; vNoiseN = 0; vSpeechThresh = 0.012;
             document.getElementById('voiceMic').textContent = '🎙️';
-            document.getElementById('voiceState').textContent = vT('loader.voice_recording', '🔴 يسجّل… تكلّم بالتركية ثم اضغط التالي');
+            document.getElementById('voiceState').textContent = vT('loader.voice_recording', '🔴 تكلّم بالتركية… سيتوقّف تلقائيًا عند انتهائك');
             document.getElementById('voiceMic').classList.add('rec');
             vlog('rec.start');
+            // Generate the NEXT question's audio now, so it plays instantly later.
+            const nf = VOICE_FIELDS[vIndex + 1];
+            if (nf) prefetchTts(nf.q[voiceLang()] || nf.q.ar);
         }
         // Stop recording and return the captured answer as base64 WAV (or null).
         function stopRecordingWav() {

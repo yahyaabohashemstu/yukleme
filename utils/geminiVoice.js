@@ -95,7 +95,7 @@ async function sttTranscribe(audioBase64, mimeType) {
     const body = {
         contents: [{
             parts: [
-                { text: 'Transcribe this speech in TURKISH, exactly as spoken. Output ONLY the raw transcription text — no quotes, no labels, no extra words. If there is no clear speech, output an empty string.' },
+                { text: 'Transcribe this speech in TURKISH, exactly as spoken. Output ONLY the raw transcription text — no quotes, no labels, no extra words. Write each word ONCE; do NOT repeat or duplicate words. If there is no clear speech, output an empty string.' },
                 { inlineData: { mimeType: mimeType || 'audio/wav', data: audioBase64 } },
             ],
         }],

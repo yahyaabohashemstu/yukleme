@@ -247,7 +247,7 @@
   "loader.voice_log_empty": "(Log is empty — start voice fill)",
   "loader.voice_log_details": "📋 Show log & details",
   "loader.voice_reading": "🔊 Reading the question…",
-  "loader.voice_recording": "🔴 Recording… speak Turkish, then press Next",
+  "loader.voice_recording": "🔴 Speak Turkish… it stops automatically when you finish",
   "loader.voice_transcribing": "⏳ Transcribing your speech…",
   "loader.voice_mic_denied": "Microphone unavailable — type the answer, then press Next"
 }

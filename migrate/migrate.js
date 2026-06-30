@@ -251,11 +251,14 @@ function insertRows(db, table, rows) {
 
     // 3) DOWNLOAD FILES ------------------------------------------------------
     const urlMap = new Map(); // oldUrl -> /uploads/<filename>
-    let downloaded = 0, skipped = 0;
+    let downloaded = 0, skipped = 0, newly = 0;
     if (!DRY_RUN) {
         fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-        console.log('\n3) Downloading files...');
+        console.log('\n3) Downloading files (RE-RUNNABLE: anything already on disk is SKIPPED, not re-downloaded)...');
+        const total = urlSet.size;
+        let i = 0;
         for (const url of urlSet) {
+            i++;
             if (typeof url !== 'string') continue;
             if (url.startsWith('/uploads/')) { urlMap.set(url, url); skipped++; continue; }
             const filename = supabaseFilename(url) || url.split('/').pop();
@@ -263,9 +266,12 @@ function insertRows(db, table, rows) {
             const dest = path.join(UPLOADS_DIR, filename);
             const localUrl = `/uploads/${filename}`;
             try {
-                if (!fs.existsSync(dest)) {
+                if (fs.existsSync(dest)) {
+                    // Already downloaded on a previous run -> skip (resume support).
+                } else {
                     const bytes = await downloadTo(url, dest);
-                    process.stdout.write(`   ↓ ${filename} (${bytes} bytes)\n`);
+                    newly++;
+                    process.stdout.write(`   ↓ [${i}/${total}] ${filename} (${bytes} bytes)\n`);
                 }
                 urlMap.set(url, localUrl);
                 downloaded++;
@@ -274,7 +280,7 @@ function insertRows(db, table, rows) {
                 urlMap.set(url, url); // keep original so nothing silently breaks
             }
         }
-        console.log(`   • downloaded/located ${downloaded}, skipped(already-local) ${skipped}`);
+        console.log(`   • located ${downloaded} file(s): ${newly} newly downloaded, ${downloaded - newly} already on disk (skipped). already-local: ${skipped}`);
     } else {
         console.log('\n3) [dry-run] skipping downloads');
     }

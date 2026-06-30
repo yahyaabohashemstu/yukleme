@@ -14,6 +14,7 @@ require('dotenv').config();
 const { supabase, initializeDatabase, db } = require('./database');
 const { serialize, deserializeRow } = require('./lib/supabase-sqlite');
 const { sendNotification } = require('./utils/telegramBot');
+const { extractReportFields } = require('./utils/geminiExtract');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -294,6 +295,26 @@ app.get('/api/check-auth', (req, res) => {
         });
     } else {
         res.json({ authenticated: false });
+    }
+});
+
+// Voice fill: turn a spoken dictation (transcript) into structured report fields
+// via Gemini. The loader reviews/edits the filled form before submitting.
+app.post('/api/voice-extract', requireLoader, async (req, res) => {
+    try {
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(503).json({ error: 'Sesli doldurma sunucuda yapılandırılmamış (GEMINI_API_KEY eksik).' });
+        }
+        const transcript = String(req.body.transcript || '').slice(0, 5000);
+        const lang = ['ar', 'tr', 'en'].includes(req.body.lang) ? req.body.lang : 'ar';
+        if (!transcript.trim()) {
+            return res.status(400).json({ error: 'Boş ses metni.' });
+        }
+        const fields = await extractReportFields(transcript, lang);
+        res.json({ fields });
+    } catch (error) {
+        console.error('voice-extract error:', error.message);
+        res.status(502).json({ error: 'Ses işlenemedi. Lütfen tekrar deneyin veya elle girin.' });
     }
 });
 

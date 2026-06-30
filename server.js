@@ -315,10 +315,23 @@ function distinctValues(cols) {
 // Voice fill: turn the loader's spoken answers (per field) into structured report
 // fields via Gemini, matching names/products to known values. The loader REVIEWS
 // the filled form before submitting. Also accepts a one-shot {transcript} (legacy).
+// Non-sensitive Gemini config, returned to the voice-log panel so the loader/admin
+// can see exactly how the feature is configured (never includes the API key value).
+function voiceDiag() {
+    return {
+        keyPresent: !!process.env.GEMINI_API_KEY,
+        style: (process.env.GEMINI_API_STYLE || 'interactions'),
+        model: (process.env.GEMINI_MODEL || 'gemini-3.5-flash'),
+        endpoint: process.env.GEMINI_ENDPOINT ? 'custom' : 'default',
+        timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS || 25000),
+    };
+}
+
 app.post('/api/voice-extract', requireLoader, async (req, res) => {
+    const diag = voiceDiag();
     try {
         if (!process.env.GEMINI_API_KEY) {
-            return res.status(503).json({ error: 'Sesli doldurma sunucuda yapılandırılmamış (GEMINI_API_KEY eksik).' });
+            return res.status(503).json({ error: 'Sesli doldurma sunucuda yapılandırılmamış (GEMINI_API_KEY eksik).', detail: 'GEMINI_API_KEY is not set on the server.', diag });
         }
         const lang = ['ar', 'tr', 'en'].includes(req.body.lang) ? req.body.lang : 'ar';
         const known = {
@@ -329,17 +342,18 @@ app.post('/api/voice-extract', requireLoader, async (req, res) => {
         };
 
         let fields;
+        const t0 = Date.now();
         if (req.body.answers && typeof req.body.answers === 'object') {
             fields = await extractFromAnswers(req.body.answers, lang, known);
         } else {
             const transcript = String(req.body.transcript || '').slice(0, 5000);
-            if (!transcript.trim()) return res.status(400).json({ error: 'Boş veri.' });
+            if (!transcript.trim()) return res.status(400).json({ error: 'Boş veri.', detail: 'Empty answers/transcript.', diag });
             fields = await extractReportFields(transcript, lang);
         }
-        res.json({ fields });
+        res.json({ fields, diag: { ...diag, ms: Date.now() - t0, fieldCount: Object.keys(fields || {}).length } });
     } catch (error) {
         console.error('voice-extract error:', error.message);
-        res.status(502).json({ error: 'Ses işlenemedi. Lütfen tekrar deneyin veya elle girin.' });
+        res.status(502).json({ error: 'Ses işlenemedi. Lütfen tekrar deneyin veya elle girin.', detail: String(error && error.message || error).slice(0, 500), diag });
     }
 });
 

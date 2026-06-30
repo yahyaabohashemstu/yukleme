@@ -124,6 +124,26 @@
                         <button type="button" onclick="voiceFinish()" data-i18n="loader.voice_retry" style="flex: 1; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">🔁 أعد المحاولة</button>
                         <button type="button" onclick="voiceManual()" data-i18n="loader.voice_manual" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">✍️ أكمل يدويًا</button>
                     </div>
+                    <!-- Always available: open the voice-system log (also reachable from the error state) -->
+                    <button type="button" onclick="openVoiceLog()" data-i18n="loader.voice_log_details" style="margin-top: 12px; background: none; border: none; color: var(--primary, #4f46e5); font-size: 13px; cursor: pointer; text-decoration: underline;">📋 عرض السجلّ والتفاصيل</button>
+                </div>
+            </div>
+
+            <!-- 📋 Voice-system log / monitor (sits above the voice overlay) -->
+            <div id="voiceLogModal" class="modal-overlay" style="z-index: 3100; background: rgba(0,0,0,0.6);">
+                <div class="modal" style="max-width: 580px; text-align: start;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <h3 style="margin: 0;" data-i18n="loader.voice_log_title">سجلّ النظام الصوتي</h3>
+                        <button type="button" onclick="closeVoiceLog()" style="background: none; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: var(--text-secondary, #888);">✕</button>
+                    </div>
+                    <div data-i18n="loader.voice_log_hint" style="font-size: 12px; color: var(--text-secondary, #888); margin-bottom: 8px;">يسجّل خطوات التعبئة الصوتية وسبب أي خطأ. مفيد للمراقبة وحلّ المشاكل.</div>
+                    <div id="voiceLogDiag" style="font-size: 12px; color: var(--text-secondary, #888); margin-bottom: 6px; direction: ltr; text-align: left; word-break: break-word;"></div>
+                    <pre id="voiceLogBody" style="max-height: 50vh; overflow: auto; font-size: 12px; line-height: 1.5; background: var(--bg-input, #f4f4f5); border-radius: 8px; padding: 10px; margin: 0; white-space: pre-wrap; word-break: break-word; direction: ltr; text-align: left;"></pre>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button type="button" onclick="copyVoiceLog()" data-i18n="loader.voice_log_copy" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">📋 نسخ</button>
+                        <button type="button" onclick="clearVoiceLog()" data-i18n="loader.voice_log_clear" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">🗑️ مسح</button>
+                        <button type="button" onclick="closeVoiceLog()" data-i18n="loader.voice_log_close" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">إغلاق</button>
+                    </div>
                 </div>
             </div>
             <style>.voice-filled { background: #fff7cc !important; transition: background .4s; } #voiceMic.rec { animation: vpulse 1s infinite; } @keyframes vpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} } #voiceMic.spin { animation: vspin 1s linear infinite; } @keyframes vspin { to { transform: rotate(360deg) } }</style>
@@ -137,6 +157,7 @@
                     </button>
                     <div id="voiceUnsupported" data-i18n="loader.voice_unsupported" style="display: none; margin-top: 8px; font-size: 13px; color: var(--text-secondary, #888); text-align: center;">التعرّف الصوتي غير مدعوم في هذا المتصفّح — استخدم Chrome على أندرويد.</div>
                     <div id="voiceReviewBanner" data-i18n="loader.voice_review" style="display: none; margin-top: 12px; background: #fff7cc; border: 1px solid #f5d97a; color: #7a5c00; border-radius: 10px; padding: 10px 14px; font-size: 14px;">📝 تمّ ملء الحقول من إجاباتك (المظلّلة بالأصفر). راجِعها وصحّح ما يلزم قبل الحفظ.</div>
+                    <button type="button" id="voiceLogBtn" onclick="openVoiceLog()" data-i18n="loader.voice_log_open" style="margin-top: 8px; width: 100%; padding: 8px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-secondary, #888); font-size: 13px; cursor: pointer;">📋 سجلّ النظام الصوتي</button>
                 </div>
 
 
@@ -672,10 +693,45 @@
         // i18n lookup for the voice UI (real translation, fallback to the literal).
         function vT(key, fallback) { return (window.i18n && typeof window.i18n.t === 'function') ? window.i18n.t(key, fallback) : fallback; }
 
+        // ---- 📋 Voice-system log (monitoring + troubleshooting) -----------------
+        const voiceLog = [];          // [{ ts, msg, data }]
+        let voiceDiagInfo = null;     // last server-reported Gemini config
+        function vlog(msg, data) {
+            let ts = '';
+            try { const d = new Date(); ts = d.toLocaleTimeString('en-GB') + '.' + String(d.getMilliseconds()).padStart(3, '0'); } catch (e) {}
+            voiceLog.push({ ts, msg, data });
+            if (voiceLog.length > 300) voiceLog.shift();
+            try { console.log('[voice]', ts, msg, data !== undefined ? data : ''); } catch (e) {}
+            const modal = document.getElementById('voiceLogModal');
+            if (modal && modal.classList.contains('show')) renderVoiceLog();
+        }
+        function voiceLogText() {
+            const head = voiceDiagInfo ? ('config: ' + JSON.stringify(voiceDiagInfo) + '\n' + '-'.repeat(40) + '\n') : '';
+            const body = voiceLog.map((e) => e.ts + '  ' + e.msg + (e.data !== undefined && e.data !== null ? '  ' + (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : '')).join('\n');
+            return head + (body || vT('loader.voice_log_empty', '(السجلّ فارغ)'));
+        }
+        function renderVoiceLog() {
+            const body = document.getElementById('voiceLogBody');
+            const diag = document.getElementById('voiceLogDiag');
+            if (diag) diag.textContent = voiceDiagInfo ? ('config: ' + JSON.stringify(voiceDiagInfo)) : '';
+            if (body) { body.textContent = voiceLog.length ? voiceLog.map((e) => e.ts + '  ' + e.msg + (e.data !== undefined && e.data !== null ? '  ' + (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : '')).join('\n') : vT('loader.voice_log_empty', '(السجلّ فارغ — ابدأ التعبئة الصوتية)'); body.scrollTop = body.scrollHeight; }
+        }
+        function openVoiceLog() { renderVoiceLog(); document.getElementById('voiceLogModal').classList.add('show'); }
+        function closeVoiceLog() { document.getElementById('voiceLogModal').classList.remove('show'); }
+        function clearVoiceLog() { voiceLog.length = 0; renderVoiceLog(); }
+        function copyVoiceLog() {
+            const text = voiceLogText();
+            const done = () => vlog('log.copied');
+            try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done).catch(() => {}); } } catch (e) {}
+            const btn = document.querySelector('#voiceLogModal [onclick="copyVoiceLog()"]');
+            if (btn) { const old = btn.textContent; btn.textContent = vT('loader.voice_log_copied', 'تم النسخ ✓'); setTimeout(() => { btn.textContent = old; }, 1500); }
+        }
+
         function startVoiceFill() {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) { const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block'; return; }
             vIndex = 0; vAnswers = {}; vActive = true;
+            vlog('start', { uiLang: voiceLang(), tts: voiceTtsLangTag(), stt: VOICE_INPUT_LANG });
             document.getElementById('voiceOverlay').classList.add('show');
             askVoiceField();
         }
@@ -722,6 +778,7 @@
             document.getElementById('voiceQuestion').textContent = qText;
             document.getElementById('voiceAnswer').value = '';
             document.getElementById('voiceState').textContent = '…';
+            vlog('ask', { n: vIndex + 1, field: f.key, q: qText });
             speakVoice(qText, listenVoiceAnswer);
         }
         // Pick a TTS voice for a BCP-47 tag (exact match, else same language family).
@@ -748,17 +805,20 @@
                     u.lang = voiceTtsLangTag();
                     const v = pickVoice(u.lang); if (v) u.voice = v;
                     u.rate = 0.95;
-                    u.onend = go; u.onerror = go;     // listen only AFTER the question is read
+                    u.onstart = () => vlog('tts.speaking', { lang: u.lang, voice: v ? v.lang : 'default' });
+                    u.onend = go; u.onerror = (ev) => { vlog('tts.error', (ev && ev.error) || 'error'); go(); };
+                    vlog('tts.speak', { lang: u.lang, voice: v ? v.lang : 'default', hasVoice: !!v });
                     ss.speak(u);
                     // Safety: continue even if onend never fires (e.g. no installed voice),
                     // scaled to the sentence length so long questions aren't cut off.
-                    vSpeakTimer = setTimeout(go, Math.min(15000, 3500 + text.length * 90));
-                } catch (e) { go(); }
+                    vSpeakTimer = setTimeout(() => { vlog('tts.timeout', 'onend never fired — continuing'); go(); }, Math.min(15000, 3500 + text.length * 90));
+                } catch (e) { vlog('tts.exception', String(e && e.message || e)); go(); }
             };
             const voices = (typeof ss.getVoices === 'function' && ss.getVoices()) || [];
             if (voices.length) { doSpeak(); }
             else {
                 // Voices not ready yet (common on first use in Android Chrome).
+                vlog('tts.waiting_voices');
                 try { ss.onvoiceschanged = () => { ss.onvoiceschanged = null; doSpeak(); }; } catch (e) {}
                 vSpeakTimer = setTimeout(doSpeak, 400); // fallback if voiceschanged never fires
             }
@@ -784,14 +844,16 @@
                 }
                 document.getElementById('voiceAnswer').value = (finalTxt + interim).trim();
             };
-            vRec.onerror = () => {
+            vRec.onerror = (e) => {
                 document.getElementById('voiceMic').classList.remove('rec');
+                vlog('stt.error', (e && e.error) || 'error');
                 document.getElementById('voiceState').textContent = (vT('loader.voice_again', 'لم أسمع جيدًا — أعد أو اكتب الإجابة'));
             };
             vRec.onend = () => {
                 document.getElementById('voiceMic').classList.remove('rec');
                 if (!vActive) return; // recognition ended after we left the loop — ignore
                 const ans = document.getElementById('voiceAnswer').value.trim();
+                vlog('stt.result', ans || '(empty)');
                 if (ans) {
                     document.getElementById('voiceState').textContent = (vT('loader.voice_auto', 'سيتابع تلقائيًا… أو اضغط التالي'));
                     clearTimeout(vAdvanceTimer); vAdvanceTimer = setTimeout(voiceNext, 1800);
@@ -812,7 +874,7 @@
             if (!vActive) return; // ignore a stray auto-advance fired after we left the loop
             stopVoiceRec();
             const f = VOICE_FIELDS[vIndex];
-            if (f) vAnswers[f.key] = document.getElementById('voiceAnswer').value.trim();
+            if (f) { vAnswers[f.key] = document.getElementById('voiceAnswer').value.trim(); vlog('answer', { field: f.key, value: vAnswers[f.key] || '(empty)' }); }
             vIndex++; askVoiceField();
         }
         // Skip this field (store empty) and move on.
@@ -820,11 +882,11 @@
             if (!vActive) return;
             stopVoiceRec();
             const f = VOICE_FIELDS[vIndex];
-            if (f) vAnswers[f.key] = '';
+            if (f) { vAnswers[f.key] = ''; vlog('skip', { field: f.key }); }
             vIndex++; askVoiceField();
         }
         // Re-ask the current field.
-        function voiceRepeat() { if (!vActive) return; stopVoiceRec(); askVoiceField(); }
+        function voiceRepeat() { if (!vActive) return; vlog('repeat'); stopVoiceRec(); askVoiceField(); }
         // Finish: send all answers to Gemini and fill the form for manual review.
         // Bounded by a client-side timeout so it can NEVER hang on "processing":
         // any failure resolves to a visible error with retry / fill-manually.
@@ -840,6 +902,8 @@
                 stopVoiceRec();
                 try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
                 voiceSetPhase('processing');
+                const answered = Object.values(vAnswers).filter((x) => x && String(x).trim()).length;
+                vlog('send', { answeredFields: answered, totalFields: Object.keys(vAnswers).length, extractLang: VOICE_EXTRACT_LANG });
                 let signal;
                 try { vAbort = new AbortController(); signal = vAbort.signal; } catch (e) { vAbort = null; }
                 // The timer stays armed through BOTH fetch and r.json(), so even a stalled
@@ -853,25 +917,33 @@
                 });
                 let j = {};
                 try { j = await r.json(); } catch (_) { j = {}; }
+                if (j && j.diag) voiceDiagInfo = j.diag;
+                vlog('response', { status: r.status, ok: r.ok });
                 if (!r.ok) {
+                    vlog('error', { status: r.status, error: j.error, detail: j.detail, diag: j.diag });
                     const fallback = r.status === 503
                         ? vT('loader.voice_err_503', 'ميزة التعبئة الصوتية غير مُفعّلة على الخادم بعد (مفتاح Gemini مفقود). أكمل التقرير يدويًا.')
                         : vT('loader.voice_err_http', 'تعذّرت المعالجة ({status}). أعد المحاولة أو أكمل يدويًا.').replace('{status}', r.status);
-                    throw new Error(j.error || fallback);
+                    const e2 = new Error(j.error || fallback); e2.detail = j.detail; throw e2;
                 }
+                vlog('ok', { fields: Object.keys(j.fields || {}).length, ms: j.diag && j.diag.ms });
                 fillFormFromVoice(j.fields || {});
                 closeVoiceOverlay();
                 const banner = document.getElementById('voiceReviewBanner');
                 if (banner) banner.style.display = 'block';
             } catch (e) {
                 const isAbort = e && e.name === 'AbortError';
+                if (isAbort) vlog('timeout', '45s client timeout / abort');
+                else if (!('detail' in (e || {}))) vlog('exception', String(e && e.message || e));
                 // If the user cancelled (overlay already closed), drop silently.
                 if (isAbort && !document.getElementById('voiceOverlay').classList.contains('show')) {
                     /* cancelled by the user — nothing to show */
                 } else {
-                    const msg = isAbort
+                    let msg = isAbort
                         ? vT('loader.voice_err_timeout', 'استغرقت المعالجة وقتًا طويلًا. تحقّق من الاتصال وأعد المحاولة، أو أكمل التقرير يدويًا.')
                         : (e.message || vT('loader.voice_err_generic', 'فشل المعالجة'));
+                    // Append the server's technical reason inline (full version is in the log).
+                    if (e && e.detail) msg += ' — ' + String(e.detail).slice(0, 120);
                     voiceSetPhase('error', msg);
                 }
             } finally {

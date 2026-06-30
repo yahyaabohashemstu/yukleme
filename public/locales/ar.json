@@ -236,5 +236,14 @@
   "loader.voice_err_503": "ميزة التعبئة الصوتية غير مُفعّلة على الخادم بعد (مفتاح Gemini مفقود). أكمل التقرير يدويًا.",
   "loader.voice_err_http": "تعذّرت المعالجة ({status}). أعد المحاولة أو أكمل يدويًا.",
   "loader.voice_err_timeout": "استغرقت المعالجة وقتًا طويلًا. تحقّق من الاتصال وأعد المحاولة، أو أكمل التقرير يدويًا.",
-  "loader.voice_err_generic": "فشل المعالجة"
+  "loader.voice_err_generic": "فشل المعالجة",
+  "loader.voice_log_open": "📋 سجلّ النظام الصوتي",
+  "loader.voice_log_title": "سجلّ النظام الصوتي",
+  "loader.voice_log_hint": "يسجّل خطوات التعبئة الصوتية وسبب أي خطأ. مفيد للمراقبة وحلّ المشاكل.",
+  "loader.voice_log_copy": "📋 نسخ",
+  "loader.voice_log_clear": "🗑️ مسح",
+  "loader.voice_log_close": "إغلاق",
+  "loader.voice_log_copied": "تم نسخ السجلّ ✓",
+  "loader.voice_log_empty": "(السجلّ فارغ — ابدأ التعبئة الصوتية)",
+  "loader.voice_log_details": "📋 عرض السجلّ والتفاصيل"
 }

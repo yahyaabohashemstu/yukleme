@@ -236,5 +236,14 @@
   "loader.voice_err_503": "Sesli doldurma sunucuda henüz etkin değil (Gemini anahtarı eksik). Raporu elle doldurun.",
   "loader.voice_err_http": "İşlenemedi ({status}). Tekrar deneyin veya elle doldurun.",
   "loader.voice_err_timeout": "İşlem çok uzun sürdü. Bağlantınızı kontrol edip tekrar deneyin veya elle doldurun.",
-  "loader.voice_err_generic": "İşlem başarısız"
+  "loader.voice_err_generic": "İşlem başarısız",
+  "loader.voice_log_open": "📋 Ses sistemi günlüğü",
+  "loader.voice_log_title": "Ses sistemi günlüğü",
+  "loader.voice_log_hint": "Sesli doldurma adımlarını ve hata nedenini kaydeder. İzleme ve sorun giderme için.",
+  "loader.voice_log_copy": "📋 Kopyala",
+  "loader.voice_log_clear": "🗑️ Temizle",
+  "loader.voice_log_close": "Kapat",
+  "loader.voice_log_copied": "Günlük kopyalandı ✓",
+  "loader.voice_log_empty": "(Günlük boş — sesli doldurmayı başlatın)",
+  "loader.voice_log_details": "📋 Günlüğü ve ayrıntıları göster"
 }

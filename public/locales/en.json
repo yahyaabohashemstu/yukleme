@@ -236,5 +236,14 @@
   "loader.voice_err_503": "Voice fill is not enabled on the server yet (Gemini key missing). Fill the report manually.",
   "loader.voice_err_http": "Processing failed ({status}). Retry or fill manually.",
   "loader.voice_err_timeout": "Processing took too long. Check your connection and retry, or fill manually.",
-  "loader.voice_err_generic": "Processing failed"
+  "loader.voice_err_generic": "Processing failed",
+  "loader.voice_log_open": "📋 Voice system log",
+  "loader.voice_log_title": "Voice system log",
+  "loader.voice_log_hint": "Records the voice-fill steps and the reason for any error. For monitoring & troubleshooting.",
+  "loader.voice_log_copy": "📋 Copy",
+  "loader.voice_log_clear": "🗑️ Clear",
+  "loader.voice_log_close": "Close",
+  "loader.voice_log_copied": "Log copied ✓",
+  "loader.voice_log_empty": "(Log is empty — start voice fill)",
+  "loader.voice_log_details": "📋 Show log & details"
 }

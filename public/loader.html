@@ -691,17 +691,12 @@
         function voiceLang() { return (window.i18n && typeof window.i18n.getLang === 'function') ? window.i18n.getLang() : 'ar'; }
         // i18n lookup for the voice UI (real translation, fallback to the literal).
         function vT(key, fallback) { return (window.i18n && typeof window.i18n.t === 'function') ? window.i18n.t(key, fallback) : fallback; }
-        // Audio playback + microphone-recording state.
-        let vAudioEl = null, vMicStream = null, vAudioCtx = null, vSource = null, vProcessor = null, vRecChunks = null, vRecording = false;
-        // Voice-activity detection (auto-stop the moment the loader stops talking) +
-        // per-question TTS prefetch (generate the NEXT question while recording).
-        let vSpeechSeen = false, vSilenceMs = 0, vSpeechMs = 0, vRecElapsed = 0, vNoiseSum = 0, vNoiseN = 0, vSpeechThresh = 0.012;
-        const vTtsCache = new Map();
-        const VAD_CALIB_MS = 350;     // measure the noise floor at the start
-        const VAD_MIN_SPEECH_MS = 150; // sustained energy before we count it as speech
-        const VAD_HANG_MS = 800;      // stop this long after the loader stops speaking
-        const VAD_MAX_MS = 14000;     // hard cap on a single answer
-        const VAD_NOSPEECH_MS = 8000; // give up if no speech at all
+        // HYBRID voice: questions are READ by Gemini TTS (cached audio, ~free) and the
+        // answer is HEARD by the browser's free Web Speech recognition (no Gemini quota).
+        const VOICE_INPUT_LANG = 'tr-TR';   // listen in Turkish, regardless of UI language
+        let vAudioEl = null;                // current TTS <audio> element
+        let vRec = null, vAdvanceTimer = null; // Web Speech recognition + auto-advance timer
+        const vTtsCache = new Map();        // per-question TTS audio cache (prefetch-aware)
 
         // ---- 📋 Voice-system log (monitoring + troubleshooting) -----------------
         const voiceLog = [];          // [{ ts, msg, data }]
@@ -738,13 +733,12 @@
         }
 
         function startVoiceFill() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) {
                 const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block'; return;
             }
             vIndex = 0; vAnswers = {}; vActive = true;
-            vlog('start', { uiLang: voiceLang(), engine: 'gemini' });
+            vlog('start', { uiLang: voiceLang(), tts: 'gemini', stt: 'browser' });
             document.getElementById('voiceOverlay').classList.add('show');
-            ensureMic().catch((e) => vlog('mic.denied', String(e && e.message || e))); // prime permission
             askVoiceField();
         }
         // Ask the current field: show + speak the question, then start listening.
@@ -843,120 +837,65 @@
             await playAudio(data.audio, data.mimeType);
             go();
         }
-        // ---- 🎤 Microphone capture -> 16 kHz mono WAV (a format Gemini accepts) ----
-        async function ensureMic() {
-            if (vMicStream) return;
-            vMicStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
-            const AC = window.AudioContext || window.webkitAudioContext;
-            vAudioCtx = new AC();
-            vSource = vAudioCtx.createMediaStreamSource(vMicStream);
-            vProcessor = vAudioCtx.createScriptProcessor(4096, 1, 1);
-            vProcessor.onaudioprocess = (e) => {
-                if (!vRecording || !vRecChunks) return;
-                const data = e.inputBuffer.getChannelData(0);
-                vRecChunks.push(new Float32Array(data));
-                // --- voice-activity detection: auto-stop when the loader goes quiet ---
-                let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
-                const rms = Math.sqrt(sum / data.length);
-                const frameMs = (data.length / ((vAudioCtx && vAudioCtx.sampleRate) || 48000)) * 1000;
-                vRecElapsed += frameMs;
-                if (vRecElapsed <= VAD_CALIB_MS) { // calibrate the noise floor first
-                    vNoiseSum += rms; vNoiseN++;
-                    vSpeechThresh = Math.max(0.012, (vNoiseSum / vNoiseN) * 3);
-                    return;
-                }
-                if (rms > vSpeechThresh) { vSpeechMs += frameMs; vSilenceMs = 0; if (vSpeechMs >= VAD_MIN_SPEECH_MS) vSpeechSeen = true; }
-                else { if (vSpeechSeen) vSilenceMs += frameMs; vSpeechMs = 0; }
-                let stop = null;
-                if (vSpeechSeen && vSilenceMs >= VAD_HANG_MS) stop = 'silence';
-                else if (vRecElapsed >= VAD_MAX_MS) stop = 'max';
-                else if (!vSpeechSeen && vRecElapsed >= VAD_NOSPEECH_MS) stop = 'nospeech';
-                if (stop) {
-                    vlog('rec.autostop', { reason: stop, ms: Math.round(vRecElapsed), spoke: vSpeechSeen });
-                    if (stop === 'nospeech') voiceSkip(); else voiceNext();
-                }
-            };
-            const silent = vAudioCtx.createGain(); silent.gain.value = 0; // route to output silently so onaudioprocess fires
-            vSource.connect(vProcessor); vProcessor.connect(silent); silent.connect(vAudioCtx.destination);
-        }
-        function releaseMic() {
-            vRecording = false; vRecChunks = null;
-            try { if (vProcessor) vProcessor.disconnect(); } catch (e) {}
-            try { if (vSource) vSource.disconnect(); } catch (e) {}
-            try { if (vMicStream) vMicStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
-            try { if (vAudioCtx && vAudioCtx.state !== 'closed') vAudioCtx.close(); } catch (e) {}
-            vProcessor = vSource = vMicStream = vAudioCtx = null;
-        }
-        // After the question is read, start recording the loader's answer.
-        async function startListening() {
+        // ---- 🎤 Listen with the browser's free speech recognition (Turkish) --------
+        // After the question is read, listen for the answer. Web Speech auto-stops on
+        // silence and costs NO Gemini quota; the next question's audio is prefetched.
+        function startListening() {
             if (!vActive) return;
-            try { await ensureMic(); } catch (e) {
-                vlog('mic.denied', String(e && e.message || e));
-                document.getElementById('voiceState').textContent = vT('loader.voice_mic_denied', 'تعذّر الوصول للميكروفون — اكتب الإجابة ثم اضغط التالي');
-                return;
-            }
-            if (!vActive) return;
-            try { if (vAudioCtx && vAudioCtx.state === 'suspended') vAudioCtx.resume(); } catch (e) {}
-            vRecChunks = []; vRecording = true;
-            vSpeechSeen = false; vSilenceMs = 0; vSpeechMs = 0; vRecElapsed = 0; vNoiseSum = 0; vNoiseN = 0; vSpeechThresh = 0.012;
+            const nf = VOICE_FIELDS[vIndex + 1];
+            if (nf) prefetchTts(nf.q[voiceLang()] || nf.q.ar); // warm the next question (cached → ~free)
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) { document.getElementById('voiceState').textContent = vT('loader.voice_type', 'اكتب الإجابة ثم اضغط التالي'); return; }
+            try { if (vRec) vRec.abort(); } catch (e) {}
+            vRec = new SR();
+            vRec.lang = VOICE_INPUT_LANG; // Turkish, regardless of UI language
+            vRec.continuous = false;
+            vRec.interimResults = true;
             document.getElementById('voiceMic').textContent = '🎙️';
             document.getElementById('voiceState').textContent = vT('loader.voice_recording', '🔴 تكلّم بالتركية… سيتوقّف تلقائيًا عند انتهائك');
             document.getElementById('voiceMic').classList.add('rec');
             vlog('rec.start');
-            // Generate the NEXT question's audio now, so it plays instantly later.
-            const nf = VOICE_FIELDS[vIndex + 1];
-            if (nf) prefetchTts(nf.q[voiceLang()] || nf.q.ar);
+            let finalTxt = '';
+            vRec.onresult = (e) => {
+                let interim = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    const t = e.results[i][0].transcript;
+                    if (e.results[i].isFinal) finalTxt += t + ' '; else interim += t;
+                }
+                document.getElementById('voiceAnswer').value = (finalTxt + interim).trim();
+            };
+            vRec.onerror = (e) => {
+                document.getElementById('voiceMic').classList.remove('rec');
+                vlog('stt.error', (e && e.error) || 'error');
+                document.getElementById('voiceState').textContent = vT('loader.voice_again', 'لم أسمع جيدًا — أعد أو اكتب الإجابة');
+            };
+            vRec.onend = () => {
+                document.getElementById('voiceMic').classList.remove('rec');
+                if (!vActive) return; // recognition ended after we left the loop — ignore
+                const ans = document.getElementById('voiceAnswer').value.trim();
+                vlog('stt.result', ans || '(empty)');
+                if (ans) {
+                    document.getElementById('voiceState').textContent = vT('loader.voice_auto', 'سيتابع تلقائيًا… أو اضغط التالي');
+                    clearTimeout(vAdvanceTimer); vAdvanceTimer = setTimeout(voiceNext, 1200);
+                } else {
+                    document.getElementById('voiceState').textContent = vT('loader.voice_nohear', 'لم تتكلّم — اضغط 🔁 أو ⏭️');
+                }
+            };
+            try { vRec.start(); } catch (e) {}
         }
-        // Stop recording and return the captured answer as base64 WAV (or null).
-        function stopRecordingWav() {
-            if (!vRecording) return null;
-            vRecording = false;
+        function stopRec() {
+            clearTimeout(vAdvanceTimer);
+            if (vRec) { try { vRec.abort(); } catch (e) {} vRec = null; }
             const mic = document.getElementById('voiceMic'); if (mic) mic.classList.remove('rec');
-            const chunks = vRecChunks || []; vRecChunks = null;
-            let total = 0; for (const c of chunks) total += c.length;
-            if (!total) return null;
-            return encodeWavBase64(chunks, total, (vAudioCtx && vAudioCtx.sampleRate) || 48000, 16000);
         }
-        // Merge Float32 chunks, downsample to outRate, encode signed-16-bit mono WAV.
-        function encodeWavBase64(chunks, total, inRate, outRate) {
-            const merged = new Float32Array(total); let o = 0;
-            for (const c of chunks) { merged.set(c, o); o += c.length; }
-            const ratio = Math.max(1, inRate / outRate);
-            const outLen = Math.max(1, Math.floor(merged.length / ratio));
-            const buf = new ArrayBuffer(44 + outLen * 2), view = new DataView(buf);
-            const ws = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-            ws(0, 'RIFF'); view.setUint32(4, 36 + outLen * 2, true); ws(8, 'WAVE');
-            ws(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-            view.setUint32(24, outRate, true); view.setUint32(28, outRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-            ws(36, 'data'); view.setUint32(40, outLen * 2, true);
-            let p = 44;
-            for (let i = 0; i < outLen; i++) { let s = merged[Math.floor(i * ratio)] || 0; s = Math.max(-1, Math.min(1, s)); view.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7FFF, true); p += 2; }
-            const bytes = new Uint8Array(buf); let bin = '';
-            for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-            return btoa(bin);
-        }
-        // Save this field's answer: stop recording, transcribe with Gemini, store, next.
-        // A typed value in the box is used if recording is empty / transcription fails.
-        async function voiceNext() {
+        // Save this field's answer (heard or typed) and move to the next field.
+        function voiceNext() {
             if (!vActive || vBusyField) return; // ignore double-taps / re-entry
             vBusyField = true;
             try {
+                stopRec();
                 const f = VOICE_FIELDS[vIndex];
-                const wav = stopRecordingWav();
-                let value = document.getElementById('voiceAnswer').value.trim();
-                if (wav) {
-                    document.getElementById('voiceMic').textContent = '⏳';
-                    document.getElementById('voiceState').textContent = vT('loader.voice_transcribing', '⏳ يحوّل كلامك إلى نص…');
-                    vlog('stt.request', { b64len: wav.length });
-                    try {
-                        const r = await fetch('/api/voice-stt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audio: wav, mimeType: 'audio/wav' }) });
-                        let j = {}; try { j = await r.json(); } catch (_) { j = {}; }
-                        if (j && j.diag) voiceDiagInfo = j.diag;
-                        if (r.ok) { value = String(j.transcript || '').trim() || value; vlog('stt.result', value || '(empty)'); }
-                        else { vlog('stt.error', { status: r.status, detail: j.detail || j.error }); }
-                    } catch (e) { vlog('stt.exception', String(e && e.message || e)); }
-                }
-                if (!vActive) return; // cancelled mid-transcription
+                const value = document.getElementById('voiceAnswer').value.trim();
                 if (f) { vAnswers[f.key] = value; vlog('answer', { field: f.key, value: value || '(empty)' }); }
                 document.getElementById('voiceAnswer').value = '';
                 vIndex++; askVoiceField();
@@ -965,17 +904,16 @@
         // Skip this field (store empty) and move on.
         function voiceSkip() {
             if (!vActive || vBusyField) return;
-            vRecording = false; vRecChunks = null;
-            const mic = document.getElementById('voiceMic'); if (mic) mic.classList.remove('rec');
+            stopRec();
             const f = VOICE_FIELDS[vIndex];
             if (f) { vAnswers[f.key] = ''; vlog('skip', { field: f.key }); }
             document.getElementById('voiceAnswer').value = '';
             vIndex++; askVoiceField();
         }
-        // Re-ask the current field (re-read it + re-record).
+        // Re-ask the current field (re-read it + listen again).
         function voiceRepeat() {
             if (!vActive || vBusyField) return;
-            vRecording = false; vRecChunks = null; stopAudio();
+            stopRec(); stopAudio();
             vlog('repeat'); askVoiceField();
         }
         // Finish: send all answers to Gemini and fill the form for manual review.
@@ -990,7 +928,7 @@
             // Everything is inside try/finally so vBusy ALWAYS releases — even if
             // AbortController is unsupported or voiceSetPhase throws — never re-stranding.
             try {
-                vRecording = false; vRecChunks = null; stopAudio();
+                stopRec(); stopAudio();
                 voiceSetPhase('processing');
                 const answered = Object.values(vAnswers).filter((x) => x && String(x).trim()).length;
                 vlog('send', { answeredFields: answered, totalFields: Object.keys(vAnswers).length, extractLang: VOICE_EXTRACT_LANG });
@@ -1040,16 +978,14 @@
                 if (timer) clearTimeout(timer);
                 vAbort = null;
                 vBusy = false;
-                releaseMic(); // free the microphone once we've left the Q&A loop
             }
         }
         // Close the overlay so the loader can fill the form by hand (keeps any
         // values already entered). Wired to the error "✍️ أكمل يدويًا" button.
-        function voiceManual() { vActive = false; stopAudio(); releaseMic(); closeVoiceOverlay(); }
+        function voiceManual() { vActive = false; stopRec(); stopAudio(); closeVoiceOverlay(); }
         function cancelVoiceFill() {
             vActive = false; // stop the Q&A loop so no stray TTS/STT callback can fire
-            vRecording = false; vRecChunks = null;
-            stopAudio(); releaseMic();
+            stopRec(); stopAudio();
             if (vAbort) { try { vAbort.abort(); } catch (e) {} } // abort any in-flight processing
             closeVoiceOverlay();
         }
@@ -1081,8 +1017,8 @@
                 });
             }
         }
-        // Hide the voice button where microphone capture isn't available.
-        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+        // Hide the voice button on browsers without speech recognition (e.g. iOS Safari).
+        if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) {
             document.addEventListener('DOMContentLoaded', () => {
                 const b = document.getElementById('voiceFillBtn'); if (b) b.style.display = 'none';
                 const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block';

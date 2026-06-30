@@ -249,5 +249,6 @@
   "loader.voice_reading": "🔊 Soru okunuyor…",
   "loader.voice_recording": "🔴 Türkçe konuşun… bitince otomatik durur",
   "loader.voice_transcribing": "⏳ Konuşmanız yazıya çevriliyor…",
-  "loader.voice_mic_denied": "Mikrofona erişilemedi — cevabı yazıp İleri'ye basın"
+  "loader.voice_mic_denied": "Mikrofona erişilemedi — cevabı yazıp İleri'ye basın",
+  "loader.voice_type": "Cevabı yazıp İleri'ye basın"
 }

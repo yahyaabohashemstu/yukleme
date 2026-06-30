@@ -662,8 +662,10 @@
         }
 
         // ===== 🎙️ Smart voice fill: bot asks each field -> loader answers -> Gemini =====
-        // Fields the bot asks about, in order. Vehicle plates (plate1/plate2) and the
-        // entry/exit time pickers are intentionally EXCLUDED from the voice flow.
+        // Fields the bot asks about, in order. EXCLUDED on purpose (filled MANUALLY):
+        // vehicle plates, entry/exit times, AND every numeric field — container number,
+        // vehicle weight, loading date, driver phone, and product quantities/pallets.
+        // Speech is unreliable for numbers, so numbers are manual-only by design.
         const VOICE_FIELDS = [
             { key: 'manager',              q: { ar: 'ما اسم المدير؟',                          tr: 'Yönetici adı nedir?',                       en: 'Manager name?' } },
             { key: 'worker1',              q: { ar: 'ما اسم العامل الأول؟',                    tr: 'Birinci eleman adı nedir?',                 en: 'First worker name?' } },
@@ -671,15 +673,11 @@
             { key: 'worker3',              q: { ar: 'ما اسم العامل الثالث؟',                   tr: 'Üçüncü eleman adı nedir?',                  en: 'Third worker name?' } },
             { key: 'worker4',              q: { ar: 'ما اسم العامل الرابع؟',                   tr: 'Dördüncü eleman adı nedir?',                en: 'Fourth worker name?' } },
             { key: 'forklift_operator',    q: { ar: 'ما اسم سائق الرافعة؟',                    tr: 'Forklift sürücüsünün adı nedir?',           en: 'Forklift operator name?' } },
-            { key: 'container_no',         q: { ar: 'ما رقم الحاوية؟',                         tr: 'Konteyner numarası nedir?',                 en: 'Container number?' } },
-            { key: 'vehicle_weight_after', q: { ar: 'ما وزن المركبة بعد التحميل؟',             tr: 'Yükleme sonrası araç ağırlığı nedir?',      en: 'Vehicle weight after loading?' } },
-            { key: 'loading_date',         q: { ar: 'ما تاريخ التحميل؟',                       tr: 'Yükleme tarihi nedir?',                     en: 'Loading date?' } },
             { key: 'destination_company',  q: { ar: 'ما اسم شركة الوجهة؟',                     tr: 'Varış firması nedir?',                      en: 'Destination company?' } },
             { key: 'destination_country',  q: { ar: 'ما بلد الوجهة؟',                          tr: 'Varış ülkesi nedir?',                       en: 'Destination country?' } },
             { key: 'destination_customer', q: { ar: 'ما اسم العميل؟',                          tr: 'Müşteri adı nedir?',                        en: 'Customer name?' } },
             { key: 'driver_name',          q: { ar: 'ما اسم السائق؟',                          tr: 'Sürücü adı nedir?',                         en: 'Driver name?' } },
-            { key: 'driver_phone',         q: { ar: 'ما رقم هاتف السائق؟',                     tr: 'Sürücü telefon numarası nedir?',            en: 'Driver phone number?' } },
-            { key: 'products',             q: { ar: 'اذكر المنتجات: لكل منتج الاسم والعدد وعدد الطبليات.', tr: 'Yüklenen malları söyleyin: her mal için ad, sayı ve palet.', en: 'List the products: name, quantity and pallets for each.' } },
+            { key: 'products',             q: { ar: 'اذكر أسماء المنتجات المُحمَّلة (الأسماء فقط؛ الأعداد تُكتب يدويًا).', tr: 'Yüklenen malların adlarını söyleyin (sadece adlar; sayılar elle yazılır).', en: 'Say the names of the loaded products (names only; numbers are entered manually).' } },
             { key: 'comments',             q: { ar: 'هل لديك ملاحظات؟',                        tr: 'Eklemek istediğiniz not var mı?',           en: 'Any comments?' } },
         ];
         let vIndex = 0, vAnswers = {}, vActive = false, vBusyField = false;
@@ -992,10 +990,13 @@
         function closeVoiceOverlay() { document.getElementById('voiceOverlay').classList.remove('show'); }
 
         // Fill the create form from the extracted fields (values only — no innerHTML, XSS-safe).
+        // NUMERIC fields are NEVER voice-filled — they are manual-only by design (speech is
+        // unreliable for numbers): container_no, vehicle_weight_after, loading_date,
+        // driver_phone, plates, times, product quantities & pallets. Only TEXT fills.
         function fillFormFromVoice(fields) {
             const form = document.getElementById('loadingForm');
             if (!form || !fields) return;
-            const textKeys = ['manager', 'worker1', 'worker2', 'worker3', 'worker4', 'forklift_operator', 'plate1', 'plate2', 'container_no', 'loading_date', 'entry_time', 'exit_time', 'vehicle_weight_after', 'product_weight', 'destination_company', 'destination_country', 'destination_customer', 'driver_name', 'driver_phone', 'comments'];
+            const textKeys = ['manager', 'worker1', 'worker2', 'worker3', 'worker4', 'forklift_operator', 'destination_company', 'destination_country', 'destination_customer', 'driver_name', 'comments'];
             textKeys.forEach((k) => {
                 const v = fields[k];
                 if (v == null || v === '') return;
@@ -1009,11 +1010,8 @@
                 fields.products.forEach((p, i) => {
                     const row = tbody.children[i]; if (!row) return;
                     const name = row.querySelector('[name="product_name[]"]');
-                    const qty = row.querySelector('[name="product_quantity[]"]');
-                    const pal = row.querySelector('[name="product_pallets[]"]');
+                    // Product NAME only (text). Quantity & pallets are numbers -> manual.
                     if (name && p.name) { name.value = p.name; name.classList.add('voice-filled'); }
-                    if (qty && p.quantity) { qty.value = p.quantity; qty.classList.add('voice-filled'); }
-                    if (pal && p.pallets) { pal.value = p.pallets; pal.classList.add('voice-filled'); }
                 });
             }
         }

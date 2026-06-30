@@ -30,24 +30,34 @@ async function geminiPost(model, body) {
     const base = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/models';
     const url = `${base}/${model}:generateContent`;
     const timeoutMs = Number(process.env.GEMINI_TIMEOUT_MS || 25000);
-    const controller = new AbortController();
-    const to = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-            signal: controller.signal,
-        });
-        const text = await res.text();
-        if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${text.slice(0, 300)}`);
-        return JSON.parse(text);
-    } catch (err) {
-        if (err && err.name === 'AbortError') throw new Error(`Gemini request timed out after ${timeoutMs}ms`);
-        throw err;
-    } finally {
-        clearTimeout(to);
+    const maxAttempts = Math.max(1, Number(process.env.GEMINI_RETRIES || 3));
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    let lastErr;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const controller = new AbortController();
+        const to = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: controller.signal,
+            });
+            const text = await res.text();
+            if (!res.ok) { const e = new Error(`Gemini HTTP ${res.status}: ${text.slice(0, 300)}`); e.status = res.status; throw e; }
+            return JSON.parse(text);
+        } catch (err) {
+            if (err && err.name === 'AbortError') { err = new Error(`Gemini request timed out after ${timeoutMs}ms`); err.timeout = true; }
+            lastErr = err;
+            const retryable = err.timeout || err.status === 503 || err.status === 500; // not 429 (quota)
+            clearTimeout(to);
+            if (retryable && attempt < maxAttempts) { await sleep(600 * Math.pow(2, attempt - 1)); continue; }
+            throw err;
+        } finally {
+            clearTimeout(to);
+        }
     }
+    throw lastErr;
 }
 
 // Gemini TTS returns raw PCM (signed 16-bit LE, mono). Wrap it in a WAV header so

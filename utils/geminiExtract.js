@@ -116,34 +116,40 @@ async function callGemini(input, schema) {
         generationConfig: { responseMimeType: 'application/json', responseSchema: schema },
     };
 
-    // Bound the call with a timeout so a slow/unreachable Gemini can never hang
-    // the HTTP request to the browser (the route turns any throw into a 502).
+    // Bound each attempt with a timeout, and RETRY transient failures (503 model
+    // overload / 500 / timeout) with exponential backoff — Gemini's 503 says
+    // "try again later". 429 (quota) is NOT retried (retrying won't free quota).
     const timeoutMs = Number(process.env.GEMINI_TIMEOUT_MS || 25000);
-    const controller = new AbortController();
-    const to = setTimeout(() => controller.abort(), timeoutMs);
-    // Keep the timer armed across BOTH the fetch AND the response-body read, so a
-    // server that sends headers then stalls the body can't hang past the timeout.
-    let data;
-    try {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-            signal: controller.signal,
-        });
-        if (!res.ok) {
-            const errText = await res.text().catch(() => '');
-            throw new Error(`Gemini HTTP ${res.status}: ${errText.slice(0, 300)}`);
+    const maxAttempts = Math.max(1, Number(process.env.GEMINI_RETRIES || 3));
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    let data, lastErr;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const controller = new AbortController();
+        const to = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: controller.signal,
+            });
+            const raw = await res.text();
+            if (!res.ok) { const e = new Error(`Gemini HTTP ${res.status}: ${raw.slice(0, 300)}`); e.status = res.status; throw e; }
+            data = JSON.parse(raw);
+            lastErr = null;
+            break; // success
+        } catch (err) {
+            if (err && err.name === 'AbortError') { err = new Error(`Gemini request timed out after ${timeoutMs}ms`); err.timeout = true; }
+            lastErr = err;
+            const retryable = err.timeout || err.status === 503 || err.status === 500;
+            clearTimeout(to);
+            if (retryable && attempt < maxAttempts) { await sleep(600 * Math.pow(2, attempt - 1)); continue; } // 0.6s, 1.2s
+            throw err;
+        } finally {
+            clearTimeout(to);
         }
-        data = await res.json();
-    } catch (err) {
-        if (err && err.name === 'AbortError') {
-            throw new Error(`Gemini request timed out after ${timeoutMs}ms`);
-        }
-        throw err;
-    } finally {
-        clearTimeout(to);
     }
+    if (!data) throw (lastErr || new Error('Gemini returned no data'));
 
     // Pull the model's text out of either response shape.
     let text = data.output_text;

@@ -781,47 +781,60 @@
             vlog('ask', { n: vIndex + 1, field: f.key, q: qText });
             speakVoice(qText, listenVoiceAnswer);
         }
-        // Pick a TTS voice for a BCP-47 tag (exact match, else same language family).
+        // Pick a TTS voice for a BCP-47 tag: exact language match first, else same
+        // language family; prefer an on-device (local) voice. Normalises tr_TR/tr-TR.
         function pickVoice(langTag) {
             try {
-                const vs = window.speechSynthesis.getVoices() || [];
+                const vs = (typeof window.speechSynthesis.getVoices === 'function' && window.speechSynthesis.getVoices()) || [];
                 const tag = langTag.toLowerCase(), two = tag.slice(0, 2);
-                return vs.find((v) => (v.lang || '').toLowerCase() === tag)
-                    || vs.find((v) => (v.lang || '').toLowerCase().slice(0, 2) === two) || null;
+                const norm = (v) => (v.lang || '').toLowerCase().replace('_', '-');
+                const exact = vs.filter((v) => norm(v) === tag);
+                const family = vs.filter((v) => norm(v).slice(0, 2) === two);
+                const pool = exact.length ? exact : family;
+                return pool.find((v) => v.localService) || pool[0] || null;
             } catch (e) { return null; }
         }
         // READ the question aloud (TTS, in the UI language), THEN run `after` (listen).
-        // Waits for voices to load on Android, and never gets stuck if no voice exists.
+        // CRITICAL: wait until a voice MATCHING the question language is available
+        // before speaking — on Android the first getVoices() can return only the
+        // English default, which would otherwise read Turkish text with an English
+        // voice (spelling it out). We poll briefly + listen for voiceschanged.
         function speakVoice(text, after) {
             let done = false, spoke = false;
             const go = () => { if (done) return; done = true; clearTimeout(vSpeakTimer); if (vActive) after(); };
             const ss = window.speechSynthesis;
             if (!ss) { go(); return; }
+            const wantTag = voiceTtsLangTag();
             const doSpeak = () => {
                 if (spoke || !vActive) return; spoke = true;
                 try {
                     ss.cancel();
                     const u = new SpeechSynthesisUtterance(text);
-                    u.lang = voiceTtsLangTag();
-                    const v = pickVoice(u.lang); if (v) u.voice = v;
+                    u.lang = wantTag;
+                    const v = pickVoice(wantTag); if (v) u.voice = v;
                     u.rate = 0.95;
-                    u.onstart = () => vlog('tts.speaking', { lang: u.lang, voice: v ? v.lang : 'default' });
+                    u.onstart = () => vlog('tts.speaking', { voice: v ? (v.name + ' / ' + v.lang) : 'default' });
                     u.onend = go; u.onerror = (ev) => { vlog('tts.error', (ev && ev.error) || 'error'); go(); };
-                    vlog('tts.speak', { lang: u.lang, voice: v ? v.lang : 'default', hasVoice: !!v });
+                    vlog('tts.speak', { want: wantTag, voice: v ? (v.name + ' / ' + v.lang) : 'DEFAULT(no ' + wantTag + ' voice)', hasMatch: !!v });
                     ss.speak(u);
-                    // Safety: continue even if onend never fires (e.g. no installed voice),
-                    // scaled to the sentence length so long questions aren't cut off.
+                    // Safety: continue even if onend never fires (e.g. no installed voice).
                     vSpeakTimer = setTimeout(() => { vlog('tts.timeout', 'onend never fired — continuing'); go(); }, Math.min(15000, 3500 + text.length * 90));
                 } catch (e) { vlog('tts.exception', String(e && e.message || e)); go(); }
             };
-            const voices = (typeof ss.getVoices === 'function' && ss.getVoices()) || [];
-            if (voices.length) { doSpeak(); }
-            else {
-                // Voices not ready yet (common on first use in Android Chrome).
-                vlog('tts.waiting_voices');
-                try { ss.onvoiceschanged = () => { ss.onvoiceschanged = null; doSpeak(); }; } catch (e) {}
-                vSpeakTimer = setTimeout(doSpeak, 400); // fallback if voiceschanged never fires
-            }
+            // Speak immediately once a matching voice exists; otherwise wait (poll +
+            // voiceschanged) up to ~1.4s, then speak anyway as a last resort.
+            if (pickVoice(wantTag)) { doSpeak(); return; }
+            vlog('tts.waiting_voice', wantTag);
+            try { ss.onvoiceschanged = () => { if (!spoke && pickVoice(wantTag)) { vlog('tts.voice_ready', wantTag); doSpeak(); } }; } catch (e) {}
+            let waited = 0;
+            const poll = () => {
+                if (spoke || !vActive) return;
+                if (pickVoice(wantTag)) { vlog('tts.voice_ready', wantTag); doSpeak(); return; }
+                waited += 150;
+                if (waited >= 1400) { vlog('tts.no_match_voice', { want: wantTag, available: ((typeof ss.getVoices === 'function' && ss.getVoices()) || []).map((v) => v.lang) }); doSpeak(); return; }
+                vSpeakTimer = setTimeout(poll, 150);
+            };
+            vSpeakTimer = setTimeout(poll, 150);
         }
         // Listen for the spoken answer (INPUT is always Turkish), auto-advances when done.
         function listenVoiceAnswer() {

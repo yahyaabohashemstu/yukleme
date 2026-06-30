@@ -250,5 +250,6 @@
   "loader.voice_recording": "🔴 Türkçe konuşun… bitince otomatik durur",
   "loader.voice_transcribing": "⏳ Konuşmanız yazıya çevriliyor…",
   "loader.voice_mic_denied": "Mikrofona erişilemedi — cevabı yazıp İleri'ye basın",
-  "loader.voice_type": "Cevabı yazıp İleri'ye basın"
+  "loader.voice_type": "Cevabı yazıp İleri'ye basın",
+  "loader.voice_review_raw": "📝 Alanlar konuşmanızdan doğrudan dolduruldu (akıllı eşleştirme şu an yok). Adları ve malları dikkatle kontrol edip kaydedin."
 }

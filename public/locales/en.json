@@ -250,5 +250,6 @@
   "loader.voice_recording": "🔴 Speak Turkish… it stops automatically when you finish",
   "loader.voice_transcribing": "⏳ Transcribing your speech…",
   "loader.voice_mic_denied": "Microphone unavailable — type the answer, then press Next",
-  "loader.voice_type": "Type the answer, then press Next"
+  "loader.voice_type": "Type the answer, then press Next",
+  "loader.voice_review_raw": "📝 Fields were filled directly from your speech (smart matching is temporarily unavailable). Review names & products carefully before saving."
 }

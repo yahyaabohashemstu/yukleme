@@ -947,7 +947,7 @@
                 try { vAbort = new AbortController(); signal = vAbort.signal; } catch (e) { vAbort = null; }
                 // The timer stays armed through BOTH fetch and r.json(), so even a stalled
                 // response body can't hang us — clearTimeout runs only in finally.
-                if (vAbort) timer = setTimeout(() => { try { vAbort.abort(); } catch (e) {} }, 45000);
+                if (vAbort) timer = setTimeout(() => { try { vAbort.abort(); } catch (e) {} }, 18000); // fail fast -> raw fallback
                 const r = await fetch('/api/voice-extract', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -969,21 +969,21 @@
                 fillFormFromVoice(j.fields || {});
                 closeVoiceOverlay();
                 const banner = document.getElementById('voiceReviewBanner');
-                if (banner) banner.style.display = 'block';
+                if (banner) { banner.textContent = vT('loader.voice_review', '📝 تمّ ملء الحقول من إجاباتك (المظلّلة بالأصفر). راجِعها وصحّح ما يلزم قبل الحفظ.'); banner.style.display = 'block'; }
             } catch (e) {
                 const isAbort = e && e.name === 'AbortError';
-                if (isAbort) vlog('timeout', '45s client timeout / abort');
-                else if (!('detail' in (e || {}))) vlog('exception', String(e && e.message || e));
                 // If the user cancelled (overlay already closed), drop silently.
                 if (isAbort && !document.getElementById('voiceOverlay').classList.contains('show')) {
                     /* cancelled by the user — nothing to show */
                 } else {
-                    let msg = isAbort
-                        ? vT('loader.voice_err_timeout', 'استغرقت المعالجة وقتًا طويلًا. تحقّق من الاتصال وأعد المحاولة، أو أكمل التقرير يدويًا.')
-                        : (e.message || vT('loader.voice_err_generic', 'فشل المعالجة'));
-                    // Append the server's technical reason inline (full version is in the log).
-                    if (e && e.detail) msg += ' — ' + String(e.detail).slice(0, 120);
-                    voiceSetPhase('error', msg);
+                    // Smart extract failed (overload / timeout / quota). DON'T hard-fail:
+                    // fill the form DIRECTLY from the raw spoken answers (captured free by
+                    // the browser). The loader reviews. Gemini matching is just a bonus.
+                    vlog('extract.fallback', { reason: isAbort ? 'timeout' : (e.detail || e.message || 'error') });
+                    fillFormFromRawAnswers(vAnswers);
+                    closeVoiceOverlay();
+                    const banner = document.getElementById('voiceReviewBanner');
+                    if (banner) { banner.textContent = vT('loader.voice_review_raw', '📝 تمّ ملء الحقول من كلامك مباشرةً (تعذّرت المطابقة الذكية مؤقتًا). راجِع الأسماء والمنتجات بعناية قبل الحفظ.'); banner.style.display = 'block'; }
                 }
             } finally {
                 if (timer) clearTimeout(timer);
@@ -1026,6 +1026,25 @@
                     // Product NAME only (text). Quantity & pallets are numbers -> manual.
                     if (name && p.name) { name.value = p.name; name.classList.add('voice-filled'); }
                 });
+            }
+        }
+        // Fallback: fill the form DIRECTLY from the raw spoken answers (no Gemini),
+        // used when the smart extract is unavailable. Same numeric-exclusion rules.
+        function fillFormFromRawAnswers(answers) {
+            if (!answers) return;
+            const textKeys = ['manager', 'worker1', 'worker2', 'worker3', 'worker4', 'forklift_operator', 'destination_company', 'destination_country', 'destination_customer', 'driver_name', 'comments'];
+            textKeys.forEach((k) => {
+                const v = (answers[k] || '').trim();
+                if (!v) return;
+                const el = document.getElementById(k);
+                if (el) { el.value = v; el.classList.add('voice-filled'); }
+            });
+            const prod = (answers.products || '').trim();
+            if (prod) {
+                const tbody = document.getElementById('productsTableBody');
+                const row = tbody && tbody.children[0];
+                const name = row && row.querySelector('[name="product_name[]"]');
+                if (name) { name.value = prod; name.classList.add('voice-filled'); } // numbers stay manual
             }
         }
         // Hide the voice button on browsers without speech recognition (e.g. iOS Safari).

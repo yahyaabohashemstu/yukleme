@@ -695,6 +695,7 @@
         let vAudioEl = null;                // current TTS <audio> element
         let vRec = null, vAdvanceTimer = null; // Web Speech recognition + auto-advance timer
         const vTtsCache = new Map();        // per-question TTS audio cache (prefetch-aware)
+        let vTtsQuotaHit = false;           // once TTS hits 429, back off prefetch
 
         // ---- 📋 Voice-system log (monitoring + troubleshooting) -----------------
         const voiceLog = [];          // [{ ts, msg, data }]
@@ -734,7 +735,7 @@
             if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) {
                 const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block'; return;
             }
-            vIndex = 0; vAnswers = {}; vActive = true;
+            vIndex = 0; vAnswers = {}; vActive = true; vTtsQuotaHit = false; // retry TTS fresh each session
             vlog('start', { uiLang: voiceLang(), tts: 'gemini', stt: 'browser' });
             document.getElementById('voiceOverlay').classList.add('show');
             askVoiceField();
@@ -802,8 +803,9 @@
                 } catch (e) { resolve(); }
             });
         }
-        // Fetch (or reuse a prefetched) TTS clip for `text`. Cached + in-flight aware,
-        // so the next question can be generated WHILE the loader answers the current one.
+        // Fetch (or reuse a prefetched) TTS clip for `text`. Cached + in-flight aware.
+        // On quota (429) we DON'T cache the failure (so it can retry when quota frees)
+        // and we set a back-off flag so prefetch stops hammering the API.
         function fetchTtsAudio(text) {
             if (vTtsCache.has(text)) return vTtsCache.get(text);
             const p = (async () => {
@@ -811,14 +813,22 @@
                     const r = await fetch('/api/voice-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
                     let j = {}; try { j = await r.json(); } catch (_) { j = {}; }
                     if (j && j.diag) voiceDiagInfo = j.diag;
-                    if (!r.ok || !j.audio) { vlog('tts.error', { status: r.status, detail: j.detail || j.error }); return null; }
+                    if (!r.ok || !j.audio) {
+                        if (/429|quota/i.test(String(j.detail || j.error || ''))) vTtsQuotaHit = true; // back off
+                        vlog('tts.error', { status: r.status, detail: j.detail || j.error });
+                        return null;
+                    }
+                    vTtsQuotaHit = false; // recovered
                     return { audio: j.audio, mimeType: j.mimeType, ms: j.diag && j.diag.ms };
                 } catch (e) { vlog('tts.exception', String(e && e.message || e)); return null; }
             })();
             vTtsCache.set(text, p);
+            p.then((d) => { if (!d) vTtsCache.delete(text); }); // don't keep a failed result cached
             return p;
         }
-        function prefetchTts(text) { if (text) { vlog('tts.prefetch', { chars: text.length }); fetchTtsAudio(text); } }
+        // Prefetch the next question — but skip it once we've hit the quota, to avoid
+        // burning the limited free-tier requests the essential extract call needs.
+        function prefetchTts(text) { if (text && !vTtsQuotaHit) { vlog('tts.prefetch', { chars: text.length }); fetchTtsAudio(text); } }
         // READ the question with Gemini's voice, THEN `after`. If TTS fails the question
         // text stays on screen, so the flow still continues.
         async function speakVoice(text, after) {
@@ -828,6 +838,9 @@
             document.getElementById('voiceState').textContent = vT('loader.voice_reading', '🔊 يقرأ السؤال…');
             const cached = vTtsCache.has(text);
             vlog('tts.request', { chars: text.length, cached });
+            // If we've already hit the quota and this clip isn't cached, DON'T call the
+            // API — the question text is on screen; save the quota for the extract call.
+            if (!cached && vTtsQuotaHit) { vlog('tts.skip', 'quota — showing text only'); go(); return; }
             const data = await fetchTtsAudio(text);
             if (!vActive) return;
             if (!data) { go(); return; } // no audio — text is on screen, answer anyway

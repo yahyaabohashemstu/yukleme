@@ -321,7 +321,7 @@ function distinctValues(cols) {
 function voiceDiag() {
     return {
         keyPresent: !!process.env.GEMINI_API_KEY,
-        style: (process.env.GEMINI_API_STYLE || 'generate'),
+        style: 'generate', // forced in code — GEMINI_API_STYLE is ignored (interactions hangs)
         model: (process.env.GEMINI_MODEL || 'gemini-2.0-flash'),
         ttsModel: (process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts'),
         ttsVoice: (process.env.GEMINI_TTS_VOICE || 'Kore'),

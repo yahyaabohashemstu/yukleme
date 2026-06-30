@@ -106,25 +106,15 @@ async function callGemini(input, schema) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
     const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-    const style = (process.env.GEMINI_API_STYLE || 'generate').toLowerCase();
-
-    let url, body;
-    if (style === 'generate') {
-        url = process.env.GEMINI_ENDPOINT ||
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-        body = {
-            contents: [{ parts: [{ text: input }] }],
-            generationConfig: { responseMimeType: 'application/json', responseSchema: schema },
-        };
-    } else {
-        // 'interactions' (default, per the current Gemini docs)
-        url = process.env.GEMINI_ENDPOINT || 'https://generativelanguage.googleapis.com/v1beta/interactions';
-        body = {
-            model,
-            input,
-            response_format: { type: 'text', mime_type: 'application/json', schema },
-        };
-    }
+    // Always use the stable generateContent endpoint. The 'interactions' REST
+    // endpoint hangs/times out in practice, so we IGNORE GEMINI_API_STYLE and
+    // force 'generate' — the feature works without changing any env var.
+    const url = process.env.GEMINI_ENDPOINT ||
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const body = {
+        contents: [{ parts: [{ text: input }] }],
+        generationConfig: { responseMimeType: 'application/json', responseSchema: schema },
+    };
 
     // Bound the call with a timeout so a slow/unreachable Gemini can never hang
     // the HTTP request to the browser (the route turns any throw into a 502).

@@ -682,7 +682,7 @@
             { key: 'products',             q: { ar: 'اذكر المنتجات: لكل منتج الاسم والعدد وعدد الطبليات.', tr: 'Yüklenen malları söyleyin: her mal için ad, sayı ve palet.', en: 'List the products: name, quantity and pallets for each.' } },
             { key: 'comments',             q: { ar: 'هل لديك ملاحظات؟',                        tr: 'Eklemek istediğiniz not var mı?',           en: 'Any comments?' } },
         ];
-        let vIndex = 0, vAnswers = {}, vRec = null, vAdvanceTimer = null, vSpeakTimer = null, vActive = false;
+        let vIndex = 0, vAnswers = {}, vRec = null, vAdvanceTimer = null, vSpeakTimer = null, vActive = false, vVoicesSettled = false;
         // The loaders always SPEAK their answers in Turkish (names, places, products
         // are Turkish), so speech recognition is fixed to Turkish regardless of UI.
         const VOICE_INPUT_LANG = 'tr-TR';   // STT (input) — Turkish only
@@ -821,17 +821,19 @@
                     vSpeakTimer = setTimeout(() => { vlog('tts.timeout', 'onend never fired — continuing'); go(); }, Math.min(15000, 3500 + text.length * 90));
                 } catch (e) { vlog('tts.exception', String(e && e.message || e)); go(); }
             };
-            // Speak immediately once a matching voice exists; otherwise wait (poll +
-            // voiceschanged) up to ~1.4s, then speak anyway as a last resort.
-            if (pickVoice(wantTag)) { doSpeak(); return; }
+            // Speak immediately once a matching voice exists. Otherwise wait for the
+            // full voice list (poll + voiceschanged) up to ~1.4s — but ONLY the first
+            // time: once we've learned the device has no matching voice, don't keep
+            // stalling every question (vVoicesSettled), just speak with the default.
+            if (pickVoice(wantTag) || vVoicesSettled) { doSpeak(); return; }
             vlog('tts.waiting_voice', wantTag);
-            try { ss.onvoiceschanged = () => { if (!spoke && pickVoice(wantTag)) { vlog('tts.voice_ready', wantTag); doSpeak(); } }; } catch (e) {}
+            try { ss.onvoiceschanged = () => { if (!spoke && pickVoice(wantTag)) { vVoicesSettled = true; vlog('tts.voice_ready', wantTag); doSpeak(); } }; } catch (e) {}
             let waited = 0;
             const poll = () => {
                 if (spoke || !vActive) return;
-                if (pickVoice(wantTag)) { vlog('tts.voice_ready', wantTag); doSpeak(); return; }
+                if (pickVoice(wantTag)) { vVoicesSettled = true; vlog('tts.voice_ready', wantTag); doSpeak(); return; }
                 waited += 150;
-                if (waited >= 1400) { vlog('tts.no_match_voice', { want: wantTag, available: ((typeof ss.getVoices === 'function' && ss.getVoices()) || []).map((v) => v.lang) }); doSpeak(); return; }
+                if (waited >= 1400) { vVoicesSettled = true; vlog('tts.no_match_voice', { want: wantTag, available: ((typeof ss.getVoices === 'function' && ss.getVoices()) || []).map((v) => v.lang) }); doSpeak(); return; }
                 vSpeakTimer = setTimeout(poll, 150);
             };
             vSpeakTimer = setTimeout(poll, 150);

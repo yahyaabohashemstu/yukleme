@@ -320,8 +320,8 @@ function distinctValues(cols) {
 function voiceDiag() {
     return {
         keyPresent: !!process.env.GEMINI_API_KEY,
-        style: (process.env.GEMINI_API_STYLE || 'interactions'),
-        model: (process.env.GEMINI_MODEL || 'gemini-3.5-flash'),
+        style: (process.env.GEMINI_API_STYLE || 'generate'),
+        model: (process.env.GEMINI_MODEL || 'gemini-2.0-flash'),
         endpoint: process.env.GEMINI_ENDPOINT ? 'custom' : 'default',
         timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS || 25000),
     };

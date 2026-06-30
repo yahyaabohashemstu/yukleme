@@ -105,8 +105,8 @@ function buildInput(transcript, lang) {
 async function callGemini(input, schema) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
-    const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-    const style = (process.env.GEMINI_API_STYLE || 'interactions').toLowerCase();
+    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+    const style = (process.env.GEMINI_API_STYLE || 'generate').toLowerCase();
 
     let url, body;
     if (style === 'generate') {

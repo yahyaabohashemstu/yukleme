@@ -232,7 +232,7 @@
   "loader.voice_retry": "🔁 Tekrar dene",
   "loader.voice_manual": "✍️ Elle doldur",
   "loader.voice_review": "📝 Alanlar cevaplarınızdan dolduruldu (sarı vurgulu). Kaydetmeden önce kontrol edip düzeltin.",
-  "loader.voice_unsupported": "Bu tarayıcı sesli tanımayı desteklemiyor — Android'de Chrome kullanın.",
+  "loader.voice_unsupported": "Bu tarayıcı ses kaydını desteklemiyor — Chrome kullanın.",
   "loader.voice_err_503": "Sesli doldurma sunucuda henüz etkin değil (Gemini anahtarı eksik). Raporu elle doldurun.",
   "loader.voice_err_http": "İşlenemedi ({status}). Tekrar deneyin veya elle doldurun.",
   "loader.voice_err_timeout": "İşlem çok uzun sürdü. Bağlantınızı kontrol edip tekrar deneyin veya elle doldurun.",
@@ -245,5 +245,9 @@
   "loader.voice_log_close": "Kapat",
   "loader.voice_log_copied": "Günlük kopyalandı ✓",
   "loader.voice_log_empty": "(Günlük boş — sesli doldurmayı başlatın)",
-  "loader.voice_log_details": "📋 Günlüğü ve ayrıntıları göster"
+  "loader.voice_log_details": "📋 Günlüğü ve ayrıntıları göster",
+  "loader.voice_reading": "🔊 Soru okunuyor…",
+  "loader.voice_recording": "🔴 Kaydediliyor… Türkçe konuşun, sonra İleri'ye basın",
+  "loader.voice_transcribing": "⏳ Konuşmanız yazıya çevriliyor…",
+  "loader.voice_mic_denied": "Mikrofona erişilemedi — cevabı yazıp İleri'ye basın"
 }

@@ -232,7 +232,7 @@
   "loader.voice_retry": "🔁 أعد المحاولة",
   "loader.voice_manual": "✍️ أكمل يدويًا",
   "loader.voice_review": "📝 تمّ ملء الحقول من إجاباتك (المظلّلة بالأصفر). راجِعها وصحّح ما يلزم قبل الحفظ.",
-  "loader.voice_unsupported": "التعرّف الصوتي غير مدعوم في هذا المتصفّح — استخدم Chrome على أندرويد.",
+  "loader.voice_unsupported": "تسجيل الصوت غير مدعوم في هذا المتصفّح — استخدم Chrome.",
   "loader.voice_err_503": "ميزة التعبئة الصوتية غير مُفعّلة على الخادم بعد (مفتاح Gemini مفقود). أكمل التقرير يدويًا.",
   "loader.voice_err_http": "تعذّرت المعالجة ({status}). أعد المحاولة أو أكمل يدويًا.",
   "loader.voice_err_timeout": "استغرقت المعالجة وقتًا طويلًا. تحقّق من الاتصال وأعد المحاولة، أو أكمل التقرير يدويًا.",
@@ -245,5 +245,9 @@
   "loader.voice_log_close": "إغلاق",
   "loader.voice_log_copied": "تم نسخ السجلّ ✓",
   "loader.voice_log_empty": "(السجلّ فارغ — ابدأ التعبئة الصوتية)",
-  "loader.voice_log_details": "📋 عرض السجلّ والتفاصيل"
+  "loader.voice_log_details": "📋 عرض السجلّ والتفاصيل",
+  "loader.voice_reading": "🔊 يقرأ السؤال…",
+  "loader.voice_recording": "🔴 يسجّل… تكلّم بالتركية ثم اضغط التالي",
+  "loader.voice_transcribing": "⏳ يحوّل كلامك إلى نص…",
+  "loader.voice_mic_denied": "تعذّر الوصول للميكروفون — اكتب الإجابة ثم اضغط التالي"
 }

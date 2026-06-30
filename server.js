@@ -15,6 +15,7 @@ const { supabase, initializeDatabase, db } = require('./database');
 const { serialize, deserializeRow } = require('./lib/supabase-sqlite');
 const { sendNotification } = require('./utils/telegramBot');
 const { extractReportFields, extractFromAnswers } = require('./utils/geminiExtract');
+const { ttsSpeak, sttTranscribe } = require('./utils/geminiVoice');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -47,7 +48,7 @@ app.use((req, res, next) => {
 
 // Same-origin only (no third-party browser clients need cross-origin access).
 app.use(cors({ origin: false }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '8mb' })); // 8mb: voice STT sends short WAV audio as base64
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -322,6 +323,9 @@ function voiceDiag() {
         keyPresent: !!process.env.GEMINI_API_KEY,
         style: (process.env.GEMINI_API_STYLE || 'generate'),
         model: (process.env.GEMINI_MODEL || 'gemini-2.0-flash'),
+        ttsModel: (process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts'),
+        ttsVoice: (process.env.GEMINI_TTS_VOICE || 'Kore'),
+        sttModel: (process.env.GEMINI_STT_MODEL || process.env.GEMINI_MODEL || 'gemini-2.0-flash'),
         endpoint: process.env.GEMINI_ENDPOINT ? 'custom' : 'default',
         timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS || 25000),
     };
@@ -354,6 +358,43 @@ app.post('/api/voice-extract', requireLoader, async (req, res) => {
     } catch (error) {
         console.error('voice-extract error:', error.message);
         res.status(502).json({ error: 'Ses işlenemedi. Lütfen tekrar deneyin veya elle girin.', detail: String(error && error.message || error).slice(0, 500), diag });
+    }
+});
+
+// Gemini voice: text -> spoken audio (the bot READS each question with Gemini's voice).
+app.post('/api/voice-tts', requireLoader, async (req, res) => {
+    const diag = voiceDiag();
+    try {
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(503).json({ error: 'Sesli okuma yapılandırılmamış (GEMINI_API_KEY eksik).', detail: 'GEMINI_API_KEY is not set on the server.', diag });
+        }
+        const text = String(req.body.text || '').slice(0, 2000);
+        if (!text.trim()) return res.status(400).json({ error: 'Boş metin.', detail: 'Empty text.', diag });
+        const t0 = Date.now();
+        const out = await ttsSpeak(text);
+        res.json({ audio: out.audio, mimeType: out.mimeType, diag: { ...diag, ms: Date.now() - t0 } });
+    } catch (error) {
+        console.error('voice-tts error:', error.message);
+        res.status(502).json({ error: 'Seslendirme başarısız.', detail: String(error && error.message || error).slice(0, 500), diag });
+    }
+});
+
+// Gemini voice: recorded audio -> transcript (the bot HEARS the loader's answer).
+app.post('/api/voice-stt', requireLoader, async (req, res) => {
+    const diag = voiceDiag();
+    try {
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(503).json({ error: 'Ses tanıma yapılandırılmamış (GEMINI_API_KEY eksik).', detail: 'GEMINI_API_KEY is not set on the server.', diag });
+        }
+        const audio = String(req.body.audio || '');
+        const mimeType = String(req.body.mimeType || 'audio/wav');
+        if (!audio) return res.status(400).json({ error: 'Ses yok.', detail: 'Empty audio.', diag });
+        const t0 = Date.now();
+        const transcript = await sttTranscribe(audio, mimeType);
+        res.json({ transcript, diag: { ...diag, ms: Date.now() - t0 } });
+    } catch (error) {
+        console.error('voice-stt error:', error.message);
+        res.status(502).json({ error: 'Ses tanıma başarısız.', detail: String(error && error.message || error).slice(0, 500), diag });
     }
 });
 

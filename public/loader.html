@@ -682,16 +682,17 @@
             { key: 'products',             q: { ar: 'اذكر المنتجات: لكل منتج الاسم والعدد وعدد الطبليات.', tr: 'Yüklenen malları söyleyin: her mal için ad, sayı ve palet.', en: 'List the products: name, quantity and pallets for each.' } },
             { key: 'comments',             q: { ar: 'هل لديك ملاحظات؟',                        tr: 'Eklemek istediğiniz not var mı?',           en: 'Any comments?' } },
         ];
-        let vIndex = 0, vAnswers = {}, vRec = null, vAdvanceTimer = null, vSpeakTimer = null, vActive = false, vVoicesSettled = false;
-        // The loaders always SPEAK their answers in Turkish (names, places, products
-        // are Turkish), so speech recognition is fixed to Turkish regardless of UI.
-        const VOICE_INPUT_LANG = 'tr-TR';   // STT (input) — Turkish only
-        const VOICE_EXTRACT_LANG = 'tr';    // tell Gemini the answers are Turkish
-        // The QUESTIONS (text + spoken) follow the selected UI language.
+        let vIndex = 0, vAnswers = {}, vActive = false, vBusyField = false;
+        // 🤖 Gemini-native voice: the bot READS each question with Gemini's TTS voice
+        // (audio from the server) and HEARS the answer by recording it in the browser
+        // and sending it to Gemini for transcription. The recorded input is Turkish.
+        const VOICE_EXTRACT_LANG = 'tr';    // tell Gemini the recorded answers are Turkish
+        // The QUESTIONS' text follows the selected UI language (Gemini reads them aloud).
         function voiceLang() { return (window.i18n && typeof window.i18n.getLang === 'function') ? window.i18n.getLang() : 'ar'; }
-        function voiceTtsLangTag() { const l = voiceLang(); return l === 'tr' ? 'tr-TR' : l === 'en' ? 'en-US' : 'ar-SA'; }
         // i18n lookup for the voice UI (real translation, fallback to the literal).
         function vT(key, fallback) { return (window.i18n && typeof window.i18n.t === 'function') ? window.i18n.t(key, fallback) : fallback; }
+        // Audio playback + microphone-recording state.
+        let vAudioEl = null, vMicStream = null, vAudioCtx = null, vSource = null, vProcessor = null, vRecChunks = null, vRecording = false;
 
         // ---- 📋 Voice-system log (monitoring + troubleshooting) -----------------
         const voiceLog = [];          // [{ ts, msg, data }]
@@ -728,11 +729,13 @@
         }
 
         function startVoiceFill() {
-            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SR) { const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block'; return; }
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block'; return;
+            }
             vIndex = 0; vAnswers = {}; vActive = true;
-            vlog('start', { uiLang: voiceLang(), tts: voiceTtsLangTag(), stt: VOICE_INPUT_LANG });
+            vlog('start', { uiLang: voiceLang(), engine: 'gemini' });
             document.getElementById('voiceOverlay').classList.add('show');
+            ensureMic().catch((e) => vlog('mic.denied', String(e && e.message || e))); // prime permission
             askVoiceField();
         }
         // Ask the current field: show + speak the question, then start listening.
@@ -767,7 +770,6 @@
         }
         function askVoiceField() {
             if (!vActive) return; // left the Q&A loop (finished/cancelled) — ignore stray calls
-            clearTimeout(vAdvanceTimer);
             if (vIndex >= VOICE_FIELDS.length) return voiceFinish();
             voiceSetPhase('asking');
             const f = VOICE_FIELDS[vIndex], lang = voiceLang();
@@ -779,129 +781,152 @@
             document.getElementById('voiceAnswer').value = '';
             document.getElementById('voiceState').textContent = '…';
             vlog('ask', { n: vIndex + 1, field: f.key, q: qText });
-            speakVoice(qText, listenVoiceAnswer);
+            speakVoice(qText, startListening);
         }
-        // Pick a TTS voice for a BCP-47 tag: exact language match first, else same
-        // language family; prefer an on-device (local) voice. Normalises tr_TR/tr-TR.
-        function pickVoice(langTag) {
-            try {
-                const vs = (typeof window.speechSynthesis.getVoices === 'function' && window.speechSynthesis.getVoices()) || [];
-                const tag = langTag.toLowerCase(), two = tag.slice(0, 2);
-                const norm = (v) => (v.lang || '').toLowerCase().replace('_', '-');
-                const exact = vs.filter((v) => norm(v) === tag);
-                const family = vs.filter((v) => norm(v).slice(0, 2) === two);
-                const pool = exact.length ? exact : family;
-                return pool.find((v) => v.localService) || pool[0] || null;
-            } catch (e) { return null; }
+        // ---- 🔊 Gemini TTS playback: play the question audio returned by the server
+        function b64ToBlob(b64, mime) {
+            const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return new Blob([bytes], { type: mime || 'audio/wav' });
         }
-        // READ the question aloud (TTS, in the UI language), THEN run `after` (listen).
-        // CRITICAL: wait until a voice MATCHING the question language is available
-        // before speaking — on Android the first getVoices() can return only the
-        // English default, which would otherwise read Turkish text with an English
-        // voice (spelling it out). We poll briefly + listen for voiceschanged.
-        function speakVoice(text, after) {
-            let done = false, spoke = false;
-            const go = () => { if (done) return; done = true; clearTimeout(vSpeakTimer); if (vActive) after(); };
-            const ss = window.speechSynthesis;
-            if (!ss) { go(); return; }
-            const wantTag = voiceTtsLangTag();
-            const doSpeak = () => {
-                if (spoke || !vActive) return; spoke = true;
+        function stopAudio() { try { if (vAudioEl) { vAudioEl.pause(); vAudioEl.src = ''; } } catch (e) {} vAudioEl = null; }
+        function playAudio(b64, mime) {
+            return new Promise((resolve) => {
                 try {
-                    ss.cancel();
-                    const u = new SpeechSynthesisUtterance(text);
-                    u.lang = wantTag;
-                    const v = pickVoice(wantTag); if (v) u.voice = v;
-                    u.rate = 0.95;
-                    u.onstart = () => vlog('tts.speaking', { voice: v ? (v.name + ' / ' + v.lang) : 'default' });
-                    u.onend = go; u.onerror = (ev) => { vlog('tts.error', (ev && ev.error) || 'error'); go(); };
-                    vlog('tts.speak', { want: wantTag, voice: v ? (v.name + ' / ' + v.lang) : 'DEFAULT(no ' + wantTag + ' voice)', hasMatch: !!v });
-                    ss.speak(u);
-                    // Safety: continue even if onend never fires (e.g. no installed voice).
-                    vSpeakTimer = setTimeout(() => { vlog('tts.timeout', 'onend never fired — continuing'); go(); }, Math.min(15000, 3500 + text.length * 90));
-                } catch (e) { vlog('tts.exception', String(e && e.message || e)); go(); }
-            };
-            // Speak immediately once a matching voice exists. Otherwise wait for the
-            // full voice list (poll + voiceschanged) up to ~1.4s — but ONLY the first
-            // time: once we've learned the device has no matching voice, don't keep
-            // stalling every question (vVoicesSettled), just speak with the default.
-            if (pickVoice(wantTag) || vVoicesSettled) { doSpeak(); return; }
-            vlog('tts.waiting_voice', wantTag);
-            try { ss.onvoiceschanged = () => { if (!spoke && pickVoice(wantTag)) { vVoicesSettled = true; vlog('tts.voice_ready', wantTag); doSpeak(); } }; } catch (e) {}
-            let waited = 0;
-            const poll = () => {
-                if (spoke || !vActive) return;
-                if (pickVoice(wantTag)) { vVoicesSettled = true; vlog('tts.voice_ready', wantTag); doSpeak(); return; }
-                waited += 150;
-                if (waited >= 1400) { vVoicesSettled = true; vlog('tts.no_match_voice', { want: wantTag, available: ((typeof ss.getVoices === 'function' && ss.getVoices()) || []).map((v) => v.lang) }); doSpeak(); return; }
-                vSpeakTimer = setTimeout(poll, 150);
-            };
-            vSpeakTimer = setTimeout(poll, 150);
+                    const url = URL.createObjectURL(b64ToBlob(b64, mime));
+                    const a = new Audio(url); vAudioEl = a;
+                    const done = () => { try { URL.revokeObjectURL(url); } catch (e) {} resolve(); };
+                    a.onended = done; a.onerror = done;
+                    const p = a.play(); if (p && p.catch) p.catch(done);
+                } catch (e) { resolve(); }
+            });
         }
-        // Listen for the spoken answer (INPUT is always Turkish), auto-advances when done.
-        function listenVoiceAnswer() {
-            if (!vActive) return; // don't start listening once we've left the Q&A loop
-            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SR) return;
-            try { if (vRec) vRec.abort(); } catch (e) {}
-            vRec = new SR();
-            vRec.lang = VOICE_INPUT_LANG; // Turkish only, regardless of UI language
-            vRec.continuous = false;
-            vRec.interimResults = true;
-            document.getElementById('voiceState').textContent = (vT('loader.voice_speak', '🎤 تكلّم الآن بالتركية…'));
+        // READ the question with Gemini's voice (server /api/voice-tts), THEN `after`.
+        // If TTS fails the question text stays on screen, so the flow still continues.
+        async function speakVoice(text, after) {
+            const go = () => { if (vActive) after(); };
+            const mic = document.getElementById('voiceMic');
+            if (mic) mic.textContent = '🔊';
+            document.getElementById('voiceState').textContent = vT('loader.voice_reading', '🔊 يقرأ السؤال…');
+            try {
+                vlog('tts.request', { chars: text.length });
+                const r = await fetch('/api/voice-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+                let j = {}; try { j = await r.json(); } catch (_) { j = {}; }
+                if (j && j.diag) voiceDiagInfo = j.diag;
+                if (!r.ok || !j.audio) { vlog('tts.error', { status: r.status, detail: j.detail || j.error }); go(); return; }
+                vlog('tts.play', { ms: j.diag && j.diag.ms });
+                if (!vActive) return;
+                await playAudio(j.audio, j.mimeType);
+                go();
+            } catch (e) { vlog('tts.exception', String(e && e.message || e)); go(); }
+        }
+        // ---- 🎤 Microphone capture -> 16 kHz mono WAV (a format Gemini accepts) ----
+        async function ensureMic() {
+            if (vMicStream) return;
+            vMicStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+            const AC = window.AudioContext || window.webkitAudioContext;
+            vAudioCtx = new AC();
+            vSource = vAudioCtx.createMediaStreamSource(vMicStream);
+            vProcessor = vAudioCtx.createScriptProcessor(4096, 1, 1);
+            vProcessor.onaudioprocess = (e) => { if (vRecording && vRecChunks) vRecChunks.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+            const silent = vAudioCtx.createGain(); silent.gain.value = 0; // route to output silently so onaudioprocess fires
+            vSource.connect(vProcessor); vProcessor.connect(silent); silent.connect(vAudioCtx.destination);
+        }
+        function releaseMic() {
+            vRecording = false; vRecChunks = null;
+            try { if (vProcessor) vProcessor.disconnect(); } catch (e) {}
+            try { if (vSource) vSource.disconnect(); } catch (e) {}
+            try { if (vMicStream) vMicStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+            try { if (vAudioCtx && vAudioCtx.state !== 'closed') vAudioCtx.close(); } catch (e) {}
+            vProcessor = vSource = vMicStream = vAudioCtx = null;
+        }
+        // After the question is read, start recording the loader's answer.
+        async function startListening() {
+            if (!vActive) return;
+            try { await ensureMic(); } catch (e) {
+                vlog('mic.denied', String(e && e.message || e));
+                document.getElementById('voiceState').textContent = vT('loader.voice_mic_denied', 'تعذّر الوصول للميكروفون — اكتب الإجابة ثم اضغط التالي');
+                return;
+            }
+            if (!vActive) return;
+            try { if (vAudioCtx && vAudioCtx.state === 'suspended') vAudioCtx.resume(); } catch (e) {}
+            vRecChunks = []; vRecording = true;
+            document.getElementById('voiceMic').textContent = '🎙️';
+            document.getElementById('voiceState').textContent = vT('loader.voice_recording', '🔴 يسجّل… تكلّم بالتركية ثم اضغط التالي');
             document.getElementById('voiceMic').classList.add('rec');
-            let finalTxt = '';
-            vRec.onresult = (e) => {
-                let interim = '';
-                for (let i = e.resultIndex; i < e.results.length; i++) {
-                    const t = e.results[i][0].transcript;
-                    if (e.results[i].isFinal) finalTxt += t + ' '; else interim += t;
-                }
-                document.getElementById('voiceAnswer').value = (finalTxt + interim).trim();
-            };
-            vRec.onerror = (e) => {
-                document.getElementById('voiceMic').classList.remove('rec');
-                vlog('stt.error', (e && e.error) || 'error');
-                document.getElementById('voiceState').textContent = (vT('loader.voice_again', 'لم أسمع جيدًا — أعد أو اكتب الإجابة'));
-            };
-            vRec.onend = () => {
-                document.getElementById('voiceMic').classList.remove('rec');
-                if (!vActive) return; // recognition ended after we left the loop — ignore
-                const ans = document.getElementById('voiceAnswer').value.trim();
-                vlog('stt.result', ans || '(empty)');
-                if (ans) {
-                    document.getElementById('voiceState').textContent = (vT('loader.voice_auto', 'سيتابع تلقائيًا… أو اضغط التالي'));
-                    clearTimeout(vAdvanceTimer); vAdvanceTimer = setTimeout(voiceNext, 1800);
-                } else {
-                    document.getElementById('voiceState').textContent = (vT('loader.voice_nohear', 'لم تتكلّم — اضغط 🔁 أو ⏭️'));
-                }
-            };
-            try { vRec.start(); } catch (e) {}
+            vlog('rec.start');
         }
-        function stopVoiceRec() {
-            clearTimeout(vAdvanceTimer);
-            clearTimeout(vSpeakTimer); // cancel any pending TTS safety callback
-            if (vRec) { try { vRec.abort(); } catch (e) {} vRec = null; }
+        // Stop recording and return the captured answer as base64 WAV (or null).
+        function stopRecordingWav() {
+            if (!vRecording) return null;
+            vRecording = false;
             const mic = document.getElementById('voiceMic'); if (mic) mic.classList.remove('rec');
+            const chunks = vRecChunks || []; vRecChunks = null;
+            let total = 0; for (const c of chunks) total += c.length;
+            if (!total) return null;
+            return encodeWavBase64(chunks, total, (vAudioCtx && vAudioCtx.sampleRate) || 48000, 16000);
         }
-        // Save this field's answer (typed or spoken) and move to the next one.
-        function voiceNext() {
-            if (!vActive) return; // ignore a stray auto-advance fired after we left the loop
-            stopVoiceRec();
-            const f = VOICE_FIELDS[vIndex];
-            if (f) { vAnswers[f.key] = document.getElementById('voiceAnswer').value.trim(); vlog('answer', { field: f.key, value: vAnswers[f.key] || '(empty)' }); }
-            vIndex++; askVoiceField();
+        // Merge Float32 chunks, downsample to outRate, encode signed-16-bit mono WAV.
+        function encodeWavBase64(chunks, total, inRate, outRate) {
+            const merged = new Float32Array(total); let o = 0;
+            for (const c of chunks) { merged.set(c, o); o += c.length; }
+            const ratio = Math.max(1, inRate / outRate);
+            const outLen = Math.max(1, Math.floor(merged.length / ratio));
+            const buf = new ArrayBuffer(44 + outLen * 2), view = new DataView(buf);
+            const ws = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+            ws(0, 'RIFF'); view.setUint32(4, 36 + outLen * 2, true); ws(8, 'WAVE');
+            ws(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+            view.setUint32(24, outRate, true); view.setUint32(28, outRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+            ws(36, 'data'); view.setUint32(40, outLen * 2, true);
+            let p = 44;
+            for (let i = 0; i < outLen; i++) { let s = merged[Math.floor(i * ratio)] || 0; s = Math.max(-1, Math.min(1, s)); view.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7FFF, true); p += 2; }
+            const bytes = new Uint8Array(buf); let bin = '';
+            for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+            return btoa(bin);
+        }
+        // Save this field's answer: stop recording, transcribe with Gemini, store, next.
+        // A typed value in the box is used if recording is empty / transcription fails.
+        async function voiceNext() {
+            if (!vActive || vBusyField) return; // ignore double-taps / re-entry
+            vBusyField = true;
+            try {
+                const f = VOICE_FIELDS[vIndex];
+                const wav = stopRecordingWav();
+                let value = document.getElementById('voiceAnswer').value.trim();
+                if (wav) {
+                    document.getElementById('voiceMic').textContent = '⏳';
+                    document.getElementById('voiceState').textContent = vT('loader.voice_transcribing', '⏳ يحوّل كلامك إلى نص…');
+                    vlog('stt.request', { b64len: wav.length });
+                    try {
+                        const r = await fetch('/api/voice-stt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audio: wav, mimeType: 'audio/wav' }) });
+                        let j = {}; try { j = await r.json(); } catch (_) { j = {}; }
+                        if (j && j.diag) voiceDiagInfo = j.diag;
+                        if (r.ok) { value = String(j.transcript || '').trim() || value; vlog('stt.result', value || '(empty)'); }
+                        else { vlog('stt.error', { status: r.status, detail: j.detail || j.error }); }
+                    } catch (e) { vlog('stt.exception', String(e && e.message || e)); }
+                }
+                if (!vActive) return; // cancelled mid-transcription
+                if (f) { vAnswers[f.key] = value; vlog('answer', { field: f.key, value: value || '(empty)' }); }
+                document.getElementById('voiceAnswer').value = '';
+                vIndex++; askVoiceField();
+            } finally { vBusyField = false; }
         }
         // Skip this field (store empty) and move on.
         function voiceSkip() {
-            if (!vActive) return;
-            stopVoiceRec();
+            if (!vActive || vBusyField) return;
+            vRecording = false; vRecChunks = null;
+            const mic = document.getElementById('voiceMic'); if (mic) mic.classList.remove('rec');
             const f = VOICE_FIELDS[vIndex];
             if (f) { vAnswers[f.key] = ''; vlog('skip', { field: f.key }); }
+            document.getElementById('voiceAnswer').value = '';
             vIndex++; askVoiceField();
         }
-        // Re-ask the current field.
-        function voiceRepeat() { if (!vActive) return; vlog('repeat'); stopVoiceRec(); askVoiceField(); }
+        // Re-ask the current field (re-read it + re-record).
+        function voiceRepeat() {
+            if (!vActive || vBusyField) return;
+            vRecording = false; vRecChunks = null; stopAudio();
+            vlog('repeat'); askVoiceField();
+        }
         // Finish: send all answers to Gemini and fill the form for manual review.
         // Bounded by a client-side timeout so it can NEVER hang on "processing":
         // any failure resolves to a visible error with retry / fill-manually.
@@ -914,8 +939,7 @@
             // Everything is inside try/finally so vBusy ALWAYS releases — even if
             // AbortController is unsupported or voiceSetPhase throws — never re-stranding.
             try {
-                stopVoiceRec();
-                try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+                vRecording = false; vRecChunks = null; stopAudio();
                 voiceSetPhase('processing');
                 const answered = Object.values(vAnswers).filter((x) => x && String(x).trim()).length;
                 vlog('send', { answeredFields: answered, totalFields: Object.keys(vAnswers).length, extractLang: VOICE_EXTRACT_LANG });
@@ -965,16 +989,17 @@
                 if (timer) clearTimeout(timer);
                 vAbort = null;
                 vBusy = false;
+                releaseMic(); // free the microphone once we've left the Q&A loop
             }
         }
         // Close the overlay so the loader can fill the form by hand (keeps any
         // values already entered). Wired to the error "✍️ أكمل يدويًا" button.
-        function voiceManual() { vActive = false; closeVoiceOverlay(); }
+        function voiceManual() { vActive = false; stopAudio(); releaseMic(); closeVoiceOverlay(); }
         function cancelVoiceFill() {
             vActive = false; // stop the Q&A loop so no stray TTS/STT callback can fire
-            stopVoiceRec();
+            vRecording = false; vRecChunks = null;
+            stopAudio(); releaseMic();
             if (vAbort) { try { vAbort.abort(); } catch (e) {} } // abort any in-flight processing
-            try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
             closeVoiceOverlay();
         }
         function closeVoiceOverlay() { document.getElementById('voiceOverlay').classList.remove('show'); }
@@ -1005,8 +1030,8 @@
                 });
             }
         }
-        // Hide the voice button on browsers without speech recognition (e.g. iOS Safari).
-        if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) {
+        // Hide the voice button where microphone capture isn't available.
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
             document.addEventListener('DOMContentLoaded', () => {
                 const b = document.getElementById('voiceFillBtn'); if (b) b.style.display = 'none';
                 const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block';

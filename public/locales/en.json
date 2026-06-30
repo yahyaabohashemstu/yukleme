@@ -232,7 +232,7 @@
   "loader.voice_retry": "🔁 Retry",
   "loader.voice_manual": "✍️ Fill manually",
   "loader.voice_review": "📝 Fields were filled from your answers (highlighted yellow). Review and correct before saving.",
-  "loader.voice_unsupported": "Speech recognition is not supported in this browser — use Chrome on Android.",
+  "loader.voice_unsupported": "Audio recording is not supported in this browser — use Chrome.",
   "loader.voice_err_503": "Voice fill is not enabled on the server yet (Gemini key missing). Fill the report manually.",
   "loader.voice_err_http": "Processing failed ({status}). Retry or fill manually.",
   "loader.voice_err_timeout": "Processing took too long. Check your connection and retry, or fill manually.",
@@ -245,5 +245,9 @@
   "loader.voice_log_close": "Close",
   "loader.voice_log_copied": "Log copied ✓",
   "loader.voice_log_empty": "(Log is empty — start voice fill)",
-  "loader.voice_log_details": "📋 Show log & details"
+  "loader.voice_log_details": "📋 Show log & details",
+  "loader.voice_reading": "🔊 Reading the question…",
+  "loader.voice_recording": "🔴 Recording… speak Turkish, then press Next",
+  "loader.voice_transcribing": "⏳ Transcribing your speech…",
+  "loader.voice_mic_denied": "Microphone unavailable — type the answer, then press Next"
 }

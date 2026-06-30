@@ -193,4 +193,73 @@ function sanitize(obj) {
     return out;
 }
 
-module.exports = { extractReportFields, callGemini, buildInput, REPORT_SCHEMA, sanitize };
+// ---- Conversational mode: per-field spoken answers -> structured fields ------
+// Turkish labels give the model context for each field.
+const FIELD_LABELS = {
+    manager: 'Yönetici', worker1: 'Birinci eleman', worker2: 'İkinci eleman',
+    worker3: 'Üçüncü eleman', worker4: 'Dördüncü eleman', forklift_operator: 'Forklift sürücüsü',
+    container_no: 'Konteyner numarası', vehicle_weight_after: 'Yükleme sonrası araç ağırlığı',
+    loading_date: 'Yükleme tarihi', destination_company: 'Varış firması',
+    destination_country: 'Varış ülkesi', destination_customer: 'Müşteri',
+    driver_name: 'Sürücü adı', driver_phone: 'Sürücü telefonu',
+    products: 'Yüklenen mallar', comments: 'Notlar',
+};
+
+function asList(arr) {
+    return (Array.isArray(arr) ? arr : []).filter(Boolean).join(' | ') || '(none)';
+}
+
+// Build the prompt from the loader's per-field spoken answers + known values.
+function buildAnswersInput(answers, lang, known) {
+    const langName = lang === 'tr' ? 'Turkish' : lang === 'en' ? 'English' : 'Arabic';
+    known = known || {};
+    const answerLines = Object.keys(answers || {})
+        .map((k) => `${k} [${FIELD_LABELS[k] || k}]: ${String(answers[k] == null ? '' : answers[k]).trim()}`)
+        .join('\n');
+    return [
+        "You are filling a loading/shipment report from a loader's SPOKEN answers to per-field questions.",
+        `Answer language: ${langName}. Answers may be Arabic or Turkish. Output MUST match the JSON schema.`,
+        '',
+        'RULES:',
+        '- SKIP: if an answer means "skip / none / nothing / I don\'t know / next / no" in ANY phrasing or language, set that field to "" (empty). Detect skip intent liberally.',
+        '- PERSON fields (manager, worker1..4, driver_name, forklift_operator): the same person is usually already in past reports but may be pronounced/spelled differently (e.g. "mohammad" vs "muhammed", "asi" vs "asiy"). If the spoken name clearly matches a name in KNOWN_PERSONS, output that EXACT known spelling. Otherwise output the spoken name, tidied.',
+        '- destination_company / destination_country / destination_customer: prefer the matching entry from KNOWN_COMPANIES / KNOWN_COUNTRIES / KNOWN_CUSTOMERS when it is clearly the same entity; otherwise the spoken value.',
+        '- PRODUCTS: parse the products answer into items {name, quantity, pallets}. Match each product to the EXACT Turkish name in the CATALOG even if spoken in Arabic or incompletely (complete/correct the name). If a product is clearly NOT in the catalog, keep the spoken name as-is (an unregistered product/order). quantity & pallets = digits as strings.',
+        '- driver_phone: digits only. loading_date: YYYY-MM-DD only if a date is clearly given, else "". Never invent data.',
+        '',
+        'KNOWN_PERSONS: ' + asList(known.persons),
+        'KNOWN_COMPANIES: ' + asList(known.companies),
+        'KNOWN_COUNTRIES: ' + asList(known.countries),
+        'KNOWN_CUSTOMERS: ' + asList(known.customers),
+        '',
+        'CATALOG (Turkish => Arabic):',
+        catalogText(),
+        '',
+        'SPOKEN ANSWERS (field [label]: answer):',
+        answerLines,
+    ].join('\n');
+}
+
+async function extractFromAnswers(answers, lang, known) {
+    const input = buildAnswersInput(answers || {}, lang || 'ar', known || {});
+    const text = await callGemini(input, REPORT_SCHEMA);
+    let parsed;
+    try {
+        parsed = JSON.parse(text);
+    } catch (e) {
+        const m = text.match(/\{[\s\S]*\}/);
+        if (!m) throw new Error('Gemini output was not valid JSON');
+        parsed = JSON.parse(m[0]);
+    }
+    return sanitize(parsed);
+}
+
+module.exports = {
+    extractReportFields,
+    extractFromAnswers,
+    buildAnswersInput,
+    callGemini,
+    buildInput,
+    REPORT_SCHEMA,
+    sanitize,
+};

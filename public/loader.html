@@ -102,29 +102,36 @@
                 </div>
             </div>
 
-            <!-- 🎙️ Voice fill: spoken dictation -> form fields (review before submit) -->
-            <div id="voiceOverlay" class="modal-overlay" style="z-index: 3000; background: rgba(0,0,0,0.75);">
-                <div class="modal" style="max-width: 460px; text-align: center; padding: 28px 22px;">
-                    <div id="voiceMic" style="font-size: 60px; line-height: 1;">🎙️</div>
-                    <h3 id="voiceStatus" style="margin: 14px 0;">يستمع... تكلّم الآن</h3>
-                    <div id="voiceTranscript" style="min-height: 70px; max-height: 180px; overflow: auto; background: var(--bg-input, #f4f4f5); border-radius: 10px; padding: 12px; text-align: start; white-space: pre-wrap;"></div>
-                    <div style="display: flex; gap: 10px; margin-top: 18px;">
-                        <button type="button" onclick="stopVoiceFill()" style="flex: 1; padding: 12px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 600; cursor: pointer;">⏹️ إيقاف ومعالجة</button>
-                        <button type="button" onclick="cancelVoiceFill()" style="flex: 1; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">إلغاء</button>
+            <!-- 🎙️ Smart voice fill: the bot asks each field, the loader answers -->
+            <div id="voiceOverlay" class="modal-overlay" style="z-index: 3000; background: rgba(0,0,0,0.78);">
+                <div class="modal" style="max-width: 480px; text-align: center; padding: 24px 20px;">
+                    <div id="voiceProgress" style="font-size: 13px; color: var(--text-secondary, #888);"></div>
+                    <h3 id="voiceQuestion" style="margin: 10px 0 6px; min-height: 28px;"></h3>
+                    <div id="voiceMic" style="font-size: 44px; line-height: 1; margin: 6px 0;">🎙️</div>
+                    <div id="voiceState" style="font-size: 13px; color: var(--text-secondary, #888); margin-bottom: 8px;"></div>
+                    <input id="voiceAnswer" type="text" style="width: 100%; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; text-align: start; font-size: 16px;" placeholder="إجابتك تظهر هنا (يمكنك تعديلها)">
+                    <div style="display: flex; gap: 8px; margin-top: 14px;">
+                        <button type="button" onclick="voiceRepeat()" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">🔁 إعادة</button>
+                        <button type="button" onclick="voiceSkip()" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">⏭️ تخطّي</button>
+                        <button type="button" onclick="voiceNext()" style="flex: 1.4; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">✅ التالي</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button type="button" onclick="voiceFinish()" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">إنهاء ومعالجة</button>
+                        <button type="button" onclick="cancelVoiceFill()" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">إلغاء</button>
                     </div>
                 </div>
             </div>
-            <style>.voice-filled { background: #fff7cc !important; transition: background .4s; }</style>
+            <style>.voice-filled { background: #fff7cc !important; transition: background .4s; } #voiceMic.rec { animation: vpulse 1s infinite; } @keyframes vpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }</style>
 
             <form id="loadingForm" enctype="multipart/form-data">
 
-                <!-- 🎙️ Voice fill button -->
+                <!-- 🎙️ Smart voice fill button -->
                 <div style="margin-bottom: 16px;">
                     <button type="button" id="voiceFillBtn" onclick="startVoiceFill()" style="width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        🎙️ <span>املأ التقرير بالصوت</span>
+                        🎙️ <span>التعبئة الصوتية الذكية</span>
                     </button>
                     <div id="voiceUnsupported" style="display: none; margin-top: 8px; font-size: 13px; color: var(--text-secondary, #888); text-align: center;">التعرّف الصوتي غير مدعوم في هذا المتصفّح — استخدم Chrome على أندرويد.</div>
-                    <div id="voiceReviewBanner" style="display: none; margin-top: 12px; background: #fff7cc; border: 1px solid #f5d97a; color: #7a5c00; border-radius: 10px; padding: 10px 14px; font-size: 14px;">📝 تمّ ملء الحقول من كلامك (المظلّلة بالأصفر). <b>راجِعها وصحّح ما يلزم قبل الحفظ.</b></div>
+                    <div id="voiceReviewBanner" style="display: none; margin-top: 12px; background: #fff7cc; border: 1px solid #f5d97a; color: #7a5c00; border-radius: 10px; padding: 10px 14px; font-size: 14px;">📝 تمّ ملء الحقول من إجاباتك (المظلّلة بالأصفر). <b>راجِعها وصحّح ما يلزم قبل الحفظ.</b></div>
                 </div>
 
 
@@ -628,45 +635,135 @@
             }
         }
 
-        // ===== 🎙️ Voice fill: speech -> /api/voice-extract (Gemini) -> form =====
-        let voiceRec = null, voiceFinal = '';
-        function voiceLangTag() {
-            const l = (typeof getLang === 'function' ? getLang() : (window.currentLang || 'ar'));
-            return l === 'tr' ? 'tr-TR' : l === 'en' ? 'en-US' : 'ar-SA';
-        }
+        // ===== 🎙️ Smart voice fill: bot asks each field -> loader answers -> Gemini =====
+        // Fields the bot asks about, in order. Vehicle plates (plate1/plate2) and the
+        // entry/exit time pickers are intentionally EXCLUDED from the voice flow.
+        const VOICE_FIELDS = [
+            { key: 'manager',              q: { ar: 'ما اسم المدير؟',                          tr: 'Yönetici adı nedir?',                       en: 'Manager name?' } },
+            { key: 'worker1',              q: { ar: 'ما اسم العامل الأول؟',                    tr: 'Birinci eleman adı nedir?',                 en: 'First worker name?' } },
+            { key: 'worker2',              q: { ar: 'ما اسم العامل الثاني؟',                   tr: 'İkinci eleman adı nedir?',                  en: 'Second worker name?' } },
+            { key: 'worker3',              q: { ar: 'ما اسم العامل الثالث؟',                   tr: 'Üçüncü eleman adı nedir?',                  en: 'Third worker name?' } },
+            { key: 'worker4',              q: { ar: 'ما اسم العامل الرابع؟',                   tr: 'Dördüncü eleman adı nedir?',                en: 'Fourth worker name?' } },
+            { key: 'forklift_operator',    q: { ar: 'ما اسم سائق الرافعة؟',                    tr: 'Forklift sürücüsünün adı nedir?',           en: 'Forklift operator name?' } },
+            { key: 'container_no',         q: { ar: 'ما رقم الحاوية؟',                         tr: 'Konteyner numarası nedir?',                 en: 'Container number?' } },
+            { key: 'vehicle_weight_after', q: { ar: 'ما وزن المركبة بعد التحميل؟',             tr: 'Yükleme sonrası araç ağırlığı nedir?',      en: 'Vehicle weight after loading?' } },
+            { key: 'loading_date',         q: { ar: 'ما تاريخ التحميل؟',                       tr: 'Yükleme tarihi nedir?',                     en: 'Loading date?' } },
+            { key: 'destination_company',  q: { ar: 'ما اسم شركة الوجهة؟',                     tr: 'Varış firması nedir?',                      en: 'Destination company?' } },
+            { key: 'destination_country',  q: { ar: 'ما بلد الوجهة؟',                          tr: 'Varış ülkesi nedir?',                       en: 'Destination country?' } },
+            { key: 'destination_customer', q: { ar: 'ما اسم العميل؟',                          tr: 'Müşteri adı nedir?',                        en: 'Customer name?' } },
+            { key: 'driver_name',          q: { ar: 'ما اسم السائق؟',                          tr: 'Sürücü adı nedir?',                         en: 'Driver name?' } },
+            { key: 'driver_phone',         q: { ar: 'ما رقم هاتف السائق؟',                     tr: 'Sürücü telefon numarası nedir?',            en: 'Driver phone number?' } },
+            { key: 'products',             q: { ar: 'اذكر المنتجات: لكل منتج الاسم والعدد وعدد الطبليات.', tr: 'Yüklenen malları söyleyin: her mal için ad, sayı ve palet.', en: 'List the products: name, quantity and pallets for each.' } },
+            { key: 'comments',             q: { ar: 'هل لديك ملاحظات؟',                        tr: 'Eklemek istediğiniz not var mı?',           en: 'Any comments?' } },
+        ];
+        let vIndex = 0, vAnswers = {}, vRec = null, vAdvanceTimer = null;
+        function voiceLang() { return (typeof getLang === 'function' ? getLang() : (window.currentLang || 'ar')); }
+        function voiceLangTag() { const l = voiceLang(); return l === 'tr' ? 'tr-TR' : l === 'en' ? 'en-US' : 'ar-SA'; }
+
         function startVoiceFill() {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) { const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block'; return; }
-            voiceFinal = '';
-            document.getElementById('voiceTranscript').textContent = '';
-            document.getElementById('voiceStatus').textContent = (typeof T === 'function' ? T('loader.voice_listening', 'يستمع... تكلّم الآن') : 'يستمع... تكلّم الآن');
+            vIndex = 0; vAnswers = {};
             document.getElementById('voiceOverlay').classList.add('show');
-            voiceRec = new SR();
-            voiceRec.lang = voiceLangTag();
-            voiceRec.continuous = true;
-            voiceRec.interimResults = true;
-            voiceRec.onresult = (e) => {
+            askVoiceField();
+        }
+        // Ask the current field: show + speak the question, then start listening.
+        function askVoiceField() {
+            clearTimeout(vAdvanceTimer);
+            if (vIndex >= VOICE_FIELDS.length) return voiceFinish();
+            const f = VOICE_FIELDS[vIndex], lang = voiceLang();
+            const qText = f.q[lang] || f.q.ar;
+            const toAr = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
+            const prog = (vIndex + 1) + ' / ' + VOICE_FIELDS.length;
+            document.getElementById('voiceProgress').textContent = lang === 'ar' ? toAr(prog) : prog;
+            document.getElementById('voiceQuestion').textContent = qText;
+            document.getElementById('voiceAnswer').value = '';
+            document.getElementById('voiceState').textContent = '…';
+            speakVoice(qText, listenVoiceAnswer);
+        }
+        // Speak a question aloud (TTS), then run `after` whether or not TTS is available.
+        function speakVoice(text, after) {
+            try {
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(text);
+                    u.lang = voiceLangTag();
+                    let done = false; const go = () => { if (!done) { done = true; after(); } };
+                    u.onend = go; u.onerror = go;
+                    window.speechSynthesis.speak(u);
+                    setTimeout(go, 6000); // safety: never get stuck if TTS never fires onend
+                    return;
+                }
+            } catch (e) {}
+            after();
+        }
+        // Listen for the spoken answer to the current field (auto-advances when done).
+        function listenVoiceAnswer() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) return;
+            try { if (vRec) vRec.abort(); } catch (e) {}
+            vRec = new SR();
+            vRec.lang = voiceLangTag();
+            vRec.continuous = false;
+            vRec.interimResults = true;
+            document.getElementById('voiceState').textContent = (typeof T === 'function' ? T('loader.voice_speak', 'تكلّم الآن…') : 'تكلّم الآن…');
+            document.getElementById('voiceMic').classList.add('rec');
+            let finalTxt = '';
+            vRec.onresult = (e) => {
                 let interim = '';
                 for (let i = e.resultIndex; i < e.results.length; i++) {
                     const t = e.results[i][0].transcript;
-                    if (e.results[i].isFinal) voiceFinal += t + ' '; else interim += t;
+                    if (e.results[i].isFinal) finalTxt += t + ' '; else interim += t;
                 }
-                document.getElementById('voiceTranscript').textContent = (voiceFinal + interim).trim();
+                document.getElementById('voiceAnswer').value = (finalTxt + interim).trim();
             };
-            voiceRec.onerror = (e) => {
-                document.getElementById('voiceStatus').textContent = 'خطأ: ' + (e.error || 'تعذّر التعرّف');
+            vRec.onerror = () => {
+                document.getElementById('voiceMic').classList.remove('rec');
+                document.getElementById('voiceState').textContent = (typeof T === 'function' ? T('loader.voice_again', 'لم أسمع جيدًا — أعد أو اكتب الإجابة') : 'لم أسمع جيدًا — أعد أو اكتب الإجابة');
             };
-            try { voiceRec.start(); } catch (e) {}
+            vRec.onend = () => {
+                document.getElementById('voiceMic').classList.remove('rec');
+                const ans = document.getElementById('voiceAnswer').value.trim();
+                if (ans) {
+                    document.getElementById('voiceState').textContent = (typeof T === 'function' ? T('loader.voice_auto', 'سيتابع تلقائيًا… أو اضغط التالي') : 'سيتابع تلقائيًا… أو اضغط التالي');
+                    clearTimeout(vAdvanceTimer); vAdvanceTimer = setTimeout(voiceNext, 1800);
+                } else {
+                    document.getElementById('voiceState').textContent = (typeof T === 'function' ? T('loader.voice_nohear', 'لم تتكلّم — اضغط 🔁 أو ⏭️') : 'لم تتكلّم — اضغط 🔁 أو ⏭️');
+                }
+            };
+            try { vRec.start(); } catch (e) {}
         }
-        async function stopVoiceFill() {
-            if (voiceRec) { try { voiceRec.stop(); } catch (e) {} voiceRec = null; }
-            const text = (voiceFinal || document.getElementById('voiceTranscript').textContent || '').trim();
-            if (!text) { cancelVoiceFill(); return; }
-            const statusEl = document.getElementById('voiceStatus');
-            statusEl.textContent = (typeof T === 'function' ? T('loader.voice_processing', 'جارٍ المعالجة بالذكاء...') : 'جارٍ المعالجة بالذكاء...');
+        function stopVoiceRec() {
+            clearTimeout(vAdvanceTimer);
+            if (vRec) { try { vRec.abort(); } catch (e) {} vRec = null; }
+            const mic = document.getElementById('voiceMic'); if (mic) mic.classList.remove('rec');
+        }
+        // Save this field's answer (typed or spoken) and move to the next one.
+        function voiceNext() {
+            stopVoiceRec();
+            const f = VOICE_FIELDS[vIndex];
+            if (f) vAnswers[f.key] = document.getElementById('voiceAnswer').value.trim();
+            vIndex++; askVoiceField();
+        }
+        // Skip this field (store empty) and move on.
+        function voiceSkip() {
+            stopVoiceRec();
+            const f = VOICE_FIELDS[vIndex];
+            if (f) vAnswers[f.key] = '';
+            vIndex++; askVoiceField();
+        }
+        // Re-ask the current field.
+        function voiceRepeat() { stopVoiceRec(); askVoiceField(); }
+        // Finish: send all answers to Gemini and fill the form for manual review.
+        async function voiceFinish() {
+            stopVoiceRec();
+            try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+            document.getElementById('voiceProgress').textContent = '';
+            document.getElementById('voiceQuestion').textContent = (typeof T === 'function' ? T('loader.voice_processing', 'جارٍ المعالجة بالذكاء…') : 'جارٍ المعالجة بالذكاء…');
+            document.getElementById('voiceState').textContent = '⏳';
+            document.getElementById('voiceAnswer').value = '';
             try {
-                const lang = (typeof getLang === 'function' ? getLang() : (window.currentLang || 'ar'));
-                const r = await fetch('/api/voice-extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript: text, lang }) });
+                const r = await fetch('/api/voice-extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answers: vAnswers, lang: voiceLang() }) });
                 const j = await r.json();
                 if (!r.ok) throw new Error(j.error || 'فشل المعالجة');
                 fillFormFromVoice(j.fields || {});
@@ -674,10 +771,10 @@
                 const banner = document.getElementById('voiceReviewBanner');
                 if (banner) banner.style.display = 'block';
             } catch (e) {
-                statusEl.textContent = (e.message || 'فشل') + ' — أعد المحاولة أو أدخل يدويًا';
+                document.getElementById('voiceState').textContent = (e.message || 'فشل') + ' — أعد أو أدخل يدويًا';
             }
         }
-        function cancelVoiceFill() { if (voiceRec) { try { voiceRec.stop(); } catch (e) {} voiceRec = null; } closeVoiceOverlay(); }
+        function cancelVoiceFill() { stopVoiceRec(); try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} closeVoiceOverlay(); }
         function closeVoiceOverlay() { document.getElementById('voiceOverlay').classList.remove('show'); }
 
         // Fill the create form from the extracted fields (values only — no innerHTML, XSS-safe).

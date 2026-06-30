@@ -14,7 +14,7 @@ require('dotenv').config();
 const { supabase, initializeDatabase, db } = require('./database');
 const { serialize, deserializeRow } = require('./lib/supabase-sqlite');
 const { sendNotification } = require('./utils/telegramBot');
-const { extractReportFields } = require('./utils/geminiExtract');
+const { extractReportFields, extractFromAnswers } = require('./utils/geminiExtract');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -298,19 +298,44 @@ app.get('/api/check-auth', (req, res) => {
     }
 });
 
-// Voice fill: turn a spoken dictation (transcript) into structured report fields
-// via Gemini. The loader reviews/edits the filled form before submitting.
+// Distinct non-empty values of given columns across existing loadings — used so
+// the voice bot can normalise spoken names to their existing spelling.
+function distinctValues(cols) {
+    const set = new Set();
+    for (const c of cols) {
+        const rows = db.prepare(`SELECT DISTINCT ${c} AS v FROM loadings WHERE ${c} IS NOT NULL AND ${c} <> ''`).all();
+        for (const r of rows) {
+            const v = r.v != null && String(r.v).trim();
+            if (v) set.add(v);
+        }
+    }
+    return [...set].slice(0, 600);
+}
+
+// Voice fill: turn the loader's spoken answers (per field) into structured report
+// fields via Gemini, matching names/products to known values. The loader REVIEWS
+// the filled form before submitting. Also accepts a one-shot {transcript} (legacy).
 app.post('/api/voice-extract', requireLoader, async (req, res) => {
     try {
         if (!process.env.GEMINI_API_KEY) {
             return res.status(503).json({ error: 'Sesli doldurma sunucuda yapılandırılmamış (GEMINI_API_KEY eksik).' });
         }
-        const transcript = String(req.body.transcript || '').slice(0, 5000);
         const lang = ['ar', 'tr', 'en'].includes(req.body.lang) ? req.body.lang : 'ar';
-        if (!transcript.trim()) {
-            return res.status(400).json({ error: 'Boş ses metni.' });
+        const known = {
+            persons: distinctValues(['manager', 'worker1', 'worker2', 'worker3', 'worker4', 'driver_name', 'forklift_operator']),
+            companies: distinctValues(['destination_company']),
+            countries: distinctValues(['destination_country']),
+            customers: distinctValues(['destination_customer']),
+        };
+
+        let fields;
+        if (req.body.answers && typeof req.body.answers === 'object') {
+            fields = await extractFromAnswers(req.body.answers, lang, known);
+        } else {
+            const transcript = String(req.body.transcript || '').slice(0, 5000);
+            if (!transcript.trim()) return res.status(400).json({ error: 'Boş veri.' });
+            fields = await extractReportFields(transcript, lang);
         }
-        const fields = await extractReportFields(transcript, lang);
         res.json({ fields });
     } catch (error) {
         console.error('voice-extract error:', error.message);

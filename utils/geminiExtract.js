@@ -126,16 +126,34 @@ async function callGemini(input, schema) {
         };
     }
 
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-        const errText = await res.text().catch(() => '');
-        throw new Error(`Gemini HTTP ${res.status}: ${errText.slice(0, 300)}`);
+    // Bound the call with a timeout so a slow/unreachable Gemini can never hang
+    // the HTTP request to the browser (the route turns any throw into a 502).
+    const timeoutMs = Number(process.env.GEMINI_TIMEOUT_MS || 25000);
+    const controller = new AbortController();
+    const to = setTimeout(() => controller.abort(), timeoutMs);
+    // Keep the timer armed across BOTH the fetch AND the response-body read, so a
+    // server that sends headers then stalls the body can't hang past the timeout.
+    let data;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+        });
+        if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            throw new Error(`Gemini HTTP ${res.status}: ${errText.slice(0, 300)}`);
+        }
+        data = await res.json();
+    } catch (err) {
+        if (err && err.name === 'AbortError') {
+            throw new Error(`Gemini request timed out after ${timeoutMs}ms`);
+        }
+        throw err;
+    } finally {
+        clearTimeout(to);
     }
-    const data = await res.json();
 
     // Pull the model's text out of either response shape.
     let text = data.output_text;

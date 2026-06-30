@@ -110,18 +110,23 @@
                     <div id="voiceMic" style="font-size: 44px; line-height: 1; margin: 6px 0;">🎙️</div>
                     <div id="voiceState" style="font-size: 13px; color: var(--text-secondary, #888); margin-bottom: 8px;"></div>
                     <input id="voiceAnswer" type="text" style="width: 100%; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; text-align: start; font-size: 16px;" placeholder="إجابتك تظهر هنا (يمكنك تعديلها)">
-                    <div style="display: flex; gap: 8px; margin-top: 14px;">
+                    <div id="voiceControls1" style="display: flex; gap: 8px; margin-top: 14px;">
                         <button type="button" onclick="voiceRepeat()" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">🔁 إعادة</button>
                         <button type="button" onclick="voiceSkip()" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">⏭️ تخطّي</button>
                         <button type="button" onclick="voiceNext()" style="flex: 1.4; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">✅ التالي</button>
                     </div>
-                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                    <div id="voiceControls2" style="display: flex; gap: 8px; margin-top: 10px;">
                         <button type="button" onclick="voiceFinish()" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">إنهاء ومعالجة</button>
                         <button type="button" onclick="cancelVoiceFill()" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">إلغاء</button>
                     </div>
+                    <!-- Shown only when processing fails: retry or close-and-fill-manually -->
+                    <div id="voiceErrorActions" style="display: none; gap: 8px; margin-top: 12px;">
+                        <button type="button" onclick="voiceFinish()" style="flex: 1; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">🔁 أعد المحاولة</button>
+                        <button type="button" onclick="voiceManual()" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">✍️ أكمل يدويًا</button>
+                    </div>
                 </div>
             </div>
-            <style>.voice-filled { background: #fff7cc !important; transition: background .4s; } #voiceMic.rec { animation: vpulse 1s infinite; } @keyframes vpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }</style>
+            <style>.voice-filled { background: #fff7cc !important; transition: background .4s; } #voiceMic.rec { animation: vpulse 1s infinite; } @keyframes vpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} } #voiceMic.spin { animation: vspin 1s linear infinite; } @keyframes vspin { to { transform: rotate(360deg) } }</style>
 
             <form id="loadingForm" enctype="multipart/form-data">
 
@@ -656,21 +661,54 @@
             { key: 'products',             q: { ar: 'اذكر المنتجات: لكل منتج الاسم والعدد وعدد الطبليات.', tr: 'Yüklenen malları söyleyin: her mal için ad, sayı ve palet.', en: 'List the products: name, quantity and pallets for each.' } },
             { key: 'comments',             q: { ar: 'هل لديك ملاحظات؟',                        tr: 'Eklemek istediğiniz not var mı?',           en: 'Any comments?' } },
         ];
-        let vIndex = 0, vAnswers = {}, vRec = null, vAdvanceTimer = null;
-        function voiceLang() { return (typeof getLang === 'function' ? getLang() : (window.currentLang || 'ar')); }
+        let vIndex = 0, vAnswers = {}, vRec = null, vAdvanceTimer = null, vSpeakTimer = null, vActive = false;
+        function voiceLang() { return (window.i18n && typeof window.i18n.getLang === 'function') ? window.i18n.getLang() : 'ar'; }
         function voiceLangTag() { const l = voiceLang(); return l === 'tr' ? 'tr-TR' : l === 'en' ? 'en-US' : 'ar-SA'; }
+        // i18n lookup for the voice UI (real translation, fallback to the literal).
+        function vT(key, fallback) { return (window.i18n && typeof window.i18n.t === 'function') ? window.i18n.t(key, fallback) : fallback; }
 
         function startVoiceFill() {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) { const u = document.getElementById('voiceUnsupported'); if (u) u.style.display = 'block'; return; }
-            vIndex = 0; vAnswers = {};
+            vIndex = 0; vAnswers = {}; vActive = true;
             document.getElementById('voiceOverlay').classList.add('show');
             askVoiceField();
         }
         // Ask the current field: show + speak the question, then start listening.
+        // Switch the overlay between phases: 'asking' (Q&A controls), 'processing'
+        // (spinner, no controls), 'error' (message + retry / fill-manually buttons).
+        function voiceSetPhase(phase, msg) {
+            const $ = (id) => document.getElementById(id);
+            const c1 = $('voiceControls1'), c2 = $('voiceControls2'), err = $('voiceErrorActions'), mic = $('voiceMic');
+            if (phase === 'processing') {
+                if (c1) c1.style.display = 'none';
+                if (c2) c2.style.display = 'none';
+                if (err) err.style.display = 'none';
+                if (mic) { mic.textContent = '⏳'; mic.classList.remove('rec'); mic.classList.add('spin'); }
+                $('voiceProgress').textContent = '';
+                $('voiceQuestion').textContent = (vT('loader.voice_processing', 'جارٍ المعالجة بالذكاء…'));
+                $('voiceState').textContent = (vT('loader.voice_wait', '⏳ يرجى الانتظار قليلًا…'));
+                $('voiceAnswer').value = '';
+            } else if (phase === 'error') {
+                if (c1) c1.style.display = 'none';
+                if (c2) c2.style.display = 'none';
+                if (err) err.style.display = 'flex';
+                if (mic) { mic.textContent = '⚠️'; mic.classList.remove('rec', 'spin'); }
+                $('voiceProgress').textContent = '';
+                $('voiceQuestion').textContent = (vT('loader.voice_failed', '❌ تعذّرت المعالجة'));
+                $('voiceState').textContent = msg || '';
+            } else { // 'asking'
+                if (c1) c1.style.display = 'flex';
+                if (c2) c2.style.display = 'flex';
+                if (err) err.style.display = 'none';
+                if (mic) { mic.textContent = '🎙️'; mic.classList.remove('spin'); }
+            }
+        }
         function askVoiceField() {
+            if (!vActive) return; // left the Q&A loop (finished/cancelled) — ignore stray calls
             clearTimeout(vAdvanceTimer);
             if (vIndex >= VOICE_FIELDS.length) return voiceFinish();
+            voiceSetPhase('asking');
             const f = VOICE_FIELDS[vIndex], lang = voiceLang();
             const qText = f.q[lang] || f.q.ar;
             const toAr = (n) => String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
@@ -681,24 +719,27 @@
             document.getElementById('voiceState').textContent = '…';
             speakVoice(qText, listenVoiceAnswer);
         }
-        // Speak a question aloud (TTS), then run `after` whether or not TTS is available.
+        // Speak a question aloud (TTS), then run `after` — but ONLY while still in the
+        // Q&A loop, so a late onend/safety callback after Finish can't restart listening.
         function speakVoice(text, after) {
+            let done = false;
+            const go = () => { if (done) return; done = true; clearTimeout(vSpeakTimer); if (vActive) after(); };
             try {
                 if (window.speechSynthesis) {
                     window.speechSynthesis.cancel();
                     const u = new SpeechSynthesisUtterance(text);
                     u.lang = voiceLangTag();
-                    let done = false; const go = () => { if (!done) { done = true; after(); } };
                     u.onend = go; u.onerror = go;
                     window.speechSynthesis.speak(u);
-                    setTimeout(go, 6000); // safety: never get stuck if TTS never fires onend
+                    vSpeakTimer = setTimeout(go, 6000); // safety: never get stuck if TTS never fires onend
                     return;
                 }
             } catch (e) {}
-            after();
+            go();
         }
         // Listen for the spoken answer to the current field (auto-advances when done).
         function listenVoiceAnswer() {
+            if (!vActive) return; // don't start listening once we've left the Q&A loop
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) return;
             try { if (vRec) vRec.abort(); } catch (e) {}
@@ -706,7 +747,7 @@
             vRec.lang = voiceLangTag();
             vRec.continuous = false;
             vRec.interimResults = true;
-            document.getElementById('voiceState').textContent = (typeof T === 'function' ? T('loader.voice_speak', 'تكلّم الآن…') : 'تكلّم الآن…');
+            document.getElementById('voiceState').textContent = (vT('loader.voice_speak', 'تكلّم الآن…'));
             document.getElementById('voiceMic').classList.add('rec');
             let finalTxt = '';
             vRec.onresult = (e) => {
@@ -719,27 +760,30 @@
             };
             vRec.onerror = () => {
                 document.getElementById('voiceMic').classList.remove('rec');
-                document.getElementById('voiceState').textContent = (typeof T === 'function' ? T('loader.voice_again', 'لم أسمع جيدًا — أعد أو اكتب الإجابة') : 'لم أسمع جيدًا — أعد أو اكتب الإجابة');
+                document.getElementById('voiceState').textContent = (vT('loader.voice_again', 'لم أسمع جيدًا — أعد أو اكتب الإجابة'));
             };
             vRec.onend = () => {
                 document.getElementById('voiceMic').classList.remove('rec');
+                if (!vActive) return; // recognition ended after we left the loop — ignore
                 const ans = document.getElementById('voiceAnswer').value.trim();
                 if (ans) {
-                    document.getElementById('voiceState').textContent = (typeof T === 'function' ? T('loader.voice_auto', 'سيتابع تلقائيًا… أو اضغط التالي') : 'سيتابع تلقائيًا… أو اضغط التالي');
+                    document.getElementById('voiceState').textContent = (vT('loader.voice_auto', 'سيتابع تلقائيًا… أو اضغط التالي'));
                     clearTimeout(vAdvanceTimer); vAdvanceTimer = setTimeout(voiceNext, 1800);
                 } else {
-                    document.getElementById('voiceState').textContent = (typeof T === 'function' ? T('loader.voice_nohear', 'لم تتكلّم — اضغط 🔁 أو ⏭️') : 'لم تتكلّم — اضغط 🔁 أو ⏭️');
+                    document.getElementById('voiceState').textContent = (vT('loader.voice_nohear', 'لم تتكلّم — اضغط 🔁 أو ⏭️'));
                 }
             };
             try { vRec.start(); } catch (e) {}
         }
         function stopVoiceRec() {
             clearTimeout(vAdvanceTimer);
+            clearTimeout(vSpeakTimer); // cancel any pending TTS safety callback
             if (vRec) { try { vRec.abort(); } catch (e) {} vRec = null; }
             const mic = document.getElementById('voiceMic'); if (mic) mic.classList.remove('rec');
         }
         // Save this field's answer (typed or spoken) and move to the next one.
         function voiceNext() {
+            if (!vActive) return; // ignore a stray auto-advance fired after we left the loop
             stopVoiceRec();
             const f = VOICE_FIELDS[vIndex];
             if (f) vAnswers[f.key] = document.getElementById('voiceAnswer').value.trim();
@@ -747,34 +791,79 @@
         }
         // Skip this field (store empty) and move on.
         function voiceSkip() {
+            if (!vActive) return;
             stopVoiceRec();
             const f = VOICE_FIELDS[vIndex];
             if (f) vAnswers[f.key] = '';
             vIndex++; askVoiceField();
         }
         // Re-ask the current field.
-        function voiceRepeat() { stopVoiceRec(); askVoiceField(); }
+        function voiceRepeat() { if (!vActive) return; stopVoiceRec(); askVoiceField(); }
         // Finish: send all answers to Gemini and fill the form for manual review.
+        // Bounded by a client-side timeout so it can NEVER hang on "processing":
+        // any failure resolves to a visible error with retry / fill-manually.
+        let vBusy = false, vAbort = null;
         async function voiceFinish() {
-            stopVoiceRec();
-            try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
-            document.getElementById('voiceProgress').textContent = '';
-            document.getElementById('voiceQuestion').textContent = (typeof T === 'function' ? T('loader.voice_processing', 'جارٍ المعالجة بالذكاء…') : 'جارٍ المعالجة بالذكاء…');
-            document.getElementById('voiceState').textContent = '⏳';
-            document.getElementById('voiceAnswer').value = '';
+            if (vBusy) return; // ignore re-entry (double-click, or auto-advance + manual race)
+            vBusy = true;
+            vActive = false; // leave the Q&A loop FIRST so no stray TTS/STT callback can fire
+            let timer = null;
+            // Everything is inside try/finally so vBusy ALWAYS releases — even if
+            // AbortController is unsupported or voiceSetPhase throws — never re-stranding.
             try {
-                const r = await fetch('/api/voice-extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answers: vAnswers, lang: voiceLang() }) });
-                const j = await r.json();
-                if (!r.ok) throw new Error(j.error || 'فشل المعالجة');
+                stopVoiceRec();
+                try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+                voiceSetPhase('processing');
+                let signal;
+                try { vAbort = new AbortController(); signal = vAbort.signal; } catch (e) { vAbort = null; }
+                // The timer stays armed through BOTH fetch and r.json(), so even a stalled
+                // response body can't hang us — clearTimeout runs only in finally.
+                if (vAbort) timer = setTimeout(() => { try { vAbort.abort(); } catch (e) {} }, 45000);
+                const r = await fetch('/api/voice-extract', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers: vAnswers, lang: voiceLang() }),
+                    signal: signal,
+                });
+                let j = {};
+                try { j = await r.json(); } catch (_) { j = {}; }
+                if (!r.ok) {
+                    const fallback = r.status === 503
+                        ? 'ميزة التعبئة الصوتية غير مُفعّلة على الخادم بعد (مفتاح Gemini مفقود). أكمل التقرير يدويًا.'
+                        : ('تعذّرت المعالجة (' + r.status + '). أعد المحاولة أو أكمل يدويًا.');
+                    throw new Error(j.error || fallback);
+                }
                 fillFormFromVoice(j.fields || {});
                 closeVoiceOverlay();
                 const banner = document.getElementById('voiceReviewBanner');
                 if (banner) banner.style.display = 'block';
             } catch (e) {
-                document.getElementById('voiceState').textContent = (e.message || 'فشل') + ' — أعد أو أدخل يدويًا';
+                const isAbort = e && e.name === 'AbortError';
+                // If the user cancelled (overlay already closed), drop silently.
+                if (isAbort && !document.getElementById('voiceOverlay').classList.contains('show')) {
+                    /* cancelled by the user — nothing to show */
+                } else {
+                    const msg = isAbort
+                        ? 'استغرقت المعالجة وقتًا طويلًا. تحقّق من الاتصال وأعد المحاولة، أو أكمل التقرير يدويًا.'
+                        : (e.message || 'فشل المعالجة');
+                    voiceSetPhase('error', msg);
+                }
+            } finally {
+                if (timer) clearTimeout(timer);
+                vAbort = null;
+                vBusy = false;
             }
         }
-        function cancelVoiceFill() { stopVoiceRec(); try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} closeVoiceOverlay(); }
+        // Close the overlay so the loader can fill the form by hand (keeps any
+        // values already entered). Wired to the error "✍️ أكمل يدويًا" button.
+        function voiceManual() { vActive = false; closeVoiceOverlay(); }
+        function cancelVoiceFill() {
+            vActive = false; // stop the Q&A loop so no stray TTS/STT callback can fire
+            stopVoiceRec();
+            if (vAbort) { try { vAbort.abort(); } catch (e) {} } // abort any in-flight processing
+            try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+            closeVoiceOverlay();
+        }
         function closeVoiceOverlay() { document.getElementById('voiceOverlay').classList.remove('show'); }
 
         // Fill the create form from the extracted fields (values only — no innerHTML, XSS-safe).

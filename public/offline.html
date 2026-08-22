@@ -17,11 +17,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- i18n -->
+    <script src="/theme.js"></script>
     <script src="/i18n.js"></script>
+
+    <!-- Replaces the UI emoji with one stroked SVG icon set (steel theme only) -->
+    <script src="/icons.js" defer></script>
     
     <style>
+        /* The offline page is standalone (no external stylesheet, so it renders
+           with no network). It carries its own copy of the two themes: the
+           :root block below is the ORIGINAL design, and the steel block after
+           it re-tints those same tokens when the steel theme is active. */
         :root {
-            --primary: #4f46e5;
+            --primary: var(--brand, #4f46e5);
             --primary-dark: #4338ca;
             --bg-primary: #ffffff;
             --bg-secondary: #f8fafc;
@@ -29,6 +37,78 @@
             --text-secondary: #475569;
             --text-muted: #64748b;
             --border-color: #e2e8f0;
+        }
+
+        html[data-theme="steel"] {
+            --primary: #2b3a4a;
+            --primary-dark: #1a242f;
+            --bg-primary: #ffffff;
+            --bg-secondary: #eef0f2;
+            --text-primary: #16191d;
+            --text-secondary: #4b535c;
+            --text-muted: #626b75;
+            --border-color: #cfd4da;
+            --amber-bg: #fbf1dd;
+            --brand: #2b3a4a;
+            --brand-2: #1a242f;
+            --warn-strong: #8a5d0b;
+        }
+
+        html[data-theme="steel"] body {
+            font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+            background: #eef0f2;
+            background-image:
+                linear-gradient(#dfe3e7 1px, transparent 1px),
+                linear-gradient(90deg, #dfe3e7 1px, transparent 1px);
+            background-size: 64px 64px, 64px 64px;
+        }
+
+        html[data-theme="steel"] .offline-container {
+            border-radius: 2px;
+            border: 1px solid #aeb6bf;
+            border-top: 3px solid #e8a33d;
+            box-shadow: none;
+        }
+
+        html[data-theme="steel"] .offline-icon,
+        html[data-theme="steel"] .retry-btn,
+        html[data-theme="steel"] .brand-icon {
+            border-radius: 2px;
+            background: #2b3a4a;
+            background-image: none;
+            box-shadow: none;
+        }
+
+        html[data-theme="steel"] .offline-icon {
+            background: #e8a33d;
+            color: #1a242f;
+        }
+
+        html[data-theme="steel"] .offline-hint {
+            border-radius: 2px;
+            border-left: 3px solid #e8a33d;
+            background: #fbf1dd;
+            color: #6b4a06;
+        }
+
+        html[data-theme="steel"] .offline-title,
+        html[data-theme="steel"] .offline-footer-brand {
+            letter-spacing: .01em;
+        }
+
+        html[data-theme="steel"] .offline-subtitle,
+        html[data-theme="steel"] .offline-footer {
+            color: #4b535c;
+        }
+
+        html[data-theme="steel"] .ic svg {
+            width: 1em; height: 1em; stroke: currentColor; fill: none;
+            stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        html[data-theme="steel"] .ic {
+            display: inline-flex; align-items: center; justify-content: center;
+            vertical-align: -0.14em;
         }
         
         * {
@@ -60,7 +140,7 @@
             width: 120px;
             height: 120px;
             margin: 0 auto 32px;
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            background: linear-gradient(135deg, var(--amber-bg, #fef3c7) 0%, #fde68a 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -94,8 +174,8 @@
             justify-content: center;
             gap: 12px;
             padding: 16px 20px;
-            background: #fef3c7;
-            border-radius: 12px;
+            background: var(--amber-bg, #fef3c7);
+            border-radius: var(--r-lg, 12px);
             margin-bottom: 32px;
         }
         
@@ -115,10 +195,10 @@
             justify-content: center;
             gap: 10px;
             padding: 16px 32px;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            background: linear-gradient(135deg, var(--brand, #4f46e5) 0%, var(--brand-2, #7c3aed) 100%);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: var(--r-lg, 12px);
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -175,8 +255,8 @@
         .brand-icon {
             width: 32px;
             height: 32px;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            border-radius: 8px;
+            background: linear-gradient(135deg, var(--brand, #4f46e5) 0%, var(--brand-2, #7c3aed) 100%);
+            border-radius: var(--r, 8px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -198,7 +278,7 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #f59e0b;
+            background: var(--warn-strong, #f59e0b);
             animation: blink 1.5s ease-in-out infinite;
         }
         

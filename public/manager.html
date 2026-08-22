@@ -34,22 +34,29 @@
 
     <style>
         .field-changed {
-            border: 2px solid #f59e0b !important;
-            border-radius: 6px;
+            border: 2px solid var(--warn-strong, #f59e0b) !important;
+            border-radius: var(--r-sm, 6px);
             background: rgba(245, 158, 11, 0.08) !important;
         }
         td.field-changed {
             background: rgba(245, 158, 11, 0.12) !important;
-            border: 2px solid #f59e0b !important;
+            border: 2px solid var(--warn-strong, #f59e0b) !important;
             font-weight: 600;
         }
     </style>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css" id="themeStylesheet">
+
+    <!-- Theme: chooses "steel" (this design) or "classic" (the original)
+         BEFORE the first paint. Switch with the header button or ?theme=classic. -->
+    <script src="/theme.js"></script>
 
     <!-- i18n -->
     <script src="/i18n.js"></script>
+
+    <!-- Replaces the UI emoji with one stroked SVG icon set (steel theme only) -->
+    <script src="/icons.js" defer></script>
 </head>
 
 <body>
@@ -125,12 +132,12 @@
                     <div class="view-tabs"
                         style="display: flex; gap: 10px; border-bottom: 1px solid var(--border-color); width: 100%; padding-bottom: 10px;">
                         <button class="view-tab-btn active" id="tabActive" onclick="switchMainView(false)"
-                            style="padding: 8px 16px; border: none; background: var(--bg-primary); color: var(--text-primary); border-radius: 6px; cursor: pointer; font-weight: 500;"
+                            style="padding: 8px 16px; border: none; background: var(--bg-primary); color: var(--text-primary); border-radius: var(--r-sm, 6px); cursor: pointer; font-weight: 500;"
                             data-i18n="manager.tab_active">
                             Aktif Raporlar
                         </button>
                         <button class="view-tab-btn" id="tabArchive" onclick="switchMainView(true)"
-                            style="padding: 8px 16px; border: none; background: transparent; color: var(--text-secondary); border-radius: 6px; cursor: pointer;"
+                            style="padding: 8px 16px; border: none; background: transparent; color: var(--text-secondary); border-radius: var(--r-sm, 6px); cursor: pointer;"
                             data-i18n="manager.tab_archive">
                             🗑️ Çöp Kutusu (Arşiv)
                         </button>
@@ -142,17 +149,17 @@
                         <input type="text" id="plateSearchInput"
                             data-i18n-placeholder="manager.search_placeholder"
                             placeholder="🔍 Ara... (Plaka, müşteri, ülke, tarih, çalışan, mal adı...)" oninput="applyAllFilters()"
-                            style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
+                            style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
                         <button onclick="document.getElementById('plateSearchInput').value=''; applyAllFilters()"
                             data-i18n-title="common.clear"
                             title="Temizle"
-                            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
+                            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
                             ✕
                         </button>
                     </div>
 
                     <!-- Advanced Filters Panel -->
-                    <div class="filters-panel" style="width: 100%; background: var(--bg-secondary, rgba(0,0,0,0.02)); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px;">
+                    <div class="filters-panel" style="width: 100%; background: var(--bg-secondary, rgba(0,0,0,0.02)); border: 1px solid var(--border-color); border-radius: var(--r-md, 10px); padding: 14px 16px; display: flex; flex-direction: column; gap: 14px;">
                         <!-- Header -->
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <div style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; font-size: 14px;">
@@ -160,7 +167,7 @@
                                 <span data-i18n="manager.filters_title">Gelişmiş Filtreler</span>
                             </div>
                             <button id="resetFiltersBtn" onclick="clearAllFilters()"
-                                style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;"
+                                style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 6px 12px; border-radius: var(--r-sm, 6px); cursor: pointer; font-size: 13px; font-weight: 500;"
                                 onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'"
                                 data-i18n="manager.filters_reset">
                                 ↻ Tüm Filtreleri Sıfırla
@@ -176,7 +183,7 @@
                             </label>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                                 <select id="dateModeSelect" onchange="onDateModeChange()"
-                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 140px; cursor: pointer;">
+                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 140px; cursor: pointer;">
                                     <option value="all" data-i18n="manager.filter_date_all">Hepsi (filtre yok)</option>
                                     <option value="day" data-i18n="manager.filter_date_day">📅 Belirli Gün</option>
                                     <option value="month" data-i18n="manager.filter_date_month">📆 Belirli Ay</option>
@@ -185,16 +192,16 @@
 
                                 <!-- Single Day Input -->
                                 <input type="date" id="dateDayInput" oninput="applyAllFilters()"
-                                    style="display: none; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+                                    style="display: none; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
 
                                 <!-- Month Inputs (Year + Month selects) -->
                                 <div id="dateMonthInputs" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <select id="dateYearSelect" onchange="applyAllFilters()" data-i18n-title="manager.filter_year" title="Yıl"
-                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 100px; cursor: pointer;">
+                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 100px; cursor: pointer;">
                                         <option value="" data-i18n="manager.filter_year_select">Yıl seçin</option>
                                     </select>
                                     <select id="dateMonthSelect" onchange="applyAllFilters()" data-i18n-title="manager.filter_month" title="Ay"
-                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 130px; cursor: pointer;">
+                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none; min-width: 130px; cursor: pointer;">
                                         <option value="" data-i18n="manager.filter_month_select">Ay seçin</option>
                                         <option value="01" data-i18n="manager.month.01">Ocak (01)</option>
                                         <option value="02" data-i18n="manager.month.02">Şubat (02)</option>
@@ -214,32 +221,32 @@
                                 <!-- Range Inputs -->
                                 <div id="dateRangeInputs" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <input type="date" id="dateFromInput" oninput="applyAllFilters()" data-i18n-title="manager.filter_date_from" title="Başlangıç tarihi"
-                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
                                     <span style="color: var(--text-secondary); font-weight: 600;">→</span>
                                     <input type="date" id="dateToInput" oninput="applyAllFilters()" data-i18n-title="manager.filter_date_to" title="Bitiş tarihi"
-                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+                                        style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
                                 </div>
 
                                 <!-- Quick presets -->
                                 <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto;">
                                     <button type="button" onclick="applyDatePreset('today')"
-                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--r-sm, 6px); background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
                                         onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'"
                                         data-i18n="manager.preset_today">Bugün</button>
                                     <button type="button" onclick="applyDatePreset('yesterday')"
-                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--r-sm, 6px); background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
                                         onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'"
                                         data-i18n="manager.preset_yesterday">Dün</button>
                                     <button type="button" onclick="applyDatePreset('thisweek')"
-                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--r-sm, 6px); background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
                                         onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'"
                                         data-i18n="manager.preset_thisweek">Bu Hafta</button>
                                     <button type="button" onclick="applyDatePreset('thismonth')"
-                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--r-sm, 6px); background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
                                         onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'"
                                         data-i18n="manager.preset_thismonth">Bu Ay</button>
                                     <button type="button" onclick="applyDatePreset('lastmonth')"
-                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
+                                        style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--r-sm, 6px); background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-size: 12px;"
                                         onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-input)'"
                                         data-i18n="manager.preset_lastmonth">Geçen Ay</button>
                                 </div>
@@ -256,19 +263,19 @@
                                 <input type="text" id="customerFilterInput" list="customerOptions"
                                     data-i18n-placeholder="manager.filter_customer_placeholder"
                                     placeholder="Müşteri seçin veya yazın..." oninput="applyAllFilters()"
-                                    style="flex: 1; max-width: 400px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
+                                    style="flex: 1; max-width: 400px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 13px; outline: none;">
                                 <datalist id="customerOptions"></datalist>
                                 <button onclick="document.getElementById('customerFilterInput').value=''; applyAllFilters();"
                                     data-i18n-title="common.clear"
                                     title="Temizle"
-                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
+                                    style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
                                     ✕
                                 </button>
                             </div>
                         </div>
 
                         <!-- Active Filters Summary (shown when any filter is active) -->
-                        <div id="activeFiltersSummary" style="display: none; padding: 10px 12px; background: rgba(79,70,229,0.08); border: 1px solid rgba(79,70,229,0.3); border-radius: 8px; font-size: 13px; color: var(--primary, #4f46e5); flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+                        <div id="activeFiltersSummary" style="display: none; padding: 10px 12px; background: var(--brand-a08, rgba(79,70,229,0.08)); border: 1px solid var(--brand-a30, rgba(79,70,229,0.3)); border-radius: var(--r, 8px); font-size: 13px; color: var(--primary, #4f46e5); flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
                             <span id="activeFiltersText" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;"></span>
                             <span data-result-label style="font-weight: 700; white-space: nowrap;"><span data-i18n="manager.filter_result_label">Sonuç:</span> <span id="resultCount" style="font-size: 15px;">0</span> <span data-i18n="manager.filter_result_unit">rapor</span></span>
                         </div>
@@ -316,11 +323,11 @@
                 <h2 data-i18n="manager.modal_title">Yükleme Detayları</h2>
                 <div class="modal-actions" style="display: flex; gap: 10px; margin-right: auto; margin-left: 20px;">
                     <button class="action-btn" onclick="printReport()"
-                        style="background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                        style="background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: var(--r-sm, 6px); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
                         <span>🖨️</span> <span data-i18n="common.print">Yazdır</span>
                     </button>
                     <button class="action-btn" onclick="exportToExcel()"
-                        style="background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                        style="background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: var(--r-sm, 6px); cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
                         <span>📊</span> <span data-i18n="common.excel">Excel</span>
                     </button>
                 </div>
@@ -333,7 +340,7 @@
     </div>
 
     <!-- Image Modal (popup in the same page — no new tab) -->
-    <div class="modal-overlay" id="imageModal" style="z-index: 2000; background: rgba(0,0,0,0.9);">
+    <div class="modal-overlay" id="imageModal" style="z-index: 2000; background: var(--scrim-strong, rgba(0,0,0,0.9));">
         <button class="modal-close" id="closeImageModal" style="position: absolute; top: 20px; right: 20px; z-index: 2001;">✕</button>
         <img id="imageModalContent" src="" style="max-width: 90%; max-height: 90vh; object-fit: contain;">
     </div>
@@ -442,7 +449,7 @@
                 const origColor = btn.style.color;
                 const origBg = btn.style.background;
                 btn.innerHTML = '✓';
-                btn.style.color = '#16a34a';
+                btn.style.color = 'var(--ok-strong, #16a34a)';
                 btn.style.background = 'rgba(22,163,74,0.12)';
                 btn.style.opacity = '1';
                 setTimeout(() => {
@@ -456,7 +463,7 @@
             const flashFail = () => {
                 const original = btn.innerHTML;
                 btn.innerHTML = '✕';
-                btn.style.color = '#dc2626';
+                btn.style.color = 'var(--danger, #dc2626)';
                 setTimeout(() => {
                     btn.innerHTML = original;
                     btn.style.color = '';
@@ -496,8 +503,8 @@
             const trimmed = s.trim();
             if (!trimmed || trimmed === '-') return '';
             return `<button type="button" class="copy-btn" data-copy-value="${escapeHtml(s)}" onclick="copyValue(this)" title="Kopyala"
-                style="background: transparent; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; opacity: 0.45; transition: opacity 0.15s ease, background 0.15s ease; font-size: 13px; margin: 0 4px; vertical-align: middle; line-height: 1;"
-                onmouseover="this.style.opacity='1'; this.style.background='rgba(79,70,229,0.1)'"
+                style="background: transparent; border: none; cursor: pointer; padding: 2px 6px; border-radius: var(--r-xs, 4px); opacity: 0.45; transition: opacity 0.15s ease, background 0.15s ease; font-size: 13px; margin: 0 4px; vertical-align: middle; line-height: 1;"
+                onmouseover="this.style.opacity='1'; this.style.background='var(--brand-a10, rgba(79,70,229,0.1))'"
                 onmouseout="this.style.opacity='0.45'; this.style.background='transparent'"
                 dir="ltr">📋</button>`;
         }
@@ -651,7 +658,7 @@
 
                 let rowStyle = '';
                 if (needsImprovement) {
-                    rowStyle = 'style="border: 2px solid #3b82f6; outline: 2px solid rgba(59,130,246,0.3);" title="Eksik/Hatalı: Düzeltme bekleniyor"';
+                    rowStyle = 'style="border: 2px solid var(--info, #3b82f6); outline: 2px solid var(--info-a30, rgba(59,130,246,0.3));" title="Eksik/Hatalı: Düzeltme bekleniyor"';
                 } else if (!paperConfirmed) {
                     rowStyle = 'style="border: 2px solid var(--danger); outline: 2px solid rgba(220,38,38,0.25);" title="Kağıt teslimi henüz onaylanmadı"';
                 }
@@ -679,7 +686,7 @@
                     <td>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span style="font-size: 13px; color: var(--text-secondary);">${formatDateTime(loading.created_at)}</span>
-                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;">👤 ${escapeHtml(creatorName)}</span>
+                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: var(--r-xs, 4px); display: inline-block; width: fit-content;">👤 ${escapeHtml(creatorName)}</span>
                         </div>
                     </td>
                     <td>${safwatHtml}</td>
@@ -795,7 +802,7 @@
                         return `<button type="button" data-month="${m}" onclick="setPageMonth('${m}')"
                             style="padding: 6px 12px;
                                    border: 1px solid ${active ? 'var(--primary, #4f46e5)' : 'var(--border-color)'};
-                                   border-radius: 8px;
+                                   border-radius: var(--r, 8px);
                                    background: ${active ? 'var(--primary, #4f46e5)' : 'var(--bg-input)'};
                                    color: ${active ? '#fff' : 'var(--text-primary)'};
                                    cursor: pointer; font-size: 13px;
@@ -807,7 +814,7 @@
                             <span>${escapeHtml(label)}</span>
                             <span style="background: ${active ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.07)'};
                                           color: ${active ? '#fff' : 'var(--text-secondary)'};
-                                          padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; line-height: 1.5;">
+                                          padding: 1px 8px; border-radius: var(--r-md, 10px); font-size: 11px; font-weight: 600; line-height: 1.5;">
                                 ${count}
                             </span>
                         </button>`;
@@ -1081,12 +1088,12 @@
             const chips = [];
 
             const search = (document.getElementById('plateSearchInput')?.value || '').trim();
-            if (search) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">🔍 "${escapeHtml(search)}"</span>`);
+            if (search) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius: var(--r-sm, 6px);border:1px solid var(--brand-a30, rgba(79,70,229,0.3));">🔍 "${escapeHtml(search)}"</span>`);
 
             const mode = document.getElementById('dateModeSelect')?.value || 'all';
             if (mode === 'day') {
                 const v = document.getElementById('dateDayInput')?.value;
-                if (v) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📅 ${formatDate(v)}</span>`);
+                if (v) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius: var(--r-sm, 6px);border:1px solid var(--brand-a30, rgba(79,70,229,0.3));">📅 ${formatDate(v)}</span>`);
             } else if (mode === 'month') {
                 const year = document.getElementById('dateYearSelect')?.value;
                 const month = document.getElementById('dateMonthSelect')?.value;
@@ -1101,18 +1108,18 @@
                         const monthName = T(`manager.month.${month}`, month);
                         label = `${T('manager.filter_month', 'Ay')}: ${monthName}`;
                     }
-                    chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📆 ${escapeHtml(label)}</span>`);
+                    chips.push(`<span style="background:#fff;padding:4px 10px;border-radius: var(--r-sm, 6px);border:1px solid var(--brand-a30, rgba(79,70,229,0.3));">📆 ${escapeHtml(label)}</span>`);
                 }
             } else if (mode === 'range') {
                 const f = document.getElementById('dateFromInput')?.value;
                 const t = document.getElementById('dateToInput')?.value;
                 if (f || t) {
-                    chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">📊 ${f ? formatDate(f) : '…'} → ${t ? formatDate(t) : '…'}</span>`);
+                    chips.push(`<span style="background:#fff;padding:4px 10px;border-radius: var(--r-sm, 6px);border:1px solid var(--brand-a30, rgba(79,70,229,0.3));">📊 ${f ? formatDate(f) : '…'} → ${t ? formatDate(t) : '…'}</span>`);
                 }
             }
 
             const cust = (document.getElementById('customerFilterInput')?.value || '').trim();
-            if (cust) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius:6px;border:1px solid rgba(79,70,229,0.3);">👤 ${escapeHtml(cust)}</span>`);
+            if (cust) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius: var(--r-sm, 6px);border:1px solid var(--brand-a30, rgba(79,70,229,0.3));">👤 ${escapeHtml(cust)}</span>`);
 
             if (chips.length > 0) {
                 summary.style.display = 'flex';
@@ -1226,7 +1233,7 @@
             } catch (error) {
                 console.error('Critical Error in viewDetails:', error);
                 modalBody.innerHTML = `
-                    <div style="padding: 20px; color: #dc2626; text-align: center;">
+                    <div style="padding: 20px; color: var(--danger, #dc2626); text-align: center;">
                         <h3>Hata Oluştu</h3>
                         <p>${error.message}</p>
                         <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px;">Sayfayı Yenile</button>
@@ -1360,7 +1367,7 @@
             ` : '';
 
             const editorBanner = editorName ? `
-                <div style="background: var(--bg-hover); padding: 12px 16px; border-radius: 8px; border-left: 4px solid var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <div style="background: var(--bg-hover); padding: 12px 16px; border-radius: var(--r, 8px); border-left: 4px solid var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 24px;">👤</span>
                     <div>
                         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Bu sürümü düzenleyen</div>
@@ -1375,7 +1382,7 @@
                     <h3>${T('manager.section_photos', '📷 Yükleme Fotoğrafları')}</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 15px;">
                         ${loading.loaded_vehicle_photos.map(url => `
-                            <div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="position: relative; aspect-ratio: 1; border-radius: var(--r, 8px); overflow: hidden; border: 1px solid #eee; box-shadow: var(--sh-inline, 0 1px 3px rgba(0,0,0,0.1));">
                                 <img src="${escapeHtml(thumbOf(url))}" onclick="openImage(${escapeHtml(jsStr(url))})" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" alt="Yükleme Fotoğrafı">
                             </div>
                         `).join('')}
@@ -1567,7 +1574,7 @@
                             ? prevProducts.slice(products.length).map(p => {
                                 const displayName = getProductDisplayName(p.name) || '-';
                                 return `
-                                <tr style="background: rgba(220,38,38,0.08); border-left: 3px solid var(--danger); opacity: 0.7; text-decoration: line-through;">
+                                <tr style="background: var(--danger-a08, rgba(220,38,38,0.08)); border-left: 3px solid var(--danger); opacity: 0.7; text-decoration: line-through;">
                                     <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}"><span style="font-size:10px;color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr">SİLİNDİ</span>${escapeHtml(displayName)}</td>
                                     <td>${escapeHtml(p.quantity || '-')}</td>
                                     <td>${escapeHtml(p.pallets || '-')}</td>
@@ -1672,8 +1679,8 @@
                     
                     if (needsImprovement) {
                         return `
-                        <div class="detail-section" style="border: 2px solid #3b82f6; background: rgba(59,130,246,0.05);">
-                            <h3 style="color: #3b82f6;">⚠️ Düzeltme Talebi Gönderildi</h3>
+                        <div class="detail-section" style="border: 2px solid var(--info, #3b82f6); background: rgba(59,130,246,0.05);">
+                            <h3 style="color: var(--info, #3b82f6);">⚠️ Düzeltme Talebi Gönderildi</h3>
                             <div style="margin-top: 10px;">
                                 <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Tarih: ${new Date(loading.needs_improvement_at).toLocaleString('tr-TR')}</p>
                                 <p><strong>Bölüm:</strong> ${escapeHtml(loading.needs_improvement_reason?.section || '-')}</p>
@@ -1687,15 +1694,15 @@
                         return `
                         <div class="detail-section" id="improvementAlertSection">
                             <h3>⚠️ Düzeltme İste</h3>
-                            <button class="view-btn" onclick="document.getElementById('improvementForm').style.display='block'; this.style.display='none';" style="background: transparent; color: #3b82f6; border: 1px solid #3b82f6; width: 100%; border-radius: 8px; padding: 10px; margin-top: 5px;">
+                            <button class="view-btn" onclick="document.getElementById('improvementForm').style.display='block'; this.style.display='none';" style="background: transparent; color: var(--info, #3b82f6); border: 1px solid var(--info, #3b82f6); width: 100%; border-radius: var(--r, 8px); padding: 10px; margin-top: 5px;">
                                 Rapor Hatalı/Eksik (Loader'a Gönder)
                             </button>
                             
-                            <form id="improvementForm" style="display: none; margin-top: 15px; background: var(--bg-hover); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);" onsubmit="submitImprovementAlert(event, '${loading.id}')">
+                            <form id="improvementForm" style="display: none; margin-top: 15px; background: var(--bg-hover); padding: 15px; border-radius: var(--r, 8px); border: 1px solid var(--border-color);" onsubmit="submitImprovementAlert(event, '${loading.id}')">
                                 <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Bu formu doldurduğunuzda rapor loader'a geri gönderilir ve kaydı (varsa) silinir.</p>
                                 
                                 <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Hatalı Bölüm</label>
-                                <select id="improvementSection" required onchange="handleImprovementSectionChange()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
+                                <select id="improvementSection" required onchange="handleImprovementSectionChange()" style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
                                     <option value="">Seçiniz</option>
                                     <option value="Müşteri Bilgileri">Müşteri Bilgileri</option>
                                     <option value="Araç Bilgileri">Araç Bilgileri</option>
@@ -1707,15 +1714,15 @@
                                 </select>
 
                                 <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Sorunlu Alan / Detay</label>
-                                <select id="improvementField" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
+                                <select id="improvementField" required style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
                                     <option value="">Önce bölüm seçiniz</option>
                                 </select>
 
                                 <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Açıklama / Mesaj</label>
-                                <textarea id="improvementComment" rows="3" placeholder="Lütfen tam olarak neyin düzeltilmesi gerektiğini açıklayın..." required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 15px; resize: vertical; margin-top: 0px;"></textarea>
+                                <textarea id="improvementComment" rows="3" placeholder="Lütfen tam olarak neyin düzeltilmesi gerektiğini açıklayın..." required style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 15px; resize: vertical; margin-top: 0px;"></textarea>
                                 
                                 <div style="display: flex; gap: 10px;">
-                                    <button type="submit" class="primary-btn" style="flex: 1; background: #3b82f6; border-color: #3b82f6;">Gönder</button>
+                                    <button type="submit" class="primary-btn" style="flex: 1; background: var(--info, #3b82f6); border-color: var(--info, #3b82f6);">Gönder</button>
                                     <button type="button" class="view-btn" style="flex: 1;" onclick="document.getElementById('improvementForm').style.display='none'; this.closest('.detail-section').querySelector('.view-btn').style.display='block';">İptal</button>
                                 </div>
                             </form>
@@ -1779,7 +1786,7 @@
                         <h3>📄 Kağıt Teslimi</h3>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
                             ${delivered ? `
-                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(16,185,129,0.1); border: 1px solid var(--success);">
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); background: var(--ok-a10, rgba(16,185,129,0.1)); border: 1px solid var(--success);">
                                     <span style="font-size: 20px;">📄</span>
                                     <div>
                                         <div style="font-weight: 600; color: var(--success);">Yükleyici kağıdı teslim ettiğini işaretledi</div>
@@ -1787,13 +1794,13 @@
                                     </div>
                                 </div>
                             ` : `
-                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(220,38,38,0.08); border: 1px solid var(--danger);">
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); background: var(--danger-a08, rgba(220,38,38,0.08)); border: 1px solid var(--danger);">
                                     <span style="font-size: 20px;">📄</span>
                                     <div style="font-weight: 600; color: var(--danger);">Yükleyici henüz kağıt teslimini işaretlemedi</div>
                                 </div>
                             `}
                             ${confirmed ? `
-                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(16,185,129,0.15); border: 1px solid var(--success);">
+                                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); background: rgba(16,185,129,0.15); border: 1px solid var(--success);">
                                     <span style="font-size: 20px;">✅</span>
                                     <div>
                                         <div style="font-weight: 600; color: var(--success);">Müdür teslimi onayladı</div>
@@ -1801,12 +1808,12 @@
                                     </div>
                                 </div>
                                 <button onclick="togglePaperConfirmed('${loading.id}')"
-                                    style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--danger); background: rgba(220,38,38,0.08); color: var(--danger); cursor: pointer; font-size: 14px; font-weight: 600;">
+                                    style="padding: 10px 16px; border-radius: var(--r, 8px); border: 1px solid var(--danger); background: var(--danger-a08, rgba(220,38,38,0.08)); color: var(--danger); cursor: pointer; font-size: 14px; font-weight: 600;">
                                     ✕ Onayı Geri Al
                                 </button>
                             ` : `
                                 <button onclick="togglePaperConfirmed('${loading.id}')"
-                                    style="padding: 12px 16px; border-radius: 8px; border: none; background: var(--success); color: white; cursor: pointer; font-size: 14px; font-weight: 600; width: 100%;">
+                                    style="padding: 12px 16px; border-radius: var(--r, 8px); border: none; background: var(--success); color: white; cursor: pointer; font-size: 14px; font-weight: 600; width: 100%;">
                                     ✅ Kağıt Teslimini Onayla
                                 </button>
                             `}
@@ -2147,10 +2154,10 @@
                 const existingHtml = (existingPhotos || []).map(p => `
                 <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
                     <img src="${escapeHtml(thumbOf(p))}" loading="lazy"
-                        style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                        style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--r-xs, 4px); border: 1px solid #ddd;">
                     <input type="hidden" name="${existingFieldName}" value="${escapeHtml(p)}">
                     <button type="button" onclick="this.parentElement.remove()"
-                        style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                        style="position: absolute; top: -5px; right: -5px; background: var(--danger, red); color: white; border: none; border-radius: var(--r-round, 50%); width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
                 `).join('');
 
@@ -2316,11 +2323,11 @@
                                 const hasArabic = arName && arName !== (p.name || '');
                                 return `
                             <div class="product-entry"
-                                style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                                style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: var(--r, 8px);">
                                 <div class="form-group" style="margin: 0;">
                                     <label style="font-size: 11px;">Malın Adı</label>
                                     <input type="text" class="edit-prod-name" value="${escapeHtml(p.name || '')}" placeholder="Malın Adı">
-                                    ${hasArabic ? `<div dir="rtl" style="text-align: right; font-size: 12px; color: var(--text-secondary); margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.04); border-radius: 4px;" title="Arapça karşılığı">🇸🇦 ${escapeHtml(arName)}</div>` : ''}
+                                    ${hasArabic ? `<div dir="rtl" style="text-align: right; font-size: 12px; color: var(--text-secondary); margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.04); border-radius: var(--r-xs, 4px);" title="Arapça karşılığı">🇸🇦 ${escapeHtml(arName)}</div>` : ''}
                                 </div>
                                 <div class="form-group" style="margin: 0;">
                                     <label style="font-size: 11px;">Sayısı</label>
@@ -2331,7 +2338,7 @@
                                     <input type="number" class="edit-prod-pallets" value="${escapeHtml(p.pallets || '')}" placeholder="0">
                                 </div>
                                 <button type="button" onclick="this.closest('.product-entry').remove()"
-                                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: var(--r-sm, 6px); cursor: pointer;">🗑️</button>
                             </div>
                             `;
                             }).join('')}
@@ -2342,7 +2349,7 @@
                     <div class="detail-section">
                         <h3>💬 Yorumlar</h3>
                         <textarea name="comments" rows="4"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); resize: vertical;">${escapeHtml(loading.comments || '')}</textarea>
+                            style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); resize: vertical;">${escapeHtml(loading.comments || '')}</textarea>
                     </div>
 
                     <div class="detail-section">
@@ -2371,7 +2378,7 @@
             const container = document.getElementById('editProductsContainer');
             const row = document.createElement('div');
             row.className = 'product-entry';
-            row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;';
+            row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: var(--r, 8px);';
             row.innerHTML = `
                 <div class="form-group" style="margin: 0;">
                     <label style="font-size: 11px;">Malın Adı</label>
@@ -2386,7 +2393,7 @@
                     <input type="number" class="edit-prod-pallets" placeholder="0">
                 </div>
                 <button type="button" onclick="this.closest('.product-entry').remove()"
-                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: var(--r-sm, 6px); cursor: pointer;">🗑️</button>
             `;
             container.appendChild(row);
         }

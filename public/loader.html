@@ -31,10 +31,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="/styles.css" id="themeStylesheet">
+
+    <!-- Theme: chooses "steel" (this design) or "classic" (the original)
+         BEFORE the first paint. Switch with the header button or ?theme=classic. -->
+    <script src="/theme.js"></script>
 
     <!-- i18n -->
     <script src="/i18n.js"></script>
+
+    <!-- Replaces the UI emoji with one stroked SVG icon set (steel theme only) -->
+    <script src="/icons.js" defer></script>
 </head>
 
 <body>
@@ -77,52 +84,52 @@
                 <button class="tab-btn" id="tabHistory" onclick="switchTab('history')" style="position: relative;">
                     <span class="tab-icon">🕒</span>
                     <span data-i18n="loader.tab_history">Geçmiş Raporlarım</span>
-                    <span id="historyTabBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; font-weight: bold; line-height: 18px; text-align: center;">!</span>
+                    <span id="historyTabBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--danger-2, #ef4444); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; font-weight: bold; line-height: 18px; text-align: center;">!</span>
                 </button>
             </div>
 
             <!-- Form Level Alerts (Mini Banners) -->
             <div id="miniAlertsContainer" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 20px;">
                 <!-- Mini Draft Alert -->
-                <div id="miniDraftAlert" style="display:none; background: rgba(249,115,22,0.1); border: 1px solid #f97316; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: 0.2s; align-items: center; justify-content: space-between;" onclick="applyIssueFilter('draft');" onmouseover="this.style.background='rgba(249,115,22,0.15)'" onmouseout="this.style.background='rgba(249,115,22,0.1)'">
+                <div id="miniDraftAlert" style="display:none; background: var(--draft-a10, rgba(249,115,22,0.1)); border: 1px solid var(--draft, #f97316); border-radius: var(--r, 8px); padding: 12px 16px; cursor: pointer; transition: 0.2s; align-items: center; justify-content: space-between;" onclick="applyIssueFilter('draft');" onmouseover="this.style.background='var(--draft-a15, rgba(249,115,22,0.15))'" onmouseout="this.style.background='var(--draft-a10, rgba(249,115,22,0.1))'">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 20px; animation: pulse 2s infinite;">📝</span>
-                        <h3 style="color: #ea580c; margin: 0; font-size: 15px;" data-i18n="loader.alert_draft_title">Taslak Raporunuz Var!</h3>
+                        <h3 style="color: var(--draft-strong, #ea580c); margin: 0; font-size: 15px;" data-i18n="loader.alert_draft_title">Taslak Raporunuz Var!</h3>
                     </div>
-                    <span style="color: #ea580c; font-size: 13px; font-weight: 500;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
+                    <span style="color: var(--draft-strong, #ea580c); font-size: 13px; font-weight: 500;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
                 </div>
 
                 <!-- Mini Improvement Alert -->
-                <div id="miniImprovementAlert" style="display:none; background: rgba(59,130,246,0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: 0.2s; align-items: center; justify-content: space-between;" onclick="applyIssueFilter('improvement');" onmouseover="this.style.background='rgba(59,130,246,0.15)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'">
+                <div id="miniImprovementAlert" style="display:none; background: var(--info-a10, rgba(59,130,246,0.1)); border: 1px solid var(--info, #3b82f6); border-radius: var(--r, 8px); padding: 12px 16px; cursor: pointer; transition: 0.2s; align-items: center; justify-content: space-between;" onclick="applyIssueFilter('improvement');" onmouseover="this.style.background='var(--info-a15, rgba(59,130,246,0.15))'" onmouseout="this.style.background='var(--info-a10, rgba(59,130,246,0.1))'">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 20px; animation: pulse 2s infinite;">⚠️</span>
-                        <h3 style="color: #3b82f6; margin: 0; font-size: 15px;" data-i18n="loader.alert_improvement_title">Dikkat, Düzeltme İsteği!</h3>
+                        <h3 style="color: var(--info, #3b82f6); margin: 0; font-size: 15px;" data-i18n="loader.alert_improvement_title">Dikkat, Düzeltme İsteği!</h3>
                     </div>
-                    <span style="color: #3b82f6; font-size: 13px; font-weight: 500;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
+                    <span style="color: var(--info, #3b82f6); font-size: 13px; font-weight: 500;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
                 </div>
             </div>
 
             <!-- 🎙️ Smart voice fill: the bot asks each field, the loader answers -->
-            <div id="voiceOverlay" class="modal-overlay" style="z-index: 3000; background: rgba(0,0,0,0.78);">
+            <div id="voiceOverlay" class="modal-overlay" style="z-index: 3000; background: var(--scrim, rgba(0,0,0,0.78));">
                 <div class="modal" style="max-width: 480px; text-align: center; padding: 24px 20px;">
                     <div id="voiceProgress" style="font-size: 13px; color: var(--text-secondary, #888);"></div>
                     <h3 id="voiceQuestion" style="margin: 10px 0 6px; min-height: 28px;"></h3>
                     <div id="voiceMic" style="font-size: 44px; line-height: 1; margin: 6px 0;">🎙️</div>
                     <div id="voiceState" style="font-size: 13px; color: var(--text-secondary, #888); margin-bottom: 8px;"></div>
-                    <input id="voiceAnswer" type="text" data-i18n-placeholder="loader.voice_answer_ph" style="width: 100%; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; text-align: start; font-size: 16px;" placeholder="إجابتك تظهر هنا (يمكنك تعديلها)">
+                    <input id="voiceAnswer" type="text" data-i18n-placeholder="loader.voice_answer_ph" style="width: 100%; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: var(--r-md, 10px); text-align: start; font-size: 16px;" placeholder="إجابتك تظهر هنا (يمكنك تعديلها)">
                     <div id="voiceControls1" style="display: flex; gap: 8px; margin-top: 14px;">
-                        <button type="button" onclick="voiceRepeat()" data-i18n="loader.voice_repeat" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">🔁 إعادة</button>
-                        <button type="button" onclick="voiceSkip()" data-i18n="loader.voice_skip" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">⏭️ تخطّي</button>
-                        <button type="button" onclick="voiceNext()" data-i18n="loader.voice_next" style="flex: 1.4; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">✅ التالي</button>
+                        <button type="button" onclick="voiceRepeat()" data-i18n="loader.voice_repeat" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: var(--r-md, 10px); background: transparent; color: var(--text-primary, #111); cursor: pointer;">🔁 إعادة</button>
+                        <button type="button" onclick="voiceSkip()" data-i18n="loader.voice_skip" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: var(--r-md, 10px); background: transparent; color: var(--text-primary, #111); cursor: pointer;">⏭️ تخطّي</button>
+                        <button type="button" onclick="voiceNext()" data-i18n="loader.voice_next" style="flex: 1.4; padding: 11px; border: none; border-radius: var(--r-md, 10px); background: var(--ok-strong, #16a34a); color: #fff; font-weight: 700; cursor: pointer;">✅ التالي</button>
                     </div>
                     <div id="voiceControls2" style="display: flex; gap: 8px; margin-top: 10px;">
-                        <button type="button" onclick="voiceFinish()" data-i18n="loader.voice_finish" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">إنهاء ومعالجة</button>
-                        <button type="button" onclick="cancelVoiceFill()" data-i18n="loader.voice_cancel" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">إلغاء</button>
+                        <button type="button" onclick="voiceFinish()" data-i18n="loader.voice_finish" style="flex: 1; padding: 10px; border: none; border-radius: var(--r-md, 10px); background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">إنهاء ومعالجة</button>
+                        <button type="button" onclick="cancelVoiceFill()" data-i18n="loader.voice_cancel" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: var(--r-md, 10px); background: transparent; color: var(--text-primary, #111); cursor: pointer;">إلغاء</button>
                     </div>
                     <!-- Shown only when processing fails: retry or close-and-fill-manually -->
                     <div id="voiceErrorActions" style="display: none; gap: 8px; margin-top: 12px;">
-                        <button type="button" onclick="voiceFinish()" data-i18n="loader.voice_retry" style="flex: 1; padding: 11px; border: none; border-radius: 10px; background: #16a34a; color: #fff; font-weight: 700; cursor: pointer;">🔁 أعد المحاولة</button>
-                        <button type="button" onclick="voiceManual()" data-i18n="loader.voice_manual" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">✍️ أكمل يدويًا</button>
+                        <button type="button" onclick="voiceFinish()" data-i18n="loader.voice_retry" style="flex: 1; padding: 11px; border: none; border-radius: var(--r-md, 10px); background: var(--ok-strong, #16a34a); color: #fff; font-weight: 700; cursor: pointer;">🔁 أعد المحاولة</button>
+                        <button type="button" onclick="voiceManual()" data-i18n="loader.voice_manual" style="flex: 1; padding: 11px; border: 1px solid var(--border-color, #ddd); border-radius: var(--r-md, 10px); background: transparent; color: var(--text-primary, #111); cursor: pointer;">✍️ أكمل يدويًا</button>
                     </div>
                     <!-- Always available: open the voice-system log (also reachable from the error state) -->
                     <button type="button" onclick="openVoiceLog()" data-i18n="loader.voice_log_details" style="margin-top: 12px; background: none; border: none; color: var(--primary, #4f46e5); font-size: 13px; cursor: pointer; text-decoration: underline;">📋 عرض السجلّ والتفاصيل</button>
@@ -130,7 +137,7 @@
             </div>
 
             <!-- 📋 Voice-system log / monitor (sits above the voice overlay) -->
-            <div id="voiceLogModal" class="modal-overlay" style="z-index: 3100; background: rgba(0,0,0,0.6);">
+            <div id="voiceLogModal" class="modal-overlay" style="z-index: 3100; background: var(--scrim-soft, rgba(0,0,0,0.6));">
                 <div class="modal" style="max-width: 580px; text-align: start;">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px;">
                         <h3 style="margin: 0;" data-i18n="loader.voice_log_title">سجلّ النظام الصوتي</h3>
@@ -138,26 +145,26 @@
                     </div>
                     <div data-i18n="loader.voice_log_hint" style="font-size: 12px; color: var(--text-secondary, #888); margin-bottom: 8px;">يسجّل خطوات التعبئة الصوتية وسبب أي خطأ. مفيد للمراقبة وحلّ المشاكل.</div>
                     <div id="voiceLogDiag" style="font-size: 12px; color: var(--text-secondary, #888); margin-bottom: 6px; direction: ltr; text-align: left; word-break: break-word;"></div>
-                    <pre id="voiceLogBody" style="max-height: 50vh; overflow: auto; font-size: 12px; line-height: 1.5; background: var(--bg-input, #f4f4f5); border-radius: 8px; padding: 10px; margin: 0; white-space: pre-wrap; word-break: break-word; direction: ltr; text-align: left;"></pre>
+                    <pre id="voiceLogBody" style="max-height: 50vh; overflow: auto; font-size: 12px; line-height: 1.5; background: var(--bg-input, #f4f4f5); border-radius: var(--r, 8px); padding: 10px; margin: 0; white-space: pre-wrap; word-break: break-word; direction: ltr; text-align: left;"></pre>
                     <div style="display: flex; gap: 8px; margin-top: 10px;">
-                        <button type="button" onclick="copyVoiceLog()" data-i18n="loader.voice_log_copy" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">📋 نسخ</button>
-                        <button type="button" onclick="clearVoiceLog()" data-i18n="loader.voice_log_clear" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">🗑️ مسح</button>
-                        <button type="button" onclick="closeVoiceLog()" data-i18n="loader.voice_log_close" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-primary, #111); cursor: pointer;">إغلاق</button>
+                        <button type="button" onclick="copyVoiceLog()" data-i18n="loader.voice_log_copy" style="flex: 1; padding: 10px; border: none; border-radius: var(--r-md, 10px); background: var(--primary, #4f46e5); color: #fff; cursor: pointer;">📋 نسخ</button>
+                        <button type="button" onclick="clearVoiceLog()" data-i18n="loader.voice_log_clear" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: var(--r-md, 10px); background: transparent; color: var(--text-primary, #111); cursor: pointer;">🗑️ مسح</button>
+                        <button type="button" onclick="closeVoiceLog()" data-i18n="loader.voice_log_close" style="flex: 1; padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: var(--r-md, 10px); background: transparent; color: var(--text-primary, #111); cursor: pointer;">إغلاق</button>
                     </div>
                 </div>
             </div>
-            <style>.voice-filled { background: #fff7cc !important; transition: background .4s; } #voiceMic.rec { animation: vpulse 1s infinite; } @keyframes vpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} } #voiceMic.spin { animation: vspin 1s linear infinite; } @keyframes vspin { to { transform: rotate(360deg) } }</style>
+            <style>.voice-filled { background: var(--vfill-bg, #fff7cc) !important; transition: background .4s; } #voiceMic.rec { animation: vpulse 1s infinite; } @keyframes vpulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} } #voiceMic.spin { animation: vspin 1s linear infinite; } @keyframes vspin { to { transform: rotate(360deg) } }</style>
 
             <form id="loadingForm" enctype="multipart/form-data">
 
                 <!-- 🎙️ Smart voice fill button -->
                 <div style="margin-bottom: 16px;">
-                    <button type="button" id="voiceFillBtn" onclick="startVoiceFill()" style="width: 100%; padding: 14px; border: none; border-radius: 12px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <button type="button" id="voiceFillBtn" onclick="startVoiceFill()" style="width: 100%; padding: 14px; border: none; border-radius: var(--r-lg, 12px); background: linear-gradient(135deg, var(--brand, #4f46e5), var(--brand-2, #7c3aed)); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
                         🎙️ <span data-i18n="loader.voice_btn">التعبئة الصوتية الذكية</span>
                     </button>
                     <div id="voiceUnsupported" data-i18n="loader.voice_unsupported" style="display: none; margin-top: 8px; font-size: 13px; color: var(--text-secondary, #888); text-align: center;">التعرّف الصوتي غير مدعوم في هذا المتصفّح — استخدم Chrome على أندرويد.</div>
-                    <div id="voiceReviewBanner" data-i18n="loader.voice_review" style="display: none; margin-top: 12px; background: #fff7cc; border: 1px solid #f5d97a; color: #7a5c00; border-radius: 10px; padding: 10px 14px; font-size: 14px;">📝 تمّ ملء الحقول من إجاباتك (المظلّلة بالأصفر). راجِعها وصحّح ما يلزم قبل الحفظ.</div>
-                    <button type="button" id="voiceLogBtn" onclick="openVoiceLog()" data-i18n="loader.voice_log_open" style="margin-top: 8px; width: 100%; padding: 8px; border: 1px solid var(--border-color, #ddd); border-radius: 10px; background: transparent; color: var(--text-secondary, #888); font-size: 13px; cursor: pointer;">📋 سجلّ النظام الصوتي</button>
+                    <div id="voiceReviewBanner" data-i18n="loader.voice_review" style="display: none; margin-top: 12px; background: var(--vfill-bg, #fff7cc); border: 1px solid var(--vfill-bd, #f5d97a); color: var(--vfill-fg, #7a5c00); border-radius: var(--r-md, 10px); padding: 10px 14px; font-size: 14px;">📝 تمّ ملء الحقول من إجاباتك (المظلّلة بالأصفر). راجِعها وصحّح ما يلزم قبل الحفظ.</div>
+                    <button type="button" id="voiceLogBtn" onclick="openVoiceLog()" data-i18n="loader.voice_log_open" style="margin-top: 8px; width: 100%; padding: 8px; border: 1px solid var(--border-color, #ddd); border-radius: var(--r-md, 10px); background: transparent; color: var(--text-secondary, #888); font-size: 13px; cursor: pointer;">📋 سجلّ النظام الصوتي</button>
                 </div>
 
 
@@ -457,30 +464,30 @@
             <div id="historySection" style="display: none;">
                 
                 <!-- Draft (Missing Photos) Alert Banner -->
-                <div id="draftAlertBanner" style="display:none; background: rgba(249,115,22,0.1); border: 2px solid #f97316; border-radius: 8px; padding: 15px; margin-bottom: 20px; cursor: pointer; transition: 0.2s;" onclick="applyIssueFilter('draft');" onmouseover="this.style.background='rgba(249,115,22,0.15)'" onmouseout="this.style.background='rgba(249,115,22,0.1)'">
+                <div id="draftAlertBanner" style="display:none; background: var(--draft-a10, rgba(249,115,22,0.1)); border: 2px solid var(--draft, #f97316); border-radius: var(--r, 8px); padding: 15px; margin-bottom: 20px; cursor: pointer; transition: 0.2s;" onclick="applyIssueFilter('draft');" onmouseover="this.style.background='var(--draft-a15, rgba(249,115,22,0.15))'" onmouseout="this.style.background='var(--draft-a10, rgba(249,115,22,0.1))'">
                     <div style="display: flex; align-items: center; gap: 15px; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <span style="font-size: 28px; animation: pulse 2s infinite;">📝</span>
                             <div>
-                                <h3 style="color: #ea580c; margin: 0 0 5px 0;" data-i18n="loader.alert_draft_title">Taslak Raporunuz Var!</h3>
-                                <p style="margin: 0; color: var(--text-primary); font-size: 14px;"><span data-i18n="loader.alert_draft_pre">Müdürün görmesi için zorunlu olan</span> <strong data-i18n="loader.alert_draft_required">fotoğrafı yüklenmemiş</strong> <strong id="draftAlertCount" style="color:#ea580c; font-size:16px;">0</strong> <span data-i18n="loader.alert_draft_post">raporunuz var. (Turuncu çerçeveli raporlar).</span></p>
+                                <h3 style="color: var(--draft-strong, #ea580c); margin: 0 0 5px 0;" data-i18n="loader.alert_draft_title">Taslak Raporunuz Var!</h3>
+                                <p style="margin: 0; color: var(--text-primary); font-size: 14px;"><span data-i18n="loader.alert_draft_pre">Müdürün görmesi için zorunlu olan</span> <strong data-i18n="loader.alert_draft_required">fotoğrafı yüklenmemiş</strong> <strong id="draftAlertCount" style="color:var(--draft-strong, #ea580c); font-size:16px;">0</strong> <span data-i18n="loader.alert_draft_post">raporunuz var. (Turuncu çerçeveli raporlar).</span></p>
                             </div>
                         </div>
-                        <span style="color: #ea580c; font-size: 13px; font-weight: 600; white-space: nowrap;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
+                        <span style="color: var(--draft-strong, #ea580c); font-size: 13px; font-weight: 600; white-space: nowrap;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
                     </div>
                 </div>
 
                 <!-- Improvement Alert Banner -->
-                <div id="improvementAlertBanner" style="display:none; background: rgba(59,130,246,0.1); border: 2px solid #3b82f6; border-radius: 8px; padding: 15px; margin-bottom: 20px; cursor: pointer; transition: 0.2s;" onclick="applyIssueFilter('improvement');" onmouseover="this.style.background='rgba(59,130,246,0.15)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'">
+                <div id="improvementAlertBanner" style="display:none; background: var(--info-a10, rgba(59,130,246,0.1)); border: 2px solid var(--info, #3b82f6); border-radius: var(--r, 8px); padding: 15px; margin-bottom: 20px; cursor: pointer; transition: 0.2s;" onclick="applyIssueFilter('improvement');" onmouseover="this.style.background='var(--info-a15, rgba(59,130,246,0.15))'" onmouseout="this.style.background='var(--info-a10, rgba(59,130,246,0.1))'">
                     <div style="display: flex; align-items: center; gap: 15px; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <span style="font-size: 28px; animation: pulse 2s infinite;">⚠️</span>
                             <div>
-                                <h3 style="color: #3b82f6; margin: 0 0 5px 0;" data-i18n="loader.alert_improvement_title">Dikkat, Düzeltme İsteği!</h3>
-                                <p style="margin: 0; color: var(--text-primary); font-size: 14px;"><span data-i18n="loader.alert_improvement_detail_pre">Müdür tarafından eksik/hatalı bulunup düzeltilmesi istenen</span> <strong id="improvementAlertCount" style="color:#ef4444; font-size:16px;">0</strong> <span data-i18n="loader.alert_improvement_detail_post">raporunuz var. Lütfen aşağıdan mavi çerçeveli raporları inceleyin.</span></p>
+                                <h3 style="color: var(--info, #3b82f6); margin: 0 0 5px 0;" data-i18n="loader.alert_improvement_title">Dikkat, Düzeltme İsteği!</h3>
+                                <p style="margin: 0; color: var(--text-primary); font-size: 14px;"><span data-i18n="loader.alert_improvement_detail_pre">Müdür tarafından eksik/hatalı bulunup düzeltilmesi istenen</span> <strong id="improvementAlertCount" style="color:var(--danger-2, #ef4444); font-size:16px;">0</strong> <span data-i18n="loader.alert_improvement_detail_post">raporunuz var. Lütfen aşağıdan mavi çerçeveli raporları inceleyin.</span></p>
                             </div>
                         </div>
-                        <span style="color: #3b82f6; font-size: 13px; font-weight: 600; white-space: nowrap;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
+                        <span style="color: var(--info, #3b82f6); font-size: 13px; font-weight: 600; white-space: nowrap;" data-i18n="loader.alert_filter_cta">Filtrele →</span>
                     </div>
                 </div>
 
@@ -494,7 +501,7 @@
                         </button>
                     </div>
                     <!-- Active Issue Filter Chip (hidden by default) -->
-                    <div id="activeFilterChip" style="display: none; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; border: 2px solid; font-size: 14px; font-weight: 500;">
+                    <div id="activeFilterChip" style="display: none; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); margin-bottom: 12px; border: 2px solid; font-size: 14px; font-weight: 500;">
                         <!-- Content set by updateFilterChip() -->
                     </div>
 
@@ -503,11 +510,11 @@
                         <input type="text" id="plateSearchInput"
                             data-i18n-placeholder="loader.search_placeholder"
                             placeholder="🔍 Ara... (Plaka, müşteri, ülke, tarih, çalışan, mal adı...)" oninput="filterHistoryByPlate()"
-                            style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
+                            style="flex: 1; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-primary); font-size: 14px; outline: none;">
                         <button onclick="document.getElementById('plateSearchInput').value=''; filterHistoryByPlate()"
                             data-i18n-title="common.clear"
                             title="Temizle"
-                            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
+                            style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--r, 8px); background: var(--bg-input); color: var(--text-secondary); cursor: pointer; font-size: 13px;">
                             ✕
                         </button>
                     </div>
@@ -563,7 +570,7 @@
     </div>
 
     <!-- Image Modal -->
-    <div class="modal-overlay" id="imageModal" style="z-index: 2000; background: rgba(0,0,0,0.9);">
+    <div class="modal-overlay" id="imageModal" style="z-index: 2000; background: var(--scrim-strong, rgba(0,0,0,0.9));">
         <button class="modal-close" id="closeImageModal"
             style="position: absolute; top: 20px; right: 20px; z-index: 2001;">✕</button>
         <img id="imageModalContent" src="" style="max-width: 90%; max-height: 90vh; object-fit: contain;">
@@ -1438,7 +1445,7 @@
                     <div class="empty-state-icon">${icon}</div>
                     <h3>${title}</h3>
                     <p>${desc}</p>
-                    ${currentIssueFilter ? `<button onclick="clearIssueFilter()" style="margin-top:12px;padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;">${T('loader.filter_show_all_btn', 'Tüm Raporları Göster')}</button>` : ''}
+                    ${currentIssueFilter ? `<button onclick="clearIssueFilter()" style="margin-top:12px;padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius: var(--r-sm, 6px);cursor:pointer;font-size:14px;font-weight:500;">${T('loader.filter_show_all_btn', 'Tüm Raporları Göster')}</button>` : ''}
                 `;
                 emptyState.style.display = 'block';
                 return;
@@ -1471,13 +1478,13 @@
                 const isDraft = !!item.is_draft;
 
                 if (isDraft) {
-                    row.style.cssText = 'border: 2px solid #f97316; outline: 2px solid rgba(249,115,22,0.3); border-radius: 6px; background-color: rgba(249,115,22,0.02);';
+                    row.style.cssText = 'border: 2px solid var(--draft, #f97316); outline: 2px solid var(--draft-a30, rgba(249,115,22,0.3)); border-radius: var(--r-sm, 6px); background-color: var(--draft-a02, rgba(249,115,22,0.02));';
                     row.title = 'Taslak: Raporun iletilmesi için fotoğraf yüklemeniz bekleniyor!';
                 } else if (needsImprovement) {
-                    row.style.cssText = 'border: 2px solid #3b82f6; outline: 2px solid rgba(59,130,246,0.3); border-radius: 6px;';
+                    row.style.cssText = 'border: 2px solid var(--info, #3b82f6); outline: 2px solid var(--info-a30, rgba(59,130,246,0.3)); border-radius: var(--r-sm, 6px);';
                     row.title = 'Müdür tarafından düzeltme isteniyor!';
                 } else if (!paperConfirmed) {
-                    row.style.cssText = 'border: 2px solid var(--danger); outline: 2px solid rgba(220,38,38,0.3); border-radius: 6px;';
+                    row.style.cssText = 'border: 2px solid var(--danger); outline: 2px solid var(--danger-a30, rgba(220,38,38,0.3)); border-radius: var(--r-sm, 6px);';
                     row.title = 'Kağıt teslimi henüz müdür tarafından onaylanmadı';
                 }
 
@@ -1488,7 +1495,7 @@
                         : '<span title="Kağıt teslim edilmedi" style="font-size:16px; opacity:0.35;">📄</span>';
                 
                 const improvementBadge = needsImprovement ? '<span title="Düzeltme bekleniyor" style="font-size:16px; margin-right:4px;">⚠️</span>' : '';
-                const draftBadge = isDraft ? `<span title="${T('status.draft', '📝 Taslak')}" style="font-size:12px; color: #ea580c; background: #ffedd5; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right:4px;">${T('status.draft', '📝 Taslak')}</span>` : '';
+                const draftBadge = isDraft ? `<span title="${T('status.draft', '📝 Taslak')}" style="font-size:12px; color: var(--draft-strong, #ea580c); background: var(--draft-bg, #ffedd5); padding: 2px 6px; border-radius: var(--r-xs, 4px); font-weight: 600; margin-right:4px;">${T('status.draft', '📝 Taslak')}</span>` : '';
 
                 row.innerHTML = `
                     <td>${escapeHtml(item.destination_customer || '-')}</td>
@@ -1497,7 +1504,7 @@
                     <td>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(formatDateTime(item.created_at))}</span>
-                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; display: inline-block; width: fit-content;">👤 ${escapeHtml(creatorName)}</span>
+                            <span style="font-size: 11px; color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: var(--r-xs, 4px); display: inline-block; width: fit-content;">👤 ${escapeHtml(creatorName)}</span>
                         </div>
                     </td>
                     <td>${safwatStatus}</td>
@@ -1549,31 +1556,31 @@
 
             if (currentIssueFilter === 'draft') {
                 chip.style.display = 'flex';
-                chip.style.background = 'rgba(249,115,22,0.12)';
-                chip.style.borderColor = '#f97316';
-                chip.style.color = '#ea580c';
+                chip.style.background = 'var(--draft-a12, rgba(249,115,22,0.12))';
+                chip.style.borderColor = 'var(--draft, #f97316)';
+                chip.style.color = 'var(--draft-strong, #ea580c)';
                 chip.innerHTML = `
                     <span style="display:flex;align-items:center;gap:8px;">
                         <span style="font-size:18px;">📝</span>
                         <span>${T('loader.filter_chip_draft', 'Aktif Filtre: Sadece Taslak Raporlar')}</span>
                     </span>
                     <button onclick="clearIssueFilter()" title="${T('common.clear', 'Filtreyi kaldır')}"
-                        style="background:#fff;border:1px solid #f97316;color:#ea580c;cursor:pointer;font-size:13px;padding:6px 12px;border-radius:6px;font-weight:600;white-space:nowrap;">
+                        style="background:#fff;border:1px solid var(--draft, #f97316);color:var(--draft-strong, #ea580c);cursor:pointer;font-size:13px;padding:6px 12px;border-radius: var(--r-sm, 6px);font-weight:600;white-space:nowrap;">
                         ${T('loader.filter_show_all', '✕ Tümünü Göster')}
                     </button>
                 `;
             } else if (currentIssueFilter === 'improvement') {
                 chip.style.display = 'flex';
-                chip.style.background = 'rgba(59,130,246,0.12)';
-                chip.style.borderColor = '#3b82f6';
-                chip.style.color = '#3b82f6';
+                chip.style.background = 'var(--info-a12, rgba(59,130,246,0.12))';
+                chip.style.borderColor = 'var(--info, #3b82f6)';
+                chip.style.color = 'var(--info, #3b82f6)';
                 chip.innerHTML = `
                     <span style="display:flex;align-items:center;gap:8px;">
                         <span style="font-size:18px;">⚠️</span>
                         <span>${T('loader.filter_chip_improvement', 'Aktif Filtre: Düzeltme Bekleyen Raporlar')}</span>
                     </span>
                     <button onclick="clearIssueFilter()" title="${T('common.clear', 'Filtreyi kaldır')}"
-                        style="background:#fff;border:1px solid #3b82f6;color:#3b82f6;cursor:pointer;font-size:13px;padding:6px 12px;border-radius:6px;font-weight:600;white-space:nowrap;">
+                        style="background:#fff;border:1px solid var(--info, #3b82f6);color:var(--info, #3b82f6);cursor:pointer;font-size:13px;padding:6px 12px;border-radius: var(--r-sm, 6px);font-weight:600;white-space:nowrap;">
                         ${T('loader.filter_show_all', '✕ Tümünü Göster')}
                     </button>
                 `;
@@ -1719,7 +1726,7 @@
             const products = loading.products || [];
 
             const editorBanner = editorName ? `
-                <div style="background: var(--bg-hover); padding: 12px 16px; border-radius: 8px; border-left: 4px solid var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <div style="background: var(--bg-hover); padding: 12px 16px; border-radius: var(--r, 8px); border-left: 4px solid var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 24px;">👤</span>
                     <div>
                         <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Bu sürümü düzenleyen</div>
@@ -1732,7 +1739,7 @@
                         ${editorBanner}
                         ${activeVersion !== 'current' ? `
                         <div
-                            style="background: var(--warning); color: white; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 14px;">
+                            style="background: var(--warning); color: white; padding: 10px; border-radius: var(--r-sm, 6px); margin-bottom: 20px; font-size: 14px;">
                             ⚠️ Bu, ${new Date(loading.archived_at || Date.now()).toLocaleDateString('tr-TR')} tarihli
                             arşivlenmiş bir versiyondur.
                         </div>
@@ -1741,15 +1748,15 @@
 
                         <!-- Draft Alert Banner (If Any) -->
                         ${loading.is_draft ? `
-                        <div class="detail-section" style="border: 2px solid #f97316; background: rgba(249,115,22,0.1); margin-bottom: 20px;">
-                            <h3 style="color: #ea580c; display: flex; align-items: center; gap: 8px;">
+                        <div class="detail-section" style="border: 2px solid var(--draft, #f97316); background: var(--draft-a10, rgba(249,115,22,0.1)); margin-bottom: 20px;">
+                            <h3 style="color: var(--draft-strong, #ea580c); display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size:20px;">📝</span> Bu Rapor Taslak Aşamasında
                             </h3>
                             <div style="margin-top: 10px; color: var(--text-primary);">
                                 <p>Raporun müdüre iletilebilmesi ve kaydedilebilmesi için en az 1 fotoğraf yüklemeniz gerekmektedir. Fotoğraf yüklemek için raporu düzenleyin.</p>
                             </div>
                             <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
-                                <button class="primary-btn" onclick="toggleEditMode()" style="background: #ea580c; border: none; padding: 10px 20px; box-shadow: 0 4px 6px rgba(234,88,12,0.3);">
+                                <button class="primary-btn" onclick="toggleEditMode()" style="background: var(--draft-strong, #ea580c); border: none; padding: 10px 20px; box-shadow: var(--sh-inline, 0 4px 6px var(--draft-a30, rgba(234,88,12,0.3)));">
                                     ✏️ Raporu Düzenle ve Fotoğraf Ekle
                                 </button>
                             </div>
@@ -1758,17 +1765,17 @@
 
                         <!-- Improvement Alert Banner (If Any) -->
                         ${loading.needs_improvement_at && !loading.is_recorded && activeVersion === 'current' ? `
-                        <div class="detail-section" style="border: 2px solid #3b82f6; background: rgba(59,130,246,0.1); margin-bottom: 20px;">
-                            <h3 style="color: #3b82f6; display: flex; align-items: center; gap: 8px;">
+                        <div class="detail-section" style="border: 2px solid var(--info, #3b82f6); background: var(--info-a10, rgba(59,130,246,0.1)); margin-bottom: 20px;">
+                            <h3 style="color: var(--info, #3b82f6); display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size:20px;">⚠️</span> Müdürden Düzeltme Talebi
                             </h3>
                             <div style="margin-top: 10px; color: var(--text-primary);">
                                 <p><strong>Bölüm:</strong> ${escapeHtml(loading.needs_improvement_reason?.section || '-')}</p>
                                 <p><strong>Alan:</strong> ${escapeHtml(loading.needs_improvement_reason?.field || '-')}</p>
-                                <p style="margin-top: 8px; font-size: 15px; background: var(--bg-card); padding: 10px; border-radius: 6px; border-left: 4px solid #3b82f6;"><strong>Mesaj:</strong><br/>${escapeHtml(loading.needs_improvement_reason?.comment || '-')}</p>
+                                <p style="margin-top: 8px; font-size: 15px; background: var(--bg-card); padding: 10px; border-radius: var(--r-sm, 6px); border-left: 4px solid var(--info, #3b82f6);"><strong>Mesaj:</strong><br/>${escapeHtml(loading.needs_improvement_reason?.comment || '-')}</p>
                             </div>
                             <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
-                                <button class="primary-btn" onclick="toggleEditMode()" style="background: #3b82f6; border: none; padding: 10px 20px; box-shadow: 0 4px 6px rgba(59,130,246,0.3);">
+                                <button class="primary-btn" onclick="toggleEditMode()" style="background: var(--info, #3b82f6); border: none; padding: 10px 20px; box-shadow: var(--sh-inline, 0 4px 6px var(--info-a30, rgba(59,130,246,0.3)));">
                                     ✏️ Raporu Düzenle
                                 </button>
                             </div>
@@ -1948,7 +1955,7 @@
                             <h3>📄 Kağıt Teslimi</h3>
                             <div style="display: flex; flex-direction: column; gap: 12px;">
                                 ${loading.paper_delivered_at ? `
-                                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(16,185,129,0.1); border: 1px solid var(--success);">
+                                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); background: var(--ok-a10, rgba(16,185,129,0.1)); border: 1px solid var(--success);">
                                         <span style="font-size: 20px;">✅</span>
                                         <div>
                                             <div style="font-weight: 600; color: var(--success);">Kağıt teslim edildiği işaretlendi</div>
@@ -1956,16 +1963,16 @@
                                         </div>
                                     </div>
                                     <button onclick="togglePaperDelivered('${loading.id}')"
-                                        style="padding: 10px 16px; border-radius: 8px; border: 1px solid var(--danger); background: rgba(220,38,38,0.08); color: var(--danger); cursor: pointer; font-size: 14px; font-weight: 600;">
+                                        style="padding: 10px 16px; border-radius: var(--r, 8px); border: 1px solid var(--danger); background: var(--danger-a08, rgba(220,38,38,0.08)); color: var(--danger); cursor: pointer; font-size: 14px; font-weight: 600;">
                                         ✕ Teslimi Geri Al
                                     </button>
                                 ` : `
-                                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(245,158,11,0.1); border: 1px solid var(--warning);">
+                                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); background: rgba(245,158,11,0.1); border: 1px solid var(--warning);">
                                         <span style="font-size: 20px;">⏳</span>
                                         <div style="font-weight: 600; color: var(--warning);">Kağıt henüz teslim edilmedi</div>
                                     </div>
                                     <button onclick="togglePaperDelivered('${loading.id}')"
-                                        style="padding: 10px 16px; border-radius: 8px; border: none; background: var(--primary); color: white; cursor: pointer; font-size: 14px; font-weight: 600; width: 100%;">
+                                        style="padding: 10px 16px; border-radius: var(--r, 8px); border: none; background: var(--primary); color: white; cursor: pointer; font-size: 14px; font-weight: 600; width: 100%;">
                                         📄 Kağıdı Teslim Ettim
                                     </button>
                                 `}
@@ -1997,10 +2004,10 @@
                 const existingHtml = (existingPhotos || []).map(p => `
                 <div class="edit-photo-item" style="position: relative; display: inline-block; margin: 5px;">
                     <img src="${escapeHtml(thumbOf(p))}" loading="lazy"
-                        style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                        style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--r-xs, 4px); border: 1px solid #ddd;">
                     <input type="hidden" name="${existingFieldName}" value="${escapeHtml(p)}">
                     <button type="button" onclick="this.parentElement.remove()"
-                        style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                        style="position: absolute; top: -5px; right: -5px; background: var(--danger, red); color: white; border: none; border-radius: var(--r-round, 50%); width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
                 `).join('');
 
@@ -2031,8 +2038,8 @@
                         <form id="editForm" onsubmit="event.preventDefault(); saveChanges('${loading.id}');">
                             <!-- Draft Alert Banner (If Any) -->
                             ${loading.is_draft ? `
-                            <div class="detail-section" style="border: 2px solid #f97316; background: rgba(249,115,22,0.1); margin-bottom: 20px;">
-                                <h3 style="color: #ea580c; display: flex; align-items: center; gap: 8px;">
+                            <div class="detail-section" style="border: 2px solid var(--draft, #f97316); background: var(--draft-a10, rgba(249,115,22,0.1)); margin-bottom: 20px;">
+                                <h3 style="color: var(--draft-strong, #ea580c); display: flex; align-items: center; gap: 8px;">
                                     <span style="font-size:20px;">📝</span> Taslak Aşamasında
                                 </h3>
                                 <p style="margin-top: 10px; color: var(--text-primary);">
@@ -2169,7 +2176,7 @@
                                 <div id="editProductsContainer">
                                     ${products.map(p => `
                                     <div class="product-entry"
-                                        style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                                        style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: var(--r, 8px);">
                                         <div class="form-group" style="margin: 0;">
                                             <label style="font-size: 11px;">Malın Adı</label>
                                             <input type="text" class="edit-prod-name" value="${escapeHtml(p.name || '')}"
@@ -2186,7 +2193,7 @@
                                                 placeholder="0">
                                         </div>
                                         <button type="button" onclick="this.closest('.product-entry').remove()"
-                                            style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                                            style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: var(--r-sm, 6px); cursor: pointer;">🗑️</button>
                                     </div>
                                     `).join('')}
                                 </div>
@@ -2222,7 +2229,7 @@
             const container = document.getElementById('editProductsContainer');
             const row = document.createElement('div');
             row.className = 'product-entry';
-            row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;';
+            row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: var(--r, 8px);';
             row.innerHTML = `
                 <div class="form-group" style="margin: 0;">
                     <label style="font-size: 11px;">Malın Adı</label>
@@ -2237,7 +2244,7 @@
                     <input type="number" class="edit-prod-pallets" placeholder="0">
                 </div>
                 <button type="button" onclick="this.closest('.product-entry').remove()"
-                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: 6px; cursor: pointer;">🗑️</button>
+                    style="background: var(--danger); color: white; border: none; width: 30px; height: 30px; border-radius: var(--r-sm, 6px); cursor: pointer;">🗑️</button>
             `;
             container.appendChild(row);
         }

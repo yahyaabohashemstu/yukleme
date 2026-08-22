@@ -172,7 +172,7 @@
                             aria-pressed="${active}"
                             style="background: ${active ? 'var(--primary, #4f46e5)' : 'transparent'};
                                    color: ${active ? '#fff' : 'var(--text-secondary, #475569)'};
-                                   border: none; padding: 6px 10px; border-radius: 6px;
+                                   border: none; padding: 6px 10px; border-radius: var(--r-sm, 6px);
                                    cursor: pointer; font-size: 12px; font-weight: 600;
                                    display: inline-flex; align-items: center; gap: 4px;
                                    transition: background 0.15s, color 0.15s; line-height: 1;">
@@ -187,7 +187,7 @@
         // Wrapper styles
         const wrapper = container.querySelector('.lang-switcher');
         if (wrapper) {
-            wrapper.style.cssText = 'display: inline-flex; gap: 2px; background: var(--bg-input, rgba(0,0,0,0.04)); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 3px;';
+            wrapper.style.cssText = 'display: inline-flex; gap: 2px; background: var(--bg-input, rgba(0,0,0,0.04)); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--r, 8px); padding: 3px;';
         }
 
         container.querySelectorAll('button[data-lang]').forEach(btn => {

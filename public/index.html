@@ -30,10 +30,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css" id="themeStylesheet">
+
+    <!-- Theme: chooses "steel" (this design) or "classic" (the original)
+         BEFORE the first paint. Switch with the header button or ?theme=classic. -->
+    <script src="/theme.js"></script>
 
     <!-- i18n: must load before any inline script that needs translations -->
     <script src="/i18n.js"></script>
+
+    <!-- Replaces the UI emoji with one stroked SVG icon set (steel theme only) -->
+    <script src="/icons.js" defer></script>
 </head>
 
 <body>

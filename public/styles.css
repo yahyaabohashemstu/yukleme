@@ -1244,31 +1244,109 @@ textarea:required:valid {
 }
 
 /* ---- Advanced filters --------------------------------------------------
-   Everything gathers into a centred column instead of spreading edge to edge:
-   the panel keeps its full-width frame, its contents do not. */
+   Built as a real panel instead of a stack of loose rows: a titled bar across
+   the top, then the two filters side by side in their own cells with a divider
+   between them, and the date shortcuts on their own line under the date field.
+   Centring every row (the previous attempt) made it read as scattered — the
+   fix is structure, not alignment. */
+/* The card indents its header children with padding; for a bordered panel that
+   would sit INSIDE the border and leave the title bar short of its own edge, so
+   here the same gutter is a margin instead. */
+.table-header > .filters-panel {
+    padding: 0;
+    margin-left: 20px;
+    margin-right: 20px;
+    width: auto;
+    /* .table-header is a flex column with align-items:flex-start, so without
+       this the panel would shrink to its content instead of filling the card. */
+    align-self: stretch;
+}
+
 .filters-panel {
-    align-items: center;
-}
-
-.filters-panel > * {
     width: 100%;
-    max-width: 980px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0;
+    overflow: hidden;
 }
 
-/* Column blocks (label above its controls) centre their children; the header
-   row is a flex row, where this just keeps things vertically centred. */
-.filters-panel > div {
+/* 1) title bar — spans both columns */
+.filters-panel > div:first-child {
+    grid-column: 1 / -1;
+    padding: 11px 16px;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border-strong);
+}
+
+.filters-panel > div:first-child > div {
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+/* 2) the two filter cells */
+.filters-panel > div:nth-child(2),
+.filters-panel > div:nth-child(3) {
+    padding: 15px 16px 16px;
+    gap: 9px;
+}
+
+.filters-panel > div:nth-child(2) {
+    border-inline-end: 1px solid var(--border-color);
+}
+
+/* Labels sit as micro-headings above their control, with the long date note
+   dropped onto its own line instead of trailing off the end of the label. */
+.filters-panel label {
+    flex-wrap: wrap;
+    row-gap: 2px;
+    align-items: baseline;
+}
+
+.filters-panel label span[data-i18n="manager.filter_date_note"] {
+    flex-basis: 100%;
+    line-height: 1.4;
+}
+
+/* Control rows start at the edge of their cell. */
+.filters-panel > div > div {
+    justify-content: flex-start;
     align-items: center;
 }
 
-.filters-panel > div > div {
-    justify-content: center;
+/* 3) date shortcuts: their own line, visually secondary. The inline
+   margin-left:auto would otherwise pin them to the far edge of the row. */
+.filters-panel > div > div > div:not([id]) {
+    margin-left: 0 !important;
+    flex-basis: 100%;
+    margin-top: 3px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
 }
 
-/* The date presets carry an inline margin-left:auto that pins them to the far
-   edge — the opposite of gathering toward the middle. */
-.filters-panel > div > div > div {
-    margin-left: 0 !important;
+/* 4) the "N results" summary — full width, closing the panel */
+.filters-panel > #activeFiltersSummary {
+    grid-column: 1 / -1;
+    border-radius: 0 !important;
+    border: none !important;
+    border-top: 1px solid var(--border-strong) !important;
+    margin: 0;
+}
+
+/* One column once the two cells would be too narrow to be worth splitting. */
+@media (max-width: 900px) {
+    .filters-panel {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .filters-panel > div:nth-child(2) {
+        border-inline-end: none;
+        border-bottom: 1px solid var(--border-color);
+    }
 }
 
 /* ---- Active / Archive switch ------------------------------------------

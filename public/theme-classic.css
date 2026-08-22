@@ -2158,3 +2158,17 @@ textarea,
     color: var(--text-primary);
     font-weight: 500;
 }
+
+/* The advanced-filters panel likewise carried its layout in an inline style
+   attribute; moved to CSS so each theme can lay it out. These are the original
+   inline values, unchanged. */
+.filters-panel {
+    width: 100%;
+    background: var(--bg-secondary, rgba(0, 0, 0, 0.02));
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}

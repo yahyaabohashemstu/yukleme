@@ -2130,3 +2130,31 @@ textarea,
         transform: translateX(60px) scale(0.9);
     }
 }
+/* ============================================================================
+   Restored from markup — the ONLY block that is not a copy of the original
+   styles.css.
+
+   The manager's "Aktif Raporlar" / "Çöp Kutusu (Arşiv)" buttons used to carry
+   their whole appearance in inline style attributes, which switchMainView()
+   rewrote on every click. That look moved into CSS so each theme can style
+   them; these rules reproduce the original inline values exactly, so the
+   classic theme still renders those two buttons the way it always did.
+   Font family and size are deliberately unset — the originals inherited the
+   browser's default button font.
+   ============================================================================ */
+
+.view-tab-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.view-tab-btn.active {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-weight: 500;
+}

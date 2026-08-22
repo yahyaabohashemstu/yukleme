@@ -173,10 +173,10 @@
                             style="background: ${active ? 'var(--primary, #4f46e5)' : 'transparent'};
                                    color: ${active ? '#fff' : 'var(--text-secondary, #475569)'};
                                    border: none; padding: 6px 10px; border-radius: var(--r-sm, 6px);
-                                   cursor: pointer; font-size: 12px; font-weight: 600;
+                                   cursor: pointer; font-size: var(--fs-12, 12px); font-weight: 600;
                                    display: inline-flex; align-items: center; gap: 4px;
                                    transition: background 0.15s, color 0.15s; line-height: 1;">
-                            <span style="font-size: 14px; line-height: 1;">${meta.flag}</span>
+                            <span style="font-size: var(--fs-14, 14px); line-height: 1;">${meta.flag}</span>
                             <span>${compact ? meta.label : meta.name}</span>
                         </button>
                     `;

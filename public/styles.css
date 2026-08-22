@@ -100,6 +100,25 @@
        exactly. Changing a value here re-tints the whole app.
        ======================================================================== */
 
+    /* ---- Type scale used by the inline font sizes in the pages -------------
+       The original design ran small: 13px body text in tables, 11px chips.
+       Every size is lifted here (~+15% on small text, tapering to ~+8% on the
+       large ones) so the app reads comfortably at arm's length in the yard.
+       The classic theme defines none of these, so it keeps its original sizes. */
+    --fs-10: 12px;
+    --fs-11: 13px;
+    --fs-12: 14px;
+    --fs-13: 15px;
+    --fs-14: 16px;
+    --fs-15: 17px;
+    --fs-16: 18px;
+    --fs-18: 20px;
+    --fs-20: 22px;
+    --fs-22: 24px;
+    --fs-24: 26px;
+    --fs-28: 30px;
+    --fs-44: 48px;
+
     /* radii used inline */
     --r-xs: 2px;
     --r-sm: 2px;
@@ -295,13 +314,13 @@ body {
     align-items: center;
     justify-content: center;
     margin: 0 auto 18px;
-    font-size: 30px;
+    font-size: 34px;
     color: var(--chrome-bg);
     box-shadow: none;
 }
 
 .login-logo h1 {
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 6px;
@@ -311,7 +330,7 @@ body {
 
 .login-logo p {
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: .18em;
     text-transform: uppercase;
@@ -345,7 +364,7 @@ body {
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
-    font-size: 19px;
+    font-size: 21px;
 }
 
 .input-content {
@@ -356,8 +375,8 @@ body {
 }
 
 .input-content label {
-    font-size: 9px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--text-muted);
     letter-spacing: .13em;
     text-transform: uppercase;
@@ -372,7 +391,7 @@ body {
     border: none;
     padding: 0;
     width: 100%;
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-primary);
     font-weight: 500;
     outline: none;
@@ -392,7 +411,7 @@ body {
     border: 1px solid var(--chrome-bg);
     border-radius: var(--radius);
     color: #fff;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: .16em;
     text-transform: uppercase;
@@ -428,7 +447,7 @@ body {
     color: var(--danger);
     padding: 11px 13px;
     border-radius: var(--radius);
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 500;
     margin-bottom: 14px;
     display: none;
@@ -468,9 +487,11 @@ body {
     box-shadow: none;
 }
 
+/* The shell is deliberately wide: this is a data tool on a desk monitor, and
+   the report table has eight columns that were being squeezed into 1200px. */
 .header-content,
 .main-content {
-    max-width: 1200px;
+    max-width: 1680px;
     margin: 0 auto;
     padding-left: 20px !important;
     padding-right: 20px !important;
@@ -502,12 +523,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 24px;
     flex: none;
 }
 
 .header-title h1 {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 600;
     color: var(--chrome-text);
     letter-spacing: .01em;
@@ -515,7 +536,7 @@ body {
 }
 
 .header-title span {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: .15em;
     text-transform: uppercase;
@@ -547,7 +568,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
     flex: none;
 }
 
@@ -558,12 +579,12 @@ body {
 .header-user-name {
     font-weight: 600;
     color: var(--chrome-text);
-    font-size: 13px;
+    font-size: 15px;
     line-height: 1.2;
 }
 
 .header-user-role {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
     letter-spacing: .13em;
     text-transform: uppercase;
@@ -576,7 +597,7 @@ body {
     border: 1px solid #5c3b34;
     border-radius: var(--radius);
     color: #e08b7a;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
@@ -627,7 +648,7 @@ body {
     border-radius: var(--radius);
     color: var(--chrome-text-dim);
     font-family: inherit;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -687,20 +708,20 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 19px;
+    font-size: 21px;
     flex: none;
 }
 
 .form-card-title h2 {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     letter-spacing: .1em;
     text-transform: uppercase;
     color: var(--text-primary);
 }
 
 .form-card-title p {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -735,9 +756,9 @@ body {
 
 .form-group label {
     margin-bottom: 7px;
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 10px;
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 12px;
     letter-spacing: .1em;
     text-transform: uppercase;
 }
@@ -750,7 +771,7 @@ body {
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: 16px;
     font-family: inherit;
     transition: var(--transition);
 }
@@ -813,21 +834,21 @@ textarea:required:valid {
 }
 
 .file-upload-icon {
-    font-size: 26px;
+    font-size: 28px;
     color: var(--text-muted);
     margin-bottom: 8px;
 }
 
 .file-upload-text {
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
 }
 
 .file-upload-text span {
     display: block;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 400;
     margin-top: 3px;
 }
@@ -873,7 +894,7 @@ textarea:required:valid {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1;
     font-family: inherit;
 }
@@ -898,9 +919,9 @@ textarea:required:valid {
 
 .products-table th {
     background: var(--primary);
-    color: #c3ccd5;
-    font-weight: 600;
-    font-size: 10px;
+    color: #d3dbe2;
+    font-weight: 700;
+    font-size: 12px;
     letter-spacing: .1em;
     text-transform: uppercase;
     border-bottom: none;
@@ -917,7 +938,7 @@ textarea:required:valid {
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: 15px;
     font-family: inherit;
 }
 
@@ -948,7 +969,7 @@ textarea:required:valid {
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: 15px;
     font-family: inherit;
     width: 100%;
     cursor: pointer;
@@ -966,7 +987,7 @@ textarea:required:valid {
     border: 1px dashed var(--border-strong);
     border-radius: var(--radius);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: .04em;
     cursor: pointer;
@@ -995,7 +1016,7 @@ textarea:required:valid {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 15px;
     font-family: inherit;
 }
 
@@ -1020,7 +1041,7 @@ textarea:required:valid {
     border: 1px solid var(--chrome-bg);
     border-radius: var(--radius);
     color: #fff;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: background var(--transition);
@@ -1049,7 +1070,7 @@ textarea:required:valid {
 }
 
 .submit-btn span:last-child {
-    font-size: 18px;
+    font-size: 20px;
     transition: transform var(--transition);
 }
 
@@ -1096,7 +1117,7 @@ textarea:required:valid {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 19px;
+    font-size: 21px;
     border: 1px solid var(--border-strong);
     background: var(--bg-input);
     color: var(--primary);
@@ -1121,7 +1142,7 @@ textarea:required:valid {
 }
 
 .stat-info h3 {
-    font-size: 30px;
+    font-size: 34px;
     font-weight: 600;
     color: var(--text-primary);
     line-height: 1;
@@ -1130,8 +1151,8 @@ textarea:required:valid {
 }
 
 .stat-info p {
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
     letter-spacing: .1em;
     text-transform: uppercase;
     color: var(--text-muted);
@@ -1173,8 +1194,8 @@ textarea:required:valid {
 }
 
 .table-title h2 {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     letter-spacing: .1em;
     text-transform: uppercase;
     color: var(--text-primary);
@@ -1186,7 +1207,7 @@ textarea:required:valid {
     border: 1px solid var(--primary);
     border-radius: var(--radius);
     color: #fff;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
@@ -1199,6 +1220,47 @@ textarea:required:valid {
 .refresh-btn:hover {
     background: var(--primary-dark);
     border-color: var(--primary-dark);
+}
+
+/* ---- Active / Archive switch ------------------------------------------
+   These read as two real buttons: the selected one is filled gunmetal, the
+   other is an outlined button. Previously both were borderless text. */
+.view-tab-btn {
+    padding: 10px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.view-tab-btn:hover {
+    border-color: var(--primary);
+    color: var(--text-primary);
+    background: var(--bg-input);
+}
+
+.view-tab-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: inset 0 -3px 0 0 var(--accent);
+}
+
+.view-tab-btn.active:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: #fff;
 }
 
 .loadings-table {
@@ -1215,9 +1277,9 @@ textarea:required:valid {
 
 .loadings-table th {
     background: var(--primary);
-    color: #c3ccd5;
-    font-weight: 600;
-    font-size: 10px;
+    color: #d3dbe2;
+    font-weight: 700;
+    font-size: 12px;
     letter-spacing: .1em;
     text-transform: uppercase;
     border-bottom: none;
@@ -1242,7 +1304,7 @@ textarea:required:valid {
 
 .loadings-table td {
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: 15px;
 }
 
 .view-btn {
@@ -1251,7 +1313,7 @@ textarea:required:valid {
     border: 1px solid var(--primary);
     border-radius: var(--radius);
     color: var(--primary);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: .04em;
     text-transform: uppercase;
@@ -1275,13 +1337,13 @@ textarea:required:valid {
 }
 
 .empty-state-icon {
-    font-size: 44px;
+    font-size: 48px;
     margin-bottom: 14px;
     opacity: .45;
 }
 
 .empty-state h3 {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 600;
     letter-spacing: .06em;
     text-transform: uppercase;
@@ -1321,7 +1383,7 @@ textarea:required:valid {
     border-top: 3px solid var(--accent);
     border-radius: var(--radius);
     width: 90%;
-    max-width: 900px;
+    max-width: 1180px;
     max-height: 90vh;
     overflow: hidden;
     transform: translateY(8px);
@@ -1343,8 +1405,8 @@ textarea:required:valid {
 }
 
 .modal-header h2 {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     letter-spacing: .1em;
     text-transform: uppercase;
     color: var(--text-primary);
@@ -1357,7 +1419,7 @@ textarea:required:valid {
     border: 1px solid var(--danger-a30);
     border-radius: var(--radius);
     color: var(--danger);
-    font-size: 16px;
+    font-size: 18px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1386,8 +1448,8 @@ textarea:required:valid {
 }
 
 .detail-section h3 {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--text-primary);
@@ -1409,8 +1471,8 @@ textarea:required:valid {
 
 .detail-item label {
     display: block;
-    font-size: 9px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--text-muted);
@@ -1418,7 +1480,7 @@ textarea:required:valid {
 }
 
 .detail-item span {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-primary);
     font-weight: 500;
 }
@@ -1468,7 +1530,7 @@ textarea:required:valid {
     border-radius: var(--radius);
     color: #fff;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 15px;
     letter-spacing: .04em;
     box-shadow: var(--shadow-xl);
     z-index: 9999;
@@ -1512,7 +1574,7 @@ textarea:required:valid {
     gap: 5px;
     padding: 3px 8px;
     border-radius: var(--radius);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: .06em;
     text-transform: uppercase;
@@ -1533,7 +1595,7 @@ textarea:required:valid {
 
 .status-badge.large {
     padding: 8px 16px;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .record-section {
@@ -1549,7 +1611,7 @@ textarea:required:valid {
     border: 1px solid var(--success);
     border-radius: var(--radius);
     color: #fff;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -1576,7 +1638,7 @@ textarea:required:valid {
 
 .record-hint {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 14px;
     margin-top: 8px;
 }
 
@@ -1586,7 +1648,7 @@ textarea:required:valid {
 
 .recorded-info {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 15px;
     margin-top: 10px;
 }
 
@@ -1596,7 +1658,7 @@ textarea:required:valid {
     border: 1px solid var(--danger-a30);
     border-radius: var(--radius);
     color: var(--danger);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: .06em;
     cursor: pointer;
@@ -1650,14 +1712,14 @@ textarea:required:valid {
 }
 
 .time-icon {
-    font-size: 16px;
+    font-size: 18px;
     color: var(--text-muted);
     display: inline-flex;
 }
 
 .time-value {
     flex: 1;
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-muted);
 }
 
@@ -1667,7 +1729,7 @@ textarea:required:valid {
 }
 
 .time-arrow {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--text-muted);
     transition: transform var(--transition);
 }
@@ -1712,8 +1774,8 @@ textarea:required:valid {
 }
 
 .time-column-label {
-    font-size: 9px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--text-muted);
@@ -1746,7 +1808,7 @@ textarea:required:valid {
 .time-option {
     padding: 8px 6px;
     text-align: center;
-    font-size: 13px;
+    font-size: 15px;
     font-family: var(--font-mono);
     color: var(--text-secondary);
     cursor: pointer;
@@ -1769,7 +1831,7 @@ textarea:required:valid {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-muted);
     padding-top: 20px;
@@ -1783,7 +1845,7 @@ textarea:required:valid {
     border: 1px solid var(--primary);
     border-radius: var(--radius);
     color: #fff;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -1818,7 +1880,7 @@ textarea:required:valid {
     border: none;
     border-bottom: 3px solid transparent;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: .07em;
     text-transform: uppercase;
@@ -1860,7 +1922,7 @@ textarea:required:valid {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
@@ -1892,7 +1954,7 @@ textarea:required:valid {
     border-bottom: 1px solid var(--border-color);
     color: var(--accent-ink);
     padding: 11px 20px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -1907,7 +1969,7 @@ textarea:required:valid {
     padding: 1px 7px;
     background: var(--danger);
     color: #fff;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -2319,7 +2381,7 @@ textarea:required:valid {
 }
 
 .toast-icon {
-    font-size: 18px;
+    font-size: 20px;
     flex-shrink: 0;
     margin-top: 1px;
     display: inline-flex;
@@ -2329,13 +2391,13 @@ textarea:required:valid {
 
 .toast-title {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-primary);
     margin-bottom: 2px;
 }
 
 .toast-msg {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-secondary);
     line-height: 1.45;
 }
@@ -2345,7 +2407,7 @@ textarea:required:valid {
     border: none;
     cursor: pointer;
     color: var(--text-muted);
-    font-size: 15px;
+    font-size: 17px;
     padding: 0;
     flex-shrink: 0;
     line-height: 1;
@@ -2406,14 +2468,14 @@ textarea:required:valid {
 }
 
 #confirm-icon {
-    font-size: 34px;
+    font-size: 38px;
     margin-bottom: 12px;
     display: block;
     color: var(--text-secondary);
 }
 
 #confirm-title {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: .1em;
     text-transform: uppercase;
@@ -2422,7 +2484,7 @@ textarea:required:valid {
 }
 
 #confirm-message {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-secondary);
     line-height: 1.55;
     margin-bottom: 20px;
@@ -2441,7 +2503,7 @@ textarea:required:valid {
     border-radius: var(--radius);
     background: var(--bg-input);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: .06em;
     cursor: pointer;
@@ -2461,7 +2523,7 @@ textarea:required:valid {
     border-radius: var(--radius);
     background: var(--danger);
     color: #fff;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: .06em;
     cursor: pointer;

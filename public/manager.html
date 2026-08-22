@@ -2120,6 +2120,11 @@
         function openManagerEdit() {
             if (!currentLoading) return;
 
+            // T() is the i18n shorthand every other renderer defines locally;
+            // this one used it without declaring it, so opening the manager's
+            // edit form threw ReferenceError and the button did nothing.
+            const T = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
+
             const loading = currentLoading;
             let products = loading.products || [];
             if (!Array.isArray(products)) {

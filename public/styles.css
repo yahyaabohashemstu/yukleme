@@ -161,8 +161,10 @@
     --danger-a08: rgba(179, 52, 31, .07);
     --danger-a30: rgba(179, 52, 31, .32);
 
-    /* this theme has no drop shadows — neutralises the few inline ones */
+    /* this theme has no drop shadows or gradients — these neutralise the few
+       written inline in the pages */
     --sh-inline: none;
+    --grad-voice: var(--chrome-bg);
 
     /* voice-filled field highlight */
     --vfill-bg: #fdf3dc;
@@ -194,6 +196,17 @@
 html {
     font-size: 16px;
     scroll-behavior: smooth;
+}
+
+/* Form controls do not inherit the page font by default — without this every
+   button, input and select that does not set its own font-family falls back to
+   the UA default (Arial), which is most of the ones styled inline. */
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+    font-size: inherit;
 }
 
 body {

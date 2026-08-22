@@ -2172,3 +2172,33 @@ textarea,
     flex-direction: column;
     gap: 14px;
 }
+
+/* The design switch is an element this design never had, so it has no original
+   styling to restore — these rules simply make it look at home here, matching
+   the language switcher's chrome. */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-family: var(--font-family);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.theme-toggle:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.login-page .theme-toggle {
+    margin-top: 4px;
+}

@@ -499,6 +499,14 @@ body {
     box-sizing: border-box;
 }
 
+/* The header is a solid dark band with a hard amber rule under it, so the
+   first section needs real air beneath it — flush against the rule it reads
+   as cramped. (The original design got away with it: its header was white.) */
+.main-content {
+    padding-top: 26px;
+    padding-bottom: 32px;
+}
+
 .header-content {
     display: flex;
     align-items: center;

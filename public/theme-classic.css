@@ -2202,3 +2202,11 @@ textarea,
 .login-page .theme-toggle {
     margin-top: 4px;
 }
+
+/* Phone-only chrome that belongs to the other design: the filters fold
+   button and the form progress strip have no place here, and this design
+   shows the filters panel at all times. */
+.filters-toggle,
+.form-progress {
+    display: none !important;
+}

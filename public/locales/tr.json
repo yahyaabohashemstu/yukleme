@@ -255,5 +255,7 @@
   "loader.voice_transcribing": "⏳ Konuşmanız yazıya çevriliyor…",
   "loader.voice_mic_denied": "Mikrofona erişilemedi — cevabı yazıp İleri'ye basın",
   "loader.voice_type": "Cevabı yazıp İleri'ye basın",
-  "loader.voice_review_raw": "📝 Alanlar konuşmanızdan doğrudan dolduruldu (akıllı eşleştirme şu an yok). Adları ve malları dikkatle kontrol edip kaydedin."
+  "loader.voice_review_raw": "📝 Alanlar konuşmanızdan doğrudan dolduruldu (akıllı eşleştirme şu an yok). Adları ve malları dikkatle kontrol edip kaydedin.",
+  "loader.progress_step": "Bölüm {n} / {total}",
+  "loader.progress_fields": "{done} / {total} alan"
 }

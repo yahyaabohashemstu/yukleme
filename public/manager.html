@@ -156,6 +156,14 @@
                         </button>
                     </div>
 
+                    <!-- Phone: the advanced filters fold behind this button so the reports are
+                         the first thing on screen. Hidden on desktop. -->
+                    <button type="button" id="filtersToggle" class="filters-toggle" aria-expanded="false" onclick="toggleFilters()">
+                        <span>🎯</span>
+                        <span data-i18n="manager.filters_title">Gelişmiş Filtreler</span>
+                        <i id="filtersCount" class="fcount" style="display:none"></i>
+                    </button>
+
                     <!-- Advanced Filters Panel -->
                     <div class="filters-panel">
                         <!-- Header -->
@@ -1063,6 +1071,16 @@
             }
         }
 
+        // Phone only: fold/unfold the advanced filters. The button carries a
+        // badge with how many filters are currently narrowing the list.
+        function toggleFilters() {
+            const panel = document.querySelector('.filters-panel');
+            const btn = document.getElementById('filtersToggle');
+            if (!panel) return;
+            const open = panel.classList.toggle('open');
+            if (btn) btn.setAttribute('aria-expanded', String(open));
+        }
+
         function updateActiveFiltersSummary(filteredCount) {
             const summary = document.getElementById('activeFiltersSummary');
             const text = document.getElementById('activeFiltersText');
@@ -1107,6 +1125,12 @@
 
             const cust = (document.getElementById('customerFilterInput')?.value || '').trim();
             if (cust) chips.push(`<span style="background:#fff;padding:4px 10px;border-radius: var(--r-sm, 6px);border:1px solid var(--brand-a30, rgba(79,70,229,0.3));">👤 ${escapeHtml(cust)}</span>`);
+
+            const badge = document.getElementById('filtersCount');
+            if (badge) {
+                badge.textContent = chips.length || '';
+                badge.style.display = chips.length ? '' : 'none';
+            }
 
             if (chips.length > 0) {
                 summary.style.display = 'flex';

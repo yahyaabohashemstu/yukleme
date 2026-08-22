@@ -1256,6 +1256,10 @@ textarea:required:valid {
     justify-content: center;
 }
 
+/* The fold button belongs to the phone layout; on a desktop the panel is
+   always open and the button has no job. */
+.filters-toggle { display: none; }
+
 /* ---- Advanced filters --------------------------------------------------
    Built as a real panel instead of a stack of loose rows: a titled bar across
    the top, then the two filters side by side in their own cells with a divider
@@ -2247,6 +2251,336 @@ textarea:required:valid {
     .theme-toggle,
     .logout-btn {
         min-height: 36px;
+    }
+}
+
+/* ============================================================================
+   PHONE — this is where the loader works and where the manager checks a truck
+   from the yard, so the phone layout is designed rather than inherited.
+   Steel theme only; the classic design keeps its own responsive rules.
+   ============================================================================ */
+
+@media (max-width: 768px) {
+
+    /* ---- Header: two compact rows instead of three tall ones -------------
+       display:contents on .header-actions lifts the language switcher, the
+       design toggle, the user chip and logout out of their wrapper so the grid
+       can place each one individually. */
+    .header-content {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        grid-template-areas:
+            "brand theme logout"
+            "lang  lang  user";
+        gap: 8px;
+        align-items: center;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .header-actions { display: contents; }
+    .header-brand { grid-area: brand; min-width: 0; gap: 10px; }
+    #langSwitcherContainer { grid-area: lang; }
+    .theme-toggle { grid-area: theme; }
+    .logout-btn { grid-area: logout; }
+    .header-user { grid-area: user; justify-self: end; }
+
+    .header-logo { width: 34px; height: 34px; font-size: 19px; }
+    .header-title { min-width: 0; }
+    .header-title h1 { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-title span { display: none; }
+    .header-user { padding: 4px 10px 4px 4px; }
+    .header-user-avatar { width: 28px; height: 28px; font-size: 14px; }
+    .header-user-name { font-size: 12px; }
+    .logout-btn { padding: 8px 11px; }
+    .logout-btn > span:not(.ic) { display: none; }
+    .theme-toggle { padding: 8px 10px; }
+    .theme-toggle > span { display: none; }
+
+    /* ---- Stats: one compact strip, not three stacked cards --------------- */
+    .stats-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        background: var(--border-strong);
+        border: 1px solid var(--border-strong);
+        margin-bottom: 14px;
+    }
+
+    .stat-card {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 2px;
+        padding: 10px 6px;
+        border: none;
+    }
+
+    .stat-icon { display: none; }
+    .stat-info h3 { font-size: 20px; margin-bottom: 1px; }
+    .stat-info p { font-size: 9px; letter-spacing: .06em; }
+
+    /* ---- Month strip: one scrollable line, never three wrapped rows ------ */
+    #monthPagination {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: 10px 14px;
+        gap: 6px;
+    }
+
+    #monthPagination > div {
+        flex-wrap: nowrap !important;
+        overflow: visible;
+    }
+
+    #monthPagination > span:first-child { flex: none; }
+
+    /* ---- Report rows become cards ---------------------------------------
+       Eight columns cannot fit 375px: the two record columns and the details
+       button sat off-screen behind a horizontal scroll. Each row is laid out
+       as a card instead, so everything a manager checks is visible at once. */
+    #tableContainer { overflow-x: visible; }
+    .table-card div[style*="overflow-x"] { overflow-x: visible; }
+
+    .loadings-table,
+    .loadings-table tbody,
+    .loadings-table tr,
+    .loadings-table td { display: block; }
+
+    .loadings-table thead { display: none; }
+
+    .loadings-table tbody tr {
+        display: grid;
+        grid-template-columns: auto auto 1fr;
+        align-items: center;
+        gap: 2px 10px;
+        margin: 0 12px 9px;
+        padding: 11px 13px;
+        border: 1px solid var(--border-strong);
+        background: var(--bg-card);
+    }
+
+    .loadings-table tbody tr::before {
+        content: "";
+        grid-column: 1 / -1;
+        height: 1px;
+        background: var(--border-color);
+        margin: 7px 0 3px;
+    }
+
+    .loadings-table tbody tr:hover td,
+    .loadings-table tbody tr:nth-child(even) td { background: transparent; }
+
+    .loadings-table td {
+        padding: 0;
+        border: none;
+        min-width: 0;
+    }
+
+    .loadings-table tbody tr:last-child { margin-bottom: 4px; }
+
+    /* Manager: customer | plate | date | destination | entry | Fayik | Pinar | actions */
+    #loadingsTableBody tr td:nth-child(1) { grid-area: 1 / 1 / 2 / 3; font-size: 15px; font-weight: 700; }
+    #loadingsTableBody tr td:nth-child(3) { grid-area: 1 / 3 / 2 / 4; justify-self: end; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    #loadingsTableBody tr td:nth-child(4) { grid-area: 2 / 1 / 3 / 4; font-size: 12px; color: var(--text-secondary); }
+    #loadingsTableBody tr td:nth-child(2) { grid-area: 3 / 1 / 4 / 2; font-size: 12px; color: var(--text-muted); }
+    #loadingsTableBody tr td:nth-child(5) { grid-area: 3 / 2 / 4 / 4; font-size: 12px; }
+    #loadingsTableBody tr td:nth-child(6) { grid-area: 5 / 1 / 6 / 2; }
+    #loadingsTableBody tr td:nth-child(7) { grid-area: 5 / 2 / 6 / 3; }
+    #loadingsTableBody tr td:nth-child(8) { grid-area: 5 / 3 / 6 / 4; justify-self: end; }
+
+    /* Loader history has no date column: customer | plate | destination | entry | Fayik | Pinar | actions */
+    #historyTableBody tr td:nth-child(1) { grid-area: 1 / 1 / 2 / 4; font-size: 15px; font-weight: 700; }
+    #historyTableBody tr td:nth-child(3) { grid-area: 2 / 1 / 3 / 4; font-size: 12px; color: var(--text-secondary); }
+    #historyTableBody tr td:nth-child(2) { grid-area: 3 / 1 / 4 / 2; font-size: 12px; color: var(--text-muted); }
+    #historyTableBody tr td:nth-child(4) { grid-area: 3 / 2 / 4 / 4; font-size: 12px; }
+    #historyTableBody tr td:nth-child(5) { grid-area: 5 / 1 / 6 / 2; }
+    #historyTableBody tr td:nth-child(6) { grid-area: 5 / 2 / 6 / 3; }
+    #historyTableBody tr td:nth-child(7) { grid-area: 5 / 3 / 6 / 4; justify-self: end; }
+
+    /* The "who entered it" cell stacks on desktop; inline reads better here.
+       nowrap matters: the timestamp was wrapping to two lines and adding 23px
+       to every card. */
+    .loadings-table tbody td > div[style*="flex-direction: column"] {
+        flex-direction: row !important;
+        align-items: center;
+        gap: 8px !important;
+        white-space: nowrap;
+    }
+
+    .loadings-table tbody td > div[style*="flex-direction: column"] > span {
+        white-space: nowrap;
+    }
+
+    /* The actions cell stacks its badge above the button on desktop. */
+    .loadings-table tbody td:last-child > div {
+        flex-direction: row !important;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .empty-state { padding: 48px 20px; }
+
+    /* ---- The record action stays reachable -------------------------------
+       It sat ~2300px down the modal body; pinned to the bottom of the
+       scrollport it is in the thumb's reach from the moment a report opens. */
+    .modal-body .record-section,
+    .modal-body .recorded-status {
+        position: sticky;
+        bottom: -1px;
+        z-index: 5;
+        border: 1px solid var(--border-strong);
+        border-inline-start: 3px solid var(--success);
+        box-shadow: 0 -10px 20px -16px rgba(22, 25, 29, .55);
+    }
+
+    .modal-body .record-btn { width: 100%; justify-content: center; margin: 10px 0 4px; }
+
+    /* ---- Submitting the report is always one tap away -------------------- */
+    .submit-section {
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        margin-top: 18px;
+        margin-bottom: 0;
+        padding: 10px 0 12px;
+        background: var(--bg-secondary);
+        box-shadow: 0 -10px 20px -16px rgba(22, 25, 29, .5);
+    }
+
+    /* ---- Advanced filters fold behind a button --------------------------- */
+    .filters-toggle {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: calc(100% - 40px);
+        margin: 0 20px;
+        min-height: 46px;
+        padding: 0 14px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: .04em;
+        cursor: pointer;
+    }
+
+    .filters-toggle .fcount {
+        margin-inline-start: auto;
+        min-width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--accent);
+        color: var(--chrome-bg);
+        font-size: 11px;
+        font-weight: 700;
+        font-style: normal;
+    }
+
+    .filters-panel { display: none; }
+    .filters-panel.open { display: grid; }
+
+    /* ---- Loader form: a progress strip and folding sections -------------- */
+    .form-progress {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        margin: 0 0 16px;
+        padding: 9px 2px 8px;
+        background: var(--bg-secondary);
+    }
+
+    .form-progress .fp-bar {
+        height: 4px;
+        background: var(--border-color);
+    }
+
+    .form-progress .fp-bar i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width var(--transition);
+    }
+
+    .form-progress .fp-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 7px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .form-progress .fp-step {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-secondary);
+    }
+
+    .form-progress .fp-count { flex: none; }
+
+    /* The section header becomes the fold control. */
+    .phone-form #loadingForm > .form-card > .form-card-header {
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+
+    .phone-form #loadingForm > .form-card.is-current {
+        border-color: var(--primary);
+        box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    /* Completed sections carry their tally, and a tick once folded. */
+    .phone-form #loadingForm > .form-card::after { content: none; }
+
+    .phone-form #loadingForm > .form-card > .form-card-header::after {
+        content: attr(data-count);
+        margin-inline-start: auto;
+        flex: none;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .phone-form #loadingForm > .form-card.is-complete > .form-card-header::after {
+        content: "✓";
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--ok-a10);
+        border: 1px solid rgba(47, 122, 79, .35);
+        color: var(--success);
+        font-size: 13px;
+    }
+
+    .phone-form #loadingForm > .form-card.is-folded > .form-card-header {
+        margin-bottom: 0;
+        border-bottom: none;
+    }
+
+    .phone-form #loadingForm > .form-card.is-folded {
+        padding-bottom: 0 !important;
+    }
+
+    .phone-form #loadingForm > .form-card.is-folded > *:not(.form-card-header) {
+        display: none;
     }
 }
 

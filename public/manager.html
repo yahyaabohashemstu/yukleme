@@ -401,11 +401,11 @@
             return idx;
         }
 
-        function getProductDisplayName(turkishName) {
-            if (!turkishName) return '';
-            // Arabic display is enabled ONLY for the production manager (Fayık).
-            // Pinar and any other accounts keep the original Turkish regardless of UI language.
-            if (currentUsername !== 'manager') return turkishName;
+        // Resolves the Arabic reading of a stored (Turkish) product name, or null
+        // when the catalogue has no entry for it. Display and search both build on
+        // this; only display cares about the interface language.
+        function resolveArabicName(turkishName) {
+            if (!turkishName) return null;
 
             // 1. Exact match (fastest path, covers the typical case)
             if (productTrToAr[turkishName]) return productTrToAr[turkishName];
@@ -429,12 +429,35 @@
                          || _normalizedProductIndex[_normalizeProductKey(noTrailingParen)];
             if (normHit) return normHit;
 
-            // 5. Give up gracefully: keep Turkish, but log so the gap can be filled
-            //    in products_tr_to_ar.json on the next maintenance pass.
+            // 5. Give up gracefully, but log so the gap can be filled in
+            //    products_tr_to_ar.json on the next maintenance pass.
             if (typeof console !== 'undefined' && console.warn) {
                 console.warn('[i18n] No Arabic mapping for product:', JSON.stringify(turkishName));
             }
-            return turkishName;
+            return null;
+        }
+
+        // What goes ON SCREEN. The Arabic reading appears only when the interface
+        // itself is Arabic; in Turkish or English the stored name IS the answer —
+        // it is what the loader typed and what gets copied into the other system.
+        // Reading Arabic product names inside a Turkish page was the mismatch this
+        // fixes.
+        function getProductDisplayName(turkishName) {
+            if (!turkishName) return '';
+            // Arabic display belongs to the production manager's account; Pinar and
+            // any other account keep the Turkish the catalogue is written in.
+            if (currentUsername !== 'manager') return turkishName;
+            const lang = (window.i18n && window.i18n.getLang) ? window.i18n.getLang() : 'tr';
+            if (lang !== 'ar') return turkishName;
+            return resolveArabicName(turkishName) || turkishName;
+        }
+
+        // For the SEARCH index only: the Arabic reading whatever the interface
+        // language, so a manager who thinks in Arabic can still find a report
+        // while reading the Turkish page.
+        function getProductSearchName(turkishName) {
+            if (currentUsername !== 'manager') return null;
+            return resolveArabicName(turkishName);
         }
 
         // Invalidate the cached normalized index when the translation map reloads
@@ -507,7 +530,7 @@
             const s = (value === null || value === undefined) ? '' : String(value);
             const trimmed = s.trim();
             if (!trimmed || trimmed === '-') return '';
-            return `<button type="button" class="copy-btn" data-copy-value="${escapeHtml(s)}" onclick="copyValue(this)" title="Kopyala"
+            return `<button type="button" class="copy-btn" data-copy-value="${escapeHtml(s)}" onclick="copyValue(this)" title="Kopyala" data-i18n-title="common.copy"
                 style="background: transparent; border: none; cursor: pointer; padding: 2px 6px; border-radius: var(--r-xs, 4px); opacity: 0.45; transition: opacity 0.15s ease, background 0.15s ease; font-size: var(--fs-13, 13px); margin: 0 4px; vertical-align: middle; line-height: 1;"
                 onmouseover="this.style.opacity='1'; this.style.background='var(--brand-a10, rgba(79,70,229,0.1))'"
                 onmouseout="this.style.opacity='0.45'; this.style.background='transparent'"
@@ -658,12 +681,12 @@
                 }
 
                 const paperBadge = paperConfirmed
-                    ? '<span title="Kağıt teslimi onaylandı" style="font-size: var(--fs-15, 15px);">✅</span>'
+                    ? '<span title="Kağıt teslimi onaylandı" data-i18n-title="status.paper_confirmed" style="font-size: var(--fs-15, 15px);">✅</span>'
                     : paperDelivered
-                        ? '<span title="Teslim edildi, onay bekliyor" style="font-size: var(--fs-15, 15px);">📄⏳</span>'
-                        : '<span title="Kağıt teslim edilmedi" style="font-size: var(--fs-15, 15px); opacity:0.35;">📄</span>';
+                        ? '<span title="Teslim edildi, onay bekliyor" data-i18n-title="status.paper_delivered_pending" style="font-size: var(--fs-15, 15px);">📄⏳</span>'
+                        : '<span title="Kağıt teslim edilmedi" data-i18n-title="status.paper_not_delivered" style="font-size: var(--fs-15, 15px); opacity:0.35;">📄</span>';
                 
-                const improvementBadge = needsImprovement ? '<span title="Düzeltme bekleniyor" style="font-size: var(--fs-16, 16px); margin-right:4px;">⚠️</span>' : '';
+                const improvementBadge = needsImprovement ? '<span title="Düzeltme bekleniyor" data-i18n-title="status.needs_improvement" style="font-size: var(--fs-16, 16px); margin-right:4px;">⚠️</span>' : '';
 
                 return `
                 <tr ${rowStyle}>
@@ -906,12 +929,12 @@
                     l.users?.username
                 ].map(v => (v || '').toLowerCase());
 
-                // For the manager (Fayık) include both Turkish (DB) and Arabic (display)
-                // names so search works in either language. For Pinar/others,
-                // getProductDisplayName returns Turkish so only one entry is added.
+                // Index BOTH readings for the manager, whatever the interface language,
+                // so typing an Arabic product name finds the report on a Turkish page
+                // and vice versa. For other accounts only the stored name is indexed.
                 const productNames = (l.products || []).flatMap(p => {
                     const tr = (p.name || '').toLowerCase();
-                    const ar = (getProductDisplayName(p.name) || '').toLowerCase();
+                    const ar = (getProductSearchName(p.name) || '').toLowerCase();
                     return ar && ar !== tr ? [tr, ar] : [tr];
                 });
                 const all = [...fields, ...productNames];
@@ -1076,7 +1099,7 @@
             const previous = sel.value;
             const sorted = [...years].sort((a, b) => parseInt(b) - parseInt(a)); // newest first
 
-            sel.innerHTML = '<option value="">Yıl seçin</option>' +
+            sel.innerHTML = '<option value="" data-i18n="manager.filter_year_select">Yıl seçin</option>' +
                 sorted.map(y => `<option value="${y}">${y}</option>`).join('');
 
             // Restore previously selected year if it still exists
@@ -1259,9 +1282,9 @@
                 console.error('Critical Error in viewDetails:', error);
                 modalBody.innerHTML = `
                     <div style="padding: 20px; color: var(--danger, #dc2626); text-align: center;">
-                        <h3>Hata Oluştu</h3>
+                        <h3 data-i18n="common.error_title">Hata Oluştu</h3>
                         <p>${error.message}</p>
-                        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px;">Sayfayı Yenile</button>
+                        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px;" data-i18n="common.refresh_page">Sayfayı Yenile</button>
                     </div>
                 `;
             }
@@ -1274,7 +1297,9 @@
             let tabsHtml = '<div class="version-tabs">';
             currentVersions.forEach((v, index) => {
                 const isCurrent = index === 0;
-                const label = isCurrent ? 'Mevcut Sürüm' : `Versiyon ${v.version_number}`;
+                const label = isCurrent
+                    ? '<span data-i18n="manager.version_current">Mevcut Sürüm</span>'
+                    : `${T('manager.version_numbered', 'Versiyon')} ${v.version_number}`;
                 const activeClass = index === activeIndex ? 'active' : '';
                 tabsHtml += `
                     <button class="version-tab ${activeClass}" onclick="switchVersion(${index})">
@@ -1386,7 +1411,7 @@
             const managerEditNoteText = 'Bu rapor yönetici tarafından düzenlenmiştir.';
             const hasManagerEditNote = typeof loading.comments === 'string' && loading.comments.includes(managerEditNoteText);
             const managerEditBanner = hasManagerEditNote ? `
-                <div class="archive-warning">
+                <div class="archive-warning" data-i18n="manager.edited_by_manager_note">
                     📝 Bu rapor yönetici tarafından düzenlenmiştir.
                 </div>
             ` : '';
@@ -1395,7 +1420,7 @@
                 <div style="background: var(--bg-hover); padding: 12px 16px; border-radius: var(--r, 8px); border-left: 4px solid var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: var(--fs-24, 24px);">👤</span>
                     <div>
-                        <div style="font-size: var(--fs-11, 11px); color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Bu sürümü düzenleyen</div>
+                        <div style="font-size: var(--fs-11, 11px); color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;" data-i18n="manager.version_editor">Bu sürümü düzenleyen</div>
                         <div style="font-size: var(--fs-15, 15px); font-weight: bold; color: var(--text-primary); margin-top: 2px;">${escapeHtml(editorName)}</div>
                     </div>
                 </div>
@@ -1485,22 +1510,22 @@
 
                         return `
                         <div class="detail-section record-section">
-                            <h3>📝 Sistem Kayıt Durumu (Pinar)</h3>
+                            <h3 data-i18n="manager.section_record_status">📝 Sistem Kayıt Durumu (Pinar)</h3>
                             ${isRecorded ? `
                                 <div class="recorded-status">
-                                    <span class="status-badge status-recorded large">✓ Kaydedildi</span>
-                                    <p class="recorded-info">Kayıt tarihi: ${recordedAt ? new Date(recordedAt).toLocaleString('tr-TR') : '-'}</p>
+                                    <span class="status-badge status-recorded large" data-i18n="status.recorded">✓ Kaydedildi</span>
+                                    <p class="recorded-info"><span data-i18n="manager.recorded_on">Kayıt tarihi:</span> ${recordedAt ? new Date(recordedAt).toLocaleString('tr-TR') : '-'}</p>
                                     <button class="unrecord-btn" id="unrecordBtn" onclick="cancelRecording('${loading.id}')">
                                         <span>✕</span>
-                                        <span>Kaydı İptal Et</span>
+                                        <span data-i18n="manager.unrecord">Kaydı İptal Et</span>
                                     </button>
                                 </div>
                             ` : `
                                 <button class="record-btn" id="recordBtn" onclick="markAsRecorded('${loading.id}')">
                                     <span>✓</span>
-                                    <span>Kaydedildi</span>
+                                    <span data-i18n="status.recorded">Kaydedildi</span>
                                 </button>
-                                <p class="record-hint">Bu bilgileri sisteme kaydettikten sonra buraya tıklayın</p>
+                                <p class="record-hint" data-i18n="manager.record_hint">Bu bilgileri sisteme kaydettikten sonra buraya tıklayın</p>
                             `}
                         </div>
                         `;
@@ -1534,22 +1559,22 @@
 
                 <!-- Vehicle Info (Moved to 2nd) -->
                 <div class="detail-section">
-                    <h3>🚚 Araç Bilgileri</h3>
+                    <h3 data-i18n="manager.section_vehicle">🚚 Araç Bilgileri</h3>
                     <div class="detail-grid">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate1') : ''}">
-                            <label>Araç Plakası 1</label>
+                            <label data-i18n="loader.field_plate1">Araç Plakası 1</label>
                             <span>${escapeHtml(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '-')}${copyBtn(loading.plate1 ? loading.plate1.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'plate2') : ''}">
-                            <label>Araç Plakası 2</label>
+                            <label data-i18n="loader.field_plate2">Araç Plakası 2</label>
                             <span>${escapeHtml(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '-')}${copyBtn(loading.plate2 ? loading.plate2.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'container_no') : ''}">
-                            <label>Konteyner Numarası</label>
+                            <label data-i18n="loader.field_container">Konteyner Numarası</label>
                             <span>${escapeHtml(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '-')}${copyBtn(loading.container_no ? loading.container_no.replace(/\s+/g, '') : '')}</span>
                         </div>
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'loading_date') : ''}">
-                            <label>Tarih</label>
+                            <label data-i18n="loader.field_date">Tarih</label>
                             <span>${formatDate(loading.loading_date)}${copyBtn(formatDate(loading.loading_date))}</span>
                         </div>
                     </div>
@@ -1557,9 +1582,9 @@
 
                 <!-- Products (Moved to 3rd) -->
                 <div class="detail-section">
-                    <h3>📦 Yüklenen Mallar</h3>
+                    <h3 data-i18n="manager.section_products">📦 Yüklenen Mallar</h3>
                     ${(() => {
-                        if (products.length === 0) return '<p style="color: var(--gray-400);">Kayıtlı mal bulunamadı</p>';
+                        if (products.length === 0) return '<p style="color: var(--gray-400);" data-i18n="manager.empty_products">Kayıtlı mal bulunamadı</p>';
                         
                         // Parse previous products for comparison
                         let prevProducts = [];
@@ -1588,7 +1613,7 @@
                             const displayName = getProductDisplayName(p.name) || '-';
                             return `
                                 <tr style="${rowStyle}">
-                                    <td class="${nameClass}" dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${isNew ? '<span style="font-size: var(--fs-10, 10px);color:var(--primary);font-weight:700;margin-right:4px;" dir="ltr">YENİ</span>' : ''}${escapeHtml(displayName)}${copyBtn(displayName)}</td>
+                                    <td class="${nameClass}" dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${isNew ? '<span style="font-size: var(--fs-10, 10px);color:var(--primary);font-weight:700;margin-right:4px;" dir="ltr" data-i18n="common.new_badge">YENİ</span>' : ''}${escapeHtml(displayName)}${copyBtn(displayName)}</td>
                                     <td class="${qtyClass}">${escapeHtml(p.quantity || '-')}${copyBtn(p.quantity)}</td>
                                     <td class="${pallClass}">${escapeHtml(p.pallets || '-')}${copyBtn(p.pallets)}</td>
                                 </tr>`;
@@ -1600,7 +1625,7 @@
                                 const displayName = getProductDisplayName(p.name) || '-';
                                 return `
                                 <tr style="background: var(--danger-a08, rgba(220,38,38,0.08)); border-left: 3px solid var(--danger); opacity: 0.7; text-decoration: line-through;">
-                                    <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}"><span style="font-size: var(--fs-10, 10px);color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr">SİLİNDİ</span>${escapeHtml(displayName)}</td>
+                                    <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}"><span style="font-size: var(--fs-10, 10px);color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr" data-i18n="common.deleted_badge">SİLİNDİ</span>${escapeHtml(displayName)}</td>
                                     <td>${escapeHtml(p.quantity || '-')}</td>
                                     <td>${escapeHtml(p.pallets || '-')}</td>
                                 </tr>`;
@@ -1624,7 +1649,7 @@
                     })()}
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
-                            <label>Toplam Yük Ağırlığı ⚖️</label>
+                            <label data-i18n="manager.total_weight">Toplam Yük Ağırlığı ⚖️</label>
                             <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${escapeHtml(loading.vehicle_weight_after || '-')}${copyBtn(loading.vehicle_weight_after)}</span>
                         </div>
                         ${products.length > 0 ? (() => {
@@ -1705,50 +1730,50 @@
                     if (needsImprovement) {
                         return `
                         <div class="detail-section" style="border: 2px solid var(--info, #3b82f6); background: rgba(59,130,246,0.05);">
-                            <h3 style="color: var(--info, #3b82f6);">⚠️ Düzeltme Talebi Gönderildi</h3>
+                            <h3 style="color: var(--info, #3b82f6);" data-i18n="manager.improve_sent_title">⚠️ Düzeltme Talebi Gönderildi</h3>
                             <div style="margin-top: 10px;">
                                 <p style="font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 5px;">Tarih: ${new Date(loading.needs_improvement_at).toLocaleString('tr-TR')}</p>
-                                <p><strong>Bölüm:</strong> ${escapeHtml(loading.needs_improvement_reason?.section || '-')}</p>
-                                <p><strong>Alan:</strong> ${escapeHtml(loading.needs_improvement_reason?.field || '-')}</p>
-                                <p style="margin-top: 8px;"><strong>Mesaj:</strong><br/>${escapeHtml(loading.needs_improvement_reason?.comment || '-')}</p>
+                                <p><strong data-i18n="manager.improve_section_label">Bölüm:</strong> ${escapeHtml(loading.needs_improvement_reason?.section || '-')}</p>
+                                <p><strong data-i18n="manager.improve_field_label">Alan:</strong> ${escapeHtml(loading.needs_improvement_reason?.field || '-')}</p>
+                                <p style="margin-top: 8px;"><strong data-i18n="manager.improve_message_label">Mesaj:</strong><br/>${escapeHtml(loading.needs_improvement_reason?.comment || '-')}</p>
                             </div>
-                            <p style="margin-top:10px; font-size: var(--fs-13, 13px); color:var(--text-secondary);">Loader bu raporu düzenlediğinde bu talep otomatik olarak kapanacaktır.</p>
+                            <p style="margin-top:10px; font-size: var(--fs-13, 13px); color:var(--text-secondary);" data-i18n="manager.improve_auto_close">Loader bu raporu düzenlediğinde bu talep otomatik olarak kapanacaktır.</p>
                         </div>
                         `;
                     } else {
                         return `
                         <div class="detail-section" id="improvementAlertSection">
-                            <h3>⚠️ Düzeltme İste</h3>
-                            <button class="view-btn" onclick="document.getElementById('improvementForm').style.display='block'; this.style.display='none';" style="background: transparent; color: var(--info, #3b82f6); border: 1px solid var(--info, #3b82f6); width: 100%; border-radius: var(--r, 8px); padding: 10px; margin-top: 5px;">
+                            <h3 data-i18n="manager.improve_request_title">⚠️ Düzeltme İste</h3>
+                            <button class="view-btn" onclick="document.getElementById('improvementForm').style.display='block'; this.style.display='none';" style="background: transparent; color: var(--info, #3b82f6); border: 1px solid var(--info, #3b82f6); width: 100%; border-radius: var(--r, 8px); padding: 10px; margin-top: 5px;" data-i18n="manager.improve_open_button">
                                 Rapor Hatalı/Eksik (Loader'a Gönder)
                             </button>
                             
                             <form id="improvementForm" style="display: none; margin-top: 15px; background: var(--bg-hover); padding: 15px; border-radius: var(--r, 8px); border: 1px solid var(--border-color);" onsubmit="submitImprovementAlert(event, '${loading.id}')">
-                                <p style="font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 12px;">Bu formu doldurduğunuzda rapor loader'a geri gönderilir ve kaydı (varsa) silinir.</p>
+                                <p style="font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 12px;" data-i18n="manager.improve_form_hint">Bu formu doldurduğunuzda rapor loader'a geri gönderilir ve kaydı (varsa) silinir.</p>
                                 
-                                <label style="display: block; font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 5px;">Hatalı Bölüm</label>
+                                <label style="display: block; font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 5px;" data-i18n="manager.improve_section">Hatalı Bölüm</label>
                                 <select id="improvementSection" required onchange="handleImprovementSectionChange()" style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
-                                    <option value="">Seçiniz</option>
-                                    <option value="Müşteri Bilgileri">Müşteri Bilgileri</option>
-                                    <option value="Araç Bilgileri">Araç Bilgileri</option>
-                                    <option value="Yüklenen Mallar">Yüklenen Mallar</option>
-                                    <option value="Yükleme Ekibi ve Forklift">Yükleme Ekibi ve Forklift</option>
-                                    <option value="Sürücü Bilgileri">Sürücü Bilgileri</option>
-                                    <option value="Fotoğraflar ve Evraklar">Fotoğraflar ve Evraklar</option>
-                                    <option value="Zamanlar ve Diğer">Zamanlar ve Diğer</option>
+                                    <option value="" data-i18n="common.select">Seçiniz</option>
+                                    <option value="Müşteri Bilgileri" data-i18n="manager.section_customer">Müşteri Bilgileri</option>
+                                    <option value="Araç Bilgileri" data-i18n="loader.section_vehicle">Araç Bilgileri</option>
+                                    <option value="Yüklenen Mallar" data-i18n="loader.section_products">Yüklenen Mallar</option>
+                                    <option value="Yükleme Ekibi ve Forklift" data-i18n="manager.improve_opt_team">Yükleme Ekibi ve Forklift</option>
+                                    <option value="Sürücü Bilgileri" data-i18n="loader.section_driver">Sürücü Bilgileri</option>
+                                    <option value="Fotoğraflar ve Evraklar" data-i18n="manager.improve_opt_photos">Fotoğraflar ve Evraklar</option>
+                                    <option value="Zamanlar ve Diğer" data-i18n="manager.improve_opt_times">Zamanlar ve Diğer</option>
                                 </select>
 
-                                <label style="display: block; font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 5px;">Sorunlu Alan / Detay</label>
+                                <label style="display: block; font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 5px;" data-i18n="manager.improve_field">Sorunlu Alan / Detay</label>
                                 <select id="improvementField" required style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
-                                    <option value="">Önce bölüm seçiniz</option>
+                                    <option value="" data-i18n="manager.improve_pick_section_first">Önce bölüm seçiniz</option>
                                 </select>
 
-                                <label style="display: block; font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 5px;">Açıklama / Mesaj</label>
-                                <textarea id="improvementComment" rows="3" placeholder="Lütfen tam olarak neyin düzeltilmesi gerektiğini açıklayın..." required style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 15px; resize: vertical; margin-top: 0px;"></textarea>
+                                <label style="display: block; font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 5px;" data-i18n="manager.improve_message">Açıklama / Mesaj</label>
+                                <textarea id="improvementComment" rows="3" placeholder="Lütfen tam olarak neyin düzeltilmesi gerektiğini açıklayın..." data-i18n-placeholder="manager.ph_improve_message" required style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-primary); margin-bottom: 15px; resize: vertical; margin-top: 0px;"></textarea>
                                 
                                 <div style="display: flex; gap: 10px;">
-                                    <button type="submit" class="primary-btn" style="flex: 1; background: var(--info, #3b82f6); border-color: var(--info, #3b82f6);">Gönder</button>
-                                    <button type="button" class="view-btn" style="flex: 1;" onclick="document.getElementById('improvementForm').style.display='none'; this.closest('.detail-section').querySelector('.view-btn').style.display='block';">İptal</button>
+                                    <button type="submit" class="primary-btn" style="flex: 1; background: var(--info, #3b82f6); border-color: var(--info, #3b82f6);" data-i18n="common.send">Gönder</button>
+                                    <button type="button" class="view-btn" style="flex: 1;" onclick="document.getElementById('improvementForm').style.display='none'; this.closest('.detail-section').querySelector('.view-btn').style.display='block';" data-i18n="common.cancel">İptal</button>
                                 </div>
                             </form>
                         </div>
@@ -1759,7 +1784,7 @@
                 <!-- Comments -->
                 ${loading.comments ? `
                     <div class="detail-section ${isCurrentVersion ? getChangedClass(loading, previousData, 'comments') : ''}">
-                        <h3>💬 Yorumlar</h3>
+                        <h3 data-i18n="loader.section_comments">💬 Yorumlar</h3>
                         <p style="color: var(--gray-200); line-height: 1.8;">${escapeHtml(loading.comments)}</p>
                     </div>
                 ` : ''}
@@ -1781,22 +1806,22 @@
 
                     return `
                     <div class="detail-section record-section">
-                        <h3>📝 Sistem Kayıt Durumu ${currentUsername !== 'pinar' ? '(Fayık)' : '(Pinar)'}</h3>
+                        <h3>${T('manager.section_record_status_bare', '📝 Sistem Kayıt Durumu')} ${currentUsername !== 'pinar' ? '(Fayık)' : '(Pinar)'}</h3>
                         ${isRecorded ? `
                             <div class="recorded-status">
-                                <span class="status-badge status-recorded large">✓ Kaydedildi</span>
-                                <p class="recorded-info">Kayıt tarihi: ${recordedAt ? new Date(recordedAt).toLocaleString('tr-TR') : '-'}</p>
+                                <span class="status-badge status-recorded large" data-i18n="status.recorded">✓ Kaydedildi</span>
+                                <p class="recorded-info"><span data-i18n="manager.recorded_on">Kayıt tarihi:</span> ${recordedAt ? new Date(recordedAt).toLocaleString('tr-TR') : '-'}</p>
                                 <button class="unrecord-btn" id="unrecordBtn" onclick="cancelRecording('${loading.id}')">
                                     <span>✕</span>
-                                    <span>Kaydı İptal Et</span>
+                                    <span data-i18n="manager.unrecord">Kaydı İptal Et</span>
                                 </button>
                             </div>
                         ` : `
                             <button class="record-btn" id="recordBtn" onclick="markAsRecorded('${loading.id}')">
                                 <span>✓</span>
-                                <span>Kaydedildi</span>
+                                <span data-i18n="status.recorded">Kaydedildi</span>
                             </button>
-                            <p class="record-hint">Bu bilgileri sisteme kaydettikten sonra buraya tıklayın</p>
+                            <p class="record-hint" data-i18n="manager.record_hint">Bu bilgileri sisteme kaydettikten sonra buraya tıklayın</p>
                         `}
                     </div>
                     `;
@@ -1808,37 +1833,37 @@
                     const confirmed = loading.paper_confirmed_at;
                     return `
                     <div class="detail-section">
-                        <h3>📄 Kağıt Teslimi</h3>
+                        <h3 data-i18n="common.section_paper">📄 Kağıt Teslimi</h3>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
                             ${delivered ? `
                                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); background: var(--ok-a10, rgba(16,185,129,0.1)); border: 1px solid var(--success);">
                                     <span style="font-size: var(--fs-20, 20px);">📄</span>
                                     <div>
-                                        <div style="font-weight: 600; color: var(--success);">Yükleyici kağıdı teslim ettiğini işaretledi</div>
+                                        <div style="font-weight: 600; color: var(--success);" data-i18n="manager.paper_loader_marked">Yükleyici kağıdı teslim ettiğini işaretledi</div>
                                         <div style="font-size: var(--fs-12, 12px); color: var(--text-secondary);">${new Date(delivered).toLocaleString('tr-TR')}</div>
                                     </div>
                                 </div>
                             ` : `
                                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); background: var(--danger-a08, rgba(220,38,38,0.08)); border: 1px solid var(--danger);">
                                     <span style="font-size: var(--fs-20, 20px);">📄</span>
-                                    <div style="font-weight: 600; color: var(--danger);">Yükleyici henüz kağıt teslimini işaretlemedi</div>
+                                    <div style="font-weight: 600; color: var(--danger);" data-i18n="manager.paper_loader_not_marked">Yükleyici henüz kağıt teslimini işaretlemedi</div>
                                 </div>
                             `}
                             ${confirmed ? `
                                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r, 8px); background: rgba(16,185,129,0.15); border: 1px solid var(--success);">
                                     <span style="font-size: var(--fs-20, 20px);">✅</span>
                                     <div>
-                                        <div style="font-weight: 600; color: var(--success);">Müdür teslimi onayladı</div>
+                                        <div style="font-weight: 600; color: var(--success);" data-i18n="manager.paper_confirmed_by_manager">Müdür teslimi onayladı</div>
                                         <div style="font-size: var(--fs-12, 12px); color: var(--text-secondary);">${new Date(confirmed).toLocaleString('tr-TR')}</div>
                                     </div>
                                 </div>
                                 <button onclick="togglePaperConfirmed('${loading.id}')"
-                                    style="padding: 10px 16px; border-radius: var(--r, 8px); border: 1px solid var(--danger); background: var(--danger-a08, rgba(220,38,38,0.08)); color: var(--danger); cursor: pointer; font-size: var(--fs-14, 14px); font-weight: 600;">
+                                    style="padding: 10px 16px; border-radius: var(--r, 8px); border: 1px solid var(--danger); background: var(--danger-a08, rgba(220,38,38,0.08)); color: var(--danger); cursor: pointer; font-size: var(--fs-14, 14px); font-weight: 600;" data-i18n="manager.paper_undo_confirm">
                                     ✕ Onayı Geri Al
                                 </button>
                             ` : `
                                 <button onclick="togglePaperConfirmed('${loading.id}')"
-                                    style="padding: 12px 16px; border-radius: var(--r, 8px); border: none; background: var(--success); color: white; cursor: pointer; font-size: var(--fs-14, 14px); font-weight: 600; width: 100%;">
+                                    style="padding: 12px 16px; border-radius: var(--r, 8px); border: none; background: var(--success); color: white; cursor: pointer; font-size: var(--fs-14, 14px); font-weight: 600; width: 100%;" data-i18n="manager.paper_confirm">
                                     ✅ Kağıt Teslimini Onayla
                                 </button>
                             `}
@@ -1853,18 +1878,18 @@
                         ${!loading.is_archived ? `
                         <button class="tab-btn active"
                             style="width: 100%; justify-content: center; background: var(--bg-input); border: 2px solid var(--warning); color: var(--text-primary); margin-top: 10px;"
-                            onclick="openManagerEdit()">
+                            onclick="openManagerEdit()" data-i18n="manager.edit_report">
                             ✏️ Raporu Düzenle (Yönetici)
                         </button>
                         <button class="tab-btn"
                             style="width: 100%; justify-content: center; background: transparent; border: 2px solid var(--error); color: var(--error); margin-top: 5px;"
-                            onclick="archiveLoading('${loading.id}')">
+                            onclick="archiveLoading('${loading.id}')" data-i18n="manager.archive_move">
                             🗑️ Arşive Taşı (Soft Delete)
                         </button>
                         ` : `
                         <button class="tab-btn"
                             style="width: 100%; justify-content: center; background: transparent; border: 2px solid var(--success); color: var(--success); margin-top: 10px;"
-                            onclick="restoreLoading('${loading.id}')">
+                            onclick="restoreLoading('${loading.id}')" data-i18n="manager.restore">
                             ♻️ Geri Yükle (Restore)
                         </button>
                         `}
@@ -1906,7 +1931,7 @@
             fieldSelect.innerHTML = ''; // Select'i temizle
             
             if (!section) {
-                fieldSelect.innerHTML = '<option value="">Önce bölüm seçiniz</option>';
+                fieldSelect.innerHTML = '<option value="" data-i18n="manager.improve_pick_section_first">Önce bölüm seçiniz</option>';
                 return;
             }
 
@@ -1957,7 +1982,7 @@
 
             const fields = fieldsMap[section] || [];
             
-            fieldSelect.innerHTML = '<option value="">Sorunlu alanı seçiniz</option>';
+            fieldSelect.innerHTML = '<option value="" data-i18n="manager.improve_pick_field">Sorunlu alanı seçiniz</option>';
             fields.forEach(field => {
                 const opt = document.createElement('option');
                 opt.value = field;
@@ -1978,7 +2003,7 @@
             
             const btn = event.target.querySelector('button[type="submit"]');
             btn.disabled = true;
-            btn.innerHTML = '<div class="spinner"></div><span>Gönderiliyor...</span>';
+            btn.innerHTML = '<div class="spinner"></div><span data-i18n="common.sending">Gönderiliyor...</span>';
 
             const section = document.getElementById('improvementSection').value;
             const field = document.getElementById('improvementField').value;
@@ -2008,13 +2033,13 @@
                 } else {
                     showToast('Hata: ' + (data.error || 'Bilinmeyen hata'), 'error');
                     btn.disabled = false;
-                    btn.innerHTML = 'Gönder';
+                    btn.innerHTML = '<span data-i18n="common.send">Gönder</span>';
                 }
             } catch (e) {
                 console.error('Submit improvement alert error', e);
                 showToast('Bağlantı hatası', 'error');
                 btn.disabled = false;
-                btn.innerHTML = 'Gönder';
+                btn.innerHTML = '<span data-i18n="common.send">Gönder</span>';
             }
         }
 
@@ -2023,7 +2048,7 @@
             const btn = document.getElementById('recordBtn');
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<div class="spinner"></div><span>Kaydediliyor...</span>';
+                btn.innerHTML = '<div class="spinner"></div><span data-i18n="common.saving">Kaydediliyor...</span>';
             }
 
             try {
@@ -2046,7 +2071,7 @@
                     showToast(data.error || 'Bir hata oluştu', 'error');
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = '<span>✓</span><span>Kaydedildi</span>';
+                        btn.innerHTML = '<span>✓</span><span data-i18n="status.recorded">Kaydedildi</span>';
                     }
                 }
             } catch (error) {
@@ -2054,7 +2079,7 @@
                 showToast('Bağlantı hatası', 'error');
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '<span>✓</span><span>Kaydedildi</span>';
+                    btn.innerHTML = '<span>✓</span><span data-i18n="status.recorded">Kaydedildi</span>';
                 }
             }
         }
@@ -2064,7 +2089,7 @@
             const btn = document.getElementById('unrecordBtn');
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<div class="spinner"></div><span>İptal ediliyor...</span>';
+                btn.innerHTML = '<div class="spinner"></div><span data-i18n="common.cancelling">İptal ediliyor...</span>';
             }
 
             try {
@@ -2087,7 +2112,7 @@
                     showToast(data.error || 'Bir hata oluştu', 'error');
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = '<span>✕</span><span>Kaydı İptal Et</span>';
+                        btn.innerHTML = '<span>✕</span><span data-i18n="manager.unrecord">Kaydı İptal Et</span>';
                     }
                 }
             } catch (error) {
@@ -2095,7 +2120,7 @@
                 showToast('Bağlantı hatası', 'error');
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '<span>✕</span><span>Kaydı İptal Et</span>';
+                    btn.innerHTML = '<span>✕</span><span data-i18n="manager.unrecord">Kaydı İptal Et</span>';
                 }
             }
         }
@@ -2173,9 +2198,37 @@
             const modalBody = document.getElementById('modalBody');
 
             // Helper for simple text inputs
+            // The label of every field below is passed in as Turkish. Its name is a
+            // stable key, so the label is looked up by that and translated with the
+            // rest of the page instead of staying Turkish inside an Arabic form.
+            const FIELD_KEY = {
+          "manager": "loader.field_manager",
+          "worker1": "loader.field_worker1",
+          "worker2": "loader.field_worker2",
+          "worker3": "loader.field_worker3",
+          "worker4": "loader.field_worker4",
+          "plate1": "loader.field_plate1",
+          "plate2": "loader.field_plate2",
+          "container_no": "loader.field_container",
+          "loading_date": "loader.field_date",
+          "product_weight": "loader.field_product_weight",
+          "vehicle_weight_after": "manager.total_weight",
+          "destination_company": "loader.field_destination_company",
+          "destination_country": "loader.field_destination_country",
+          "destination_customer": "loader.field_destination_customer",
+          "driver_name": "loader.field_driver_name",
+          "driver_phone": "loader.field_driver_phone",
+          "forklift_operator": "manager.field_forklift",
+          "entry_time": "manager.field_entry_time",
+          "exit_time": "manager.field_exit_time",
+          "comments": "loader.section_comments",
+          "product_name": "loader.field_product_name",
+          "product_quantity": "loader.field_product_qty",
+          "product_pallets": "loader.field_product_pallets"
+            };
             const input = (label, name, value, type = 'text', required = false) => `
                 <div class="form-group">
-                    <label>${label}</label>
+                    <label${FIELD_KEY[name] ? ` data-i18n="${FIELD_KEY[name]}"` : ''}>${label}</label>
                     <input type="${type}" name="${name}" value="${escapeHtml(value || '')}" ${required ? 'required' : ''}>
                 </div>`;
 
@@ -2206,7 +2259,7 @@
                     
                     <button type="button" class="add-row-btn" onclick="addEditPhotoRow('${fieldName}')" style="margin-top: 5px;">
                         <span>➕</span>
-                        <span>Yeni Resim Ekle</span>
+                        <span data-i18n="loader.add_photo">Yeni Resim Ekle</span>
                     </button>
                 </div>
                 `;
@@ -2214,8 +2267,8 @@
 
             const managerEditFormHtml = `
                 <div class="detail-section">
-                    <h3>📝 Raporu Düzenle (Yönetici)</h3>
-                    <p style="font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 12px;">
+                    <h3 data-i18n="manager.edit_form_title">📝 Raporu Düzenle (Yönetici)</h3>
+                    <p style="font-size: var(--fs-13, 13px); color: var(--text-secondary); margin-bottom: 12px;" data-i18n="manager.edit_version_note">
                         Bu düzenleme yeni bir versiyon oluşturur ve eski versiyon arşivlenir.
                     </p>
                 </div>
@@ -2223,7 +2276,7 @@
                 <form id="managerEditForm" onsubmit="event.preventDefault(); saveManagerChanges();">
                     <!-- Team Info -->
                     <div class="detail-section">
-                        <h3>👥 Ekip Bilgileri</h3>
+                        <h3 data-i18n="manager.section_team">👥 Ekip Bilgileri</h3>
                         <div class="form-grid form-grid-2">
                             ${input('Yönetici', 'manager', loading.manager, 'text', true)}
                             ${input('Birinci Eleman', 'worker1', loading.worker1, 'text', true)}
@@ -2248,7 +2301,7 @@
                     <!-- Products section is dynamically rendered below -->
                     <!-- Araç Ağırlığı is shown after products in a separate detail-section -->
                     <div class="detail-section">
-                        <h3>⚖️ Araç Ağırlığı (Tartı Sonrası)</h3>
+                        <h3 data-i18n="manager.section_weight_after">⚖️ Araç Ağırlığı (Tartı Sonrası)</h3>
                         <div class="form-grid form-grid-2">
                             ${input('Toplam Yük Ağırlığı ⚖️', 'vehicle_weight_after', loading.vehicle_weight_after, 'text', true)}
                         </div>
@@ -2256,7 +2309,7 @@
 
                     <!-- Destination Info -->
                     <div class="detail-section">
-                        <h3>📍 Varış Bilgileri</h3>
+                        <h3 data-i18n="manager.section_destination">📍 Varış Bilgileri</h3>
                         <div class="form-grid form-grid-3">
                             ${input('Şirket', 'destination_company', loading.destination_company)}
                             ${input('Ülke', 'destination_country', loading.destination_country)}
@@ -2266,7 +2319,7 @@
 
                     <!-- Driver Info -->
                     <div class="detail-section">
-                        <h3>🧑‍✈️ Sürücü Bilgileri</h3>
+                        <h3 data-i18n="loader.section_driver">🧑‍✈️ Sürücü Bilgileri</h3>
                         <div class="form-grid form-grid-3">
                             ${input('Sürücü Adı', 'driver_name', loading.driver_name)}
                             ${input('Telefon', 'driver_phone', loading.driver_phone)}
@@ -2275,11 +2328,11 @@
                     </div>
                     
                     <!-- Photos -->
-                    ${photoSection('Fotoğraflar (Araç & Yük)', 'photos', loading.loaded_vehicle_photos, 'loaded_vehicle_photos')}
+                    ${photoSection('<span data-i18n="common.section_photos">Fotoğraflar (Araç &amp; Yük)</span>', 'photos', loading.loaded_vehicle_photos, 'loaded_vehicle_photos')}
 
                     <!-- Times -->
                     <div class="detail-section">
-                        <h3>🕐 Zamanlar</h3>
+                        <h3 data-i18n="manager.section_times">🕐 Zamanlar</h3>
                         <div class="form-grid form-grid-2">
                             <!-- Entry Time -->
                             <div class="form-group">
@@ -2295,15 +2348,15 @@
                                         <div class="time-picker-dropdown" id="editEntryTimeDropdown">
                                             <div class="time-picker-columns">
                                                 <div class="time-column">
-                                                    <div class="time-column-label">Saat</div>
+                                                    <div class="time-column-label" data-i18n="common.hour">Saat</div>
                                                     <div class="time-scroll" id="editEntryHourScroll"></div>
                                                 </div>
                                                 <div class="time-column">
-                                                    <div class="time-column-label">Dakika</div>
+                                                    <div class="time-column-label" data-i18n="common.minute">Dakika</div>
                                                     <div class="time-scroll" id="editEntryMinuteScroll"></div>
                                                 </div>
                                             </div>
-                                            <button type="button" class="time-confirm-btn" onclick="confirmTime('editEntry')">Tamam</button>
+                                            <button type="button" class="time-confirm-btn" onclick="confirmTime('editEntry')" data-i18n="common.ok">Tamam</button>
                                         </div>
                                     </div>
                                 </div>
@@ -2322,15 +2375,15 @@
                                         <div class="time-picker-dropdown" id="editExitTimeDropdown">
                                             <div class="time-picker-columns">
                                                 <div class="time-column">
-                                                    <div class="time-column-label">Saat</div>
+                                                    <div class="time-column-label" data-i18n="common.hour">Saat</div>
                                                     <div class="time-scroll" id="editExitHourScroll"></div>
                                                 </div>
                                                 <div class="time-column">
-                                                    <div class="time-column-label">Dakika</div>
+                                                    <div class="time-column-label" data-i18n="common.minute">Dakika</div>
                                                     <div class="time-scroll" id="editExitMinuteScroll"></div>
                                                 </div>
                                             </div>
-                                            <button type="button" class="time-confirm-btn" onclick="confirmTime('editExit')">Tamam</button>
+                                            <button type="button" class="time-confirm-btn" onclick="confirmTime('editExit')" data-i18n="common.ok">Tamam</button>
                                         </div>
                                     </div>
                                 </div>
@@ -2343,7 +2396,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3>${T('manager.section_products', '📦 Yüklenen Mallar')}</h3>
                             <button type="button" class="tab-btn compact" onclick="addEditProductRow()"
-                                style="background: var(--bg-input);">
+                                style="background: var(--bg-input);" data-i18n="loader.add_product">
                                 + Mal Ekle
                             </button>
                         </div>
@@ -2355,16 +2408,16 @@
                             <div class="product-entry"
                                 style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: var(--r, 8px);">
                                 <div class="form-group" style="margin: 0;">
-                                    <label style="font-size: var(--fs-11, 11px);">Malın Adı</label>
-                                    <input type="text" class="edit-prod-name" value="${escapeHtml(p.name || '')}" placeholder="Malın Adı">
-                                    ${hasArabic ? `<div dir="rtl" style="text-align: right; font-size: var(--fs-12, 12px); color: var(--text-secondary); margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.04); border-radius: var(--r-xs, 4px);" title="Arapça karşılığı">🇸🇦 ${escapeHtml(arName)}</div>` : ''}
+                                    <label style="font-size: var(--fs-11, 11px);" data-i18n="loader.field_product_name">Malın Adı</label>
+                                    <input type="text" class="edit-prod-name" value="${escapeHtml(p.name || '')}" placeholder="Malın Adı" data-i18n-placeholder="loader.field_product_name">
+                                    ${hasArabic ? `<div dir="rtl" style="text-align: right; font-size: var(--fs-12, 12px); color: var(--text-secondary); margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.04); border-radius: var(--r-xs, 4px);" title="Arapça karşılığı" data-i18n-title="manager.arabic_equivalent">🇸🇦 ${escapeHtml(arName)}</div>` : ''}
                                 </div>
                                 <div class="form-group" style="margin: 0;">
-                                    <label style="font-size: var(--fs-11, 11px);">Sayısı</label>
+                                    <label style="font-size: var(--fs-11, 11px);" data-i18n="loader.field_product_qty">Sayısı</label>
                                     <input type="number" class="edit-prod-qty" value="${escapeHtml(p.quantity || '')}" placeholder="0">
                                 </div>
                                 <div class="form-group" style="margin: 0;">
-                                    <label style="font-size: var(--fs-11, 11px);">Palet</label>
+                                    <label style="font-size: var(--fs-11, 11px);" data-i18n="common.pallets_short">Palet</label>
                                     <input type="number" class="edit-prod-pallets" value="${escapeHtml(p.pallets || '')}" placeholder="0">
                                 </div>
                                 <button type="button" onclick="this.closest('.product-entry').remove()"
@@ -2377,7 +2430,7 @@
 
                     <!-- Comments -->
                     <div class="detail-section">
-                        <h3>💬 Yorumlar</h3>
+                        <h3 data-i18n="loader.section_comments">💬 Yorumlar</h3>
                         <textarea name="comments" rows="4"
                             style="width: 100%; padding: 10px; border-radius: var(--r, 8px); border: 1px solid var(--border-color); resize: vertical;">${escapeHtml(loading.comments || '')}</textarea>
                     </div>
@@ -2386,11 +2439,11 @@
                         <div class="detail-grid form-grid-2">
                             <button type="button" class="tab-btn"
                                 style="width: 100%; justify-content: center; background: var(--bg-input);"
-                                onclick="renderVersionTabs(0)">
+                                onclick="renderVersionTabs(0)" data-i18n="common.cancel">
                                 ❌ İptal
                             </button>
                             <button type="submit" class="record-btn"
-                                style="width: 100%; justify-content: center; margin: 0; font-size: var(--fs-16, 16px);">
+                                style="width: 100%; justify-content: center; margin: 0; font-size: var(--fs-16, 16px);" data-i18n="manager.save_as_manager">
                                 💾 Yönetici Olarak Kaydet
                             </button>
                         </div>
@@ -2411,15 +2464,15 @@
             row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: var(--r, 8px);';
             row.innerHTML = `
                 <div class="form-group" style="margin: 0;">
-                    <label style="font-size: var(--fs-11, 11px);">Malın Adı</label>
-                    <input type="text" class="edit-prod-name" placeholder="Malın Adı">
+                    <label style="font-size: var(--fs-11, 11px);" data-i18n="loader.field_product_name">Malın Adı</label>
+                    <input type="text" class="edit-prod-name" placeholder="Malın Adı" data-i18n-placeholder="loader.field_product_name">
                 </div>
                 <div class="form-group" style="margin: 0;">
-                    <label style="font-size: var(--fs-11, 11px);">Sayısı</label>
+                    <label style="font-size: var(--fs-11, 11px);" data-i18n="loader.field_product_qty">Sayısı</label>
                     <input type="number" class="edit-prod-qty" placeholder="0">
                 </div>
                 <div class="form-group" style="margin: 0;">
-                    <label style="font-size: var(--fs-11, 11px);">Palet</label>
+                    <label style="font-size: var(--fs-11, 11px);" data-i18n="common.pallets_short">Palet</label>
                     <input type="number" class="edit-prod-pallets" placeholder="0">
                 </div>
                 <button type="button" onclick="this.closest('.product-entry').remove()"
@@ -2561,7 +2614,7 @@
 
             const submitBtn = form.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = 'Kaydediliyor...';
+            submitBtn.innerHTML = '<span data-i18n="common.saving">Kaydediliyor...</span>';
 
             try {
                 const response = await fetch(`/api/loadings/${currentLoadingId}`, {
@@ -2574,7 +2627,7 @@
                 if (!response.ok) {
                     showToast(data.error || 'Bir hata oluştu', 'error');
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '💾 Yönetici Olarak Kaydet';
+                    submitBtn.innerHTML = '<span data-i18n="manager.save_as_manager">💾 Yönetici Olarak Kaydet</span>';
                     return;
                 }
 
@@ -2591,7 +2644,7 @@
                 console.error('Manager save error:', error);
                 showToast('Bağlantı hatası', 'error');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '💾 Yönetici Olarak Kaydet';
+                submitBtn.innerHTML = '<span data-i18n="manager.save_as_manager">💾 Yönetici Olarak Kaydet</span>';
             }
         }
 
@@ -2768,11 +2821,11 @@
     <div id="confirm-overlay">
         <div id="confirm-box">
             <span id="confirm-icon">⚠️</span>
-            <div id="confirm-title">Emin misiniz?</div>
+            <div id="confirm-title" data-i18n="common.are_you_sure">Emin misiniz?</div>
             <div id="confirm-message"></div>
             <div class="confirm-actions">
-                <button id="confirm-cancel-btn">❌ İptal</button>
-                <button id="confirm-ok-btn">✅ Onayla</button>
+                <button id="confirm-cancel-btn" data-i18n="common.cancel">❌ İptal</button>
+                <button id="confirm-ok-btn" data-i18n="common.confirm_check">✅ Onayla</button>
             </div>
         </div>
     </div>

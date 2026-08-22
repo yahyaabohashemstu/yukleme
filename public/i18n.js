@@ -95,10 +95,17 @@
         return String(raw).replace(/\{(\w+)\}/g, (_, name) => (vars[name] !== undefined ? vars[name] : `{${name}}`));
     }
 
+    // Applies to the root element as well as its descendants. That matters for
+    // injected content: the node handed to us is often the translatable element.
+    function each(root, selector, fn) {
+        if (root.nodeType === 1 && root.matches && root.matches(selector)) fn(root);
+        root.querySelectorAll(selector).forEach(fn);
+    }
+
     function applyDOM(rootEl) {
         const root = rootEl || document;
 
-        root.querySelectorAll('[data-i18n]').forEach(el => {
+        each(root, '[data-i18n]', el => {
             const key = el.dataset.i18n;
             if (!key) return;
             if (Object.prototype.hasOwnProperty.call(translations, key)) {
@@ -106,7 +113,7 @@
             }
         });
 
-        root.querySelectorAll('[data-i18n-html]').forEach(el => {
+        each(root, '[data-i18n-html]', el => {
             const key = el.dataset.i18nHtml;
             if (!key) return;
             if (Object.prototype.hasOwnProperty.call(translations, key)) {
@@ -114,7 +121,7 @@
             }
         });
 
-        root.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        each(root, '[data-i18n-placeholder]', el => {
             const key = el.dataset.i18nPlaceholder;
             if (!key) return;
             if (Object.prototype.hasOwnProperty.call(translations, key)) {
@@ -122,7 +129,7 @@
             }
         });
 
-        root.querySelectorAll('[data-i18n-title]').forEach(el => {
+        each(root, '[data-i18n-title]', el => {
             const key = el.dataset.i18nTitle;
             if (!key) return;
             if (Object.prototype.hasOwnProperty.call(translations, key)) {
@@ -130,7 +137,7 @@
             }
         });
 
-        root.querySelectorAll('[data-i18n-value]').forEach(el => {
+        each(root, '[data-i18n-value]', el => {
             const key = el.dataset.i18nValue;
             if (!key) return;
             if (Object.prototype.hasOwnProperty.call(translations, key)) {
@@ -204,11 +211,51 @@
         });
     }
 
+    // Both panels build most of what you read — the report modal, its edit form,
+    // every table row — in JavaScript, after this file has already run. Markup
+    // injected that way never passed through applyDOM, so a data-i18n inside it
+    // was inert and the Turkish fallback is what stayed on screen. Watching for
+    // inserted subtrees fixes that once, for every injection point there is and
+    // every one added later.
+    const I18N_SELECTOR = '[data-i18n],[data-i18n-html],[data-i18n-placeholder],[data-i18n-title],[data-i18n-value]';
+
+    function watchInjectedContent() {
+        if (typeof MutationObserver !== 'function') return;
+        let pending = [];
+        let scheduled = false;
+
+        function flush() {
+            scheduled = false;
+            const nodes = pending;
+            pending = [];
+            for (const n of nodes) {
+                if (!n.isConnected) continue;
+                try { applyDOM(n); } catch (e) { /* one bad subtree must not stop the rest */ }
+            }
+        }
+
+        new MutationObserver(records => {
+            for (const rec of records) {
+                for (const n of rec.addedNodes) {
+                    if (n.nodeType !== 1) continue;   // text nodes carry no keys
+                    if ((n.matches && n.matches(I18N_SELECTOR)) || (n.querySelector && n.querySelector(I18N_SELECTOR))) {
+                        pending.push(n);
+                    }
+                }
+            }
+            // setTimeout, not requestAnimationFrame: a hidden tab never paints,
+            // and the queue would sit there forever.
+            if (pending.length && !scheduled) { scheduled = true; setTimeout(flush, 0); }
+        }).observe(document.documentElement, { childList: true, subtree: true });
+    }
+
     global.i18n = { init, setLang, t, tf, applyDOM, getLang, isRTL, getSupportedLangs, getLangMeta, renderSwitcher };
 
     // Auto-init: applies dir + DOM as soon as the script loads.
     // Pages that need to await translations before rendering dynamic content
     // can `await window.i18n.init()` explicitly inside their bootstrap.
+    watchInjectedContent();
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

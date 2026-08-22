@@ -1485,7 +1485,7 @@
                                         const displayName = getProductDisplayName(p.name) || '-';
                                         return `
                                         <tr>
-                                            <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${escapeHtml(displayName)}${copyBtn(displayName)}</td>
+                                            <td style="text-align: left;" title="${escapeHtml(p.name || '')}"><span dir="auto">${escapeHtml(displayName)}</span>${copyBtn(displayName)}</td>
                                             <td>${escapeHtml(p.quantity || '-')}${copyBtn(p.quantity)}</td>
                                             <td>${escapeHtml(p.pallets || '-')}${copyBtn(p.pallets)}</td>
                                         </tr>`;
@@ -1613,7 +1613,7 @@
                             const displayName = getProductDisplayName(p.name) || '-';
                             return `
                                 <tr style="${rowStyle}">
-                                    <td class="${nameClass}" dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}">${isNew ? '<span style="font-size: var(--fs-10, 10px);color:var(--primary);font-weight:700;margin-right:4px;" dir="ltr" data-i18n="common.new_badge">YENİ</span>' : ''}${escapeHtml(displayName)}${copyBtn(displayName)}</td>
+                                    <td class="${nameClass}" style="text-align: left;" title="${escapeHtml(p.name || '')}">${isNew ? '<span style="font-size: var(--fs-10, 10px);color:var(--primary);font-weight:700;margin-right:4px;" dir="ltr" data-i18n="common.new_badge">YENİ</span>' : ''}<span dir="auto">${escapeHtml(displayName)}</span>${copyBtn(displayName)}</td>
                                     <td class="${qtyClass}">${escapeHtml(p.quantity || '-')}${copyBtn(p.quantity)}</td>
                                     <td class="${pallClass}">${escapeHtml(p.pallets || '-')}${copyBtn(p.pallets)}</td>
                                 </tr>`;
@@ -1625,7 +1625,7 @@
                                 const displayName = getProductDisplayName(p.name) || '-';
                                 return `
                                 <tr style="background: var(--danger-a08, rgba(220,38,38,0.08)); border-left: 3px solid var(--danger); opacity: 0.7; text-decoration: line-through;">
-                                    <td dir="rtl" style="text-align: right;" title="${escapeHtml(p.name || '')}"><span style="font-size: var(--fs-10, 10px);color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr" data-i18n="common.deleted_badge">SİLİNDİ</span>${escapeHtml(displayName)}</td>
+                                    <td style="text-align: left;" title="${escapeHtml(p.name || '')}"><span style="font-size: var(--fs-10, 10px);color:var(--danger);font-weight:700;margin-right:4px;" dir="ltr" data-i18n="common.deleted_badge">SİLİNDİ</span><span dir="auto">${escapeHtml(displayName)}</span></td>
                                     <td>${escapeHtml(p.quantity || '-')}</td>
                                     <td>${escapeHtml(p.pallets || '-')}</td>
                                 </tr>`;

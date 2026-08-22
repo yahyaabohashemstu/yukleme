@@ -1299,7 +1299,7 @@
                 const isCurrent = index === 0;
                 const label = isCurrent
                     ? '<span data-i18n="manager.version_current">Mevcut Sürüm</span>'
-                    : `${T('manager.version_numbered', 'Versiyon')} ${v.version_number}`;
+                    : `<span data-i18n="manager.version_numbered">Versiyon</span> ${v.version_number}`;
                 const activeClass = index === activeIndex ? 'active' : '';
                 tabsHtml += `
                     <button class="version-tab ${activeClass}" onclick="switchVersion(${index})">

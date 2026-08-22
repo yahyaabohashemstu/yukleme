@@ -6,13 +6,11 @@
 // section that is complete folds away with a tick when you move to another one,
 // so a 23-field form stops being 4 screens of scrolling.
 //
-// Inert unless the STEEL theme is active AND the viewport is a phone, so the
-// classic design and the desktop layout are untouched.
+// Inert unless the viewport is a phone, so the desktop layout is untouched.
 // ============================================================================
 (function () {
     'use strict';
 
-    if (document.documentElement.getAttribute('data-theme') === 'classic') return;
 
     var PHONE = '(max-width: 768px)';
     var form, cards, strip, bar, stepEl, countEl, enabled = false;
@@ -140,11 +138,26 @@
         var mq = window.matchMedia(PHONE);
         var sync = function () { mq.matches ? enable() : disable(); };
         sync();
+        // Turning the phone sideways crosses the breakpoint. matchMedia is the
+        // right signal for it, but resize/orientationchange are listened to as
+        // well because some engines fire only those; sync() is idempotent.
         if (mq.addEventListener) mq.addEventListener('change', sync);
         else if (mq.addListener) mq.addListener(sync);
+        window.addEventListener('resize', sync);
+        window.addEventListener('orientationchange', sync);
+
+        // i18n loads its dictionary asynchronously and only fires i18n:changed
+        // on a LATER language switch, so the first paint would otherwise be
+        // stuck on the Turkish fallback. Re-label once that first load lands.
+        if (window.i18n && typeof window.i18n.init === 'function') {
+            try {
+                var ready = window.i18n.init();
+                if (ready && ready.then) ready.then(update);
+            } catch (e) { /* leave the fallback label */ }
+        }
+        document.addEventListener('i18n:changed', update);
 
         // The voice fill writes values straight into the fields.
-        document.addEventListener('i18n:changed', update);
         var mo = new MutationObserver(function () { if (enabled) update(); });
         mo.observe(form, { subtree: true, attributes: true, attributeFilter: ['value', 'class'] });
     }

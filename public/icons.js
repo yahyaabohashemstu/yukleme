@@ -4,9 +4,8 @@
 // WHY a runtime sweep instead of editing the markup: the emoji live in ~370
 // places across loader.html / manager.html, many of them inside JavaScript that
 // builds HTML at runtime (report rows, modals, toasts, confirm dialogs). Doing
-// it here covers all of them from one table, leaves those two 150 KB files
-// untouched, and makes the rollback exact: in the 'classic' theme this file
-// does nothing at all, so the original emoji are still the original emoji.
+// it here covers all of them from one table and leaves those two 150 KB files
+// untouched.
 //
 // Everything is driven by ICONS (name -> svg body) and EMOJI (emoji -> name).
 // JS that wants an icon directly can call window.icon('truck').
@@ -320,7 +319,6 @@
     }
 
     // The classic theme keeps its emoji — this file is a no-op there.
-    if (document.documentElement.getAttribute('data-theme') === 'classic') return;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', start);

@@ -6,9 +6,8 @@
    IBM Plex Sans with tabular IBM Plex Mono numerals, and uppercase micro
    labels. Layout, element order and copy are unchanged from the original.
 
-   The original design is preserved byte-for-byte in theme-classic.css and is
-   selected by theme.js when localStorage['app.theme'] === 'classic'
-   (or ?theme=classic). Nothing here needs to be undone to go back.
+   The design this replaced is kept in archive/theme-classic.css — outside the
+   served tree, so it is never loaded. See DESIGN.md if it is ever wanted back.
 
    Every token name from the original file is kept, so the ~240 var(--x) uses
    inside loader.html / manager.html follow this theme automatically.
@@ -658,42 +657,6 @@ body {
     display: none !important;
 }
 
-/* ---- Theme (design) toggle, injected next to the language switcher ----- */
-.theme-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 11px;
-    background: transparent;
-    border: 1px solid var(--chrome-line);
-    border-radius: var(--radius);
-    color: var(--chrome-text-dim);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: var(--transition);
-    white-space: nowrap;
-}
-
-.theme-toggle:hover {
-    color: var(--chrome-text);
-    border-color: #55636f;
-}
-
-.login-page .theme-toggle {
-    border-color: var(--border-color);
-    color: var(--text-muted);
-    margin-top: 4px;
-}
-
-.login-page .theme-toggle:hover {
-    color: var(--text-primary);
-    border-color: var(--border-strong);
-}
-
 /* ============================================================================
    FORMS
    ============================================================================ */
@@ -1259,6 +1222,7 @@ textarea:required:valid {
 /* The fold button belongs to the phone layout; on a desktop the panel is
    always open and the button has no job. */
 .filters-toggle { display: none; }
+.form-progress { display: none; }
 
 /* ---- Advanced filters --------------------------------------------------
    Built as a real panel instead of a stack of loose rows: a titled bar across
@@ -2248,7 +2212,6 @@ textarea:required:valid {
 
     /* Header chrome is secondary — comfortable, but it must not dominate. */
     .lang-switcher button,
-    .theme-toggle,
     .logout-btn {
         min-height: 36px;
     }
@@ -2257,21 +2220,20 @@ textarea:required:valid {
 /* ============================================================================
    PHONE — this is where the loader works and where the manager checks a truck
    from the yard, so the phone layout is designed rather than inherited.
-   Steel theme only; the classic design keeps its own responsive rules.
    ============================================================================ */
 
 @media (max-width: 768px) {
 
     /* ---- Header: two compact rows instead of three tall ones -------------
        display:contents on .header-actions lifts the language switcher, the
-       design toggle, the user chip and logout out of their wrapper so the grid
-       can place each one individually. */
+       user chip and logout out of their wrapper so the grid can place each
+       one individually. */
     .header-content {
         display: grid;
-        grid-template-columns: 1fr auto auto;
+        grid-template-columns: 1fr auto;
         grid-template-areas:
-            "brand theme logout"
-            "lang  lang  user";
+            "brand logout"
+            "lang  user";
         gap: 8px;
         align-items: center;
         padding-top: 8px !important;
@@ -2283,7 +2245,6 @@ textarea:required:valid {
     .header-actions { display: contents; }
     .header-brand { grid-area: brand; min-width: 0; gap: 10px; }
     #langSwitcherContainer { grid-area: lang; }
-    .theme-toggle { grid-area: theme; }
     .logout-btn { grid-area: logout; }
     .header-user { grid-area: user; justify-self: end; }
 
@@ -2296,8 +2257,6 @@ textarea:required:valid {
     .header-user-name { font-size: 12px; }
     .logout-btn { padding: 8px 11px; }
     .logout-btn > span:not(.ic) { display: none; }
-    .theme-toggle { padding: 8px 10px; }
-    .theme-toggle > span { display: none; }
 
     /* ---- Stats: one compact strip, not three stacked cards --------------- */
     .stats-grid {
@@ -2490,6 +2449,7 @@ textarea:required:valid {
 
     /* ---- Loader form: a progress strip and folding sections -------------- */
     .form-progress {
+        display: block;
         position: sticky;
         top: 0;
         z-index: 30;
@@ -2611,7 +2571,6 @@ textarea:required:valid {
     .record-section,
     .record-hint,
     .tab-btn,
-    .theme-toggle,
     .version-tabs,
     .archive-warning {
         display: none !important;

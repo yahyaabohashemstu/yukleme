@@ -146,15 +146,7 @@
         window.addEventListener('resize', sync);
         window.addEventListener('orientationchange', sync);
 
-        // i18n loads its dictionary asynchronously and only fires i18n:changed
-        // on a LATER language switch, so the first paint would otherwise be
-        // stuck on the Turkish fallback. Re-label once that first load lands.
-        if (window.i18n && typeof window.i18n.init === 'function') {
-            try {
-                var ready = window.i18n.init();
-                if (ready && ready.then) ready.then(update);
-            } catch (e) { /* leave the fallback label */ }
-        }
+        // Fires on i18n's first load as well as on later switches.
         document.addEventListener('i18n:changed', update);
 
         // The voice fill writes values straight into the fields.

@@ -680,12 +680,12 @@
                             <span style="font-size: var(--fs-11, 11px); color: var(--text-primary); background: var(--bg-hover); padding: 2px 6px; border-radius: var(--r-xs, 4px); display: inline-block; width: fit-content;">👤 ${escapeHtml(creatorName)}</span>
                         </div>
                     </td>
-                    <td>${safwatHtml}</td>
-                    <td>${pinarHtml}</td>
+                    <td data-cell="Fayık">${safwatHtml}</td>
+                    <td data-cell="Pinar">${pinarHtml}</td>
                     <td>
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
                             <div style="display: flex; align-items: center;">${improvementBadge}${paperBadge}</div>
-                            <button class="view-btn" onclick="viewDetails('${loading.id}')">Detayları Gör</button>
+                            <button class="view-btn" onclick="viewDetails('${loading.id}')">${T('common.view_details', 'Detayları Gör')}</button>
                         </div>
                     </td>
                 </tr>
@@ -812,6 +812,21 @@
                     }).join('')}
                 </div>
             `;
+
+            scrollActiveMonthIntoView(container);
+        }
+
+        // Horizontal scroll only — never touches the page's own scroll
+        // position, which scrollIntoView() would.
+        function scrollActiveMonthIntoView(container) {
+            const strip = container.querySelector('div');
+            const active = container.querySelector(`button[data-month="${currentPageMonth}"]`);
+            if (!strip || !active) return;
+            const s = strip.getBoundingClientRect();
+            const a = active.getBoundingClientRect();
+            const pad = 14;
+            if (a.left < s.left + pad) strip.scrollLeft += (a.left - s.left) - pad;
+            else if (a.right > s.right - pad) strip.scrollLeft += (a.right - s.right) + pad;
         }
 
         // ============ COMBINED FILTERS (search + date + customer) ============

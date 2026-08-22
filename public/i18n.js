@@ -64,6 +64,11 @@
         translations = await load(currentLang);
         applyDir();
         applyDOM();
+        // Announce the FIRST load too, not just later switches: markup with
+        // data-i18n is handled by applyDOM above, but anything a page builds
+        // in JavaScript has already rendered with its fallback text by now
+        // and has to be told to render again.
+        document.dispatchEvent(new CustomEvent('i18n:changed', { detail: { lang: currentLang, first: true } }));
     }
 
     async function setLang(lang) {

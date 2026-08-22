@@ -2210,6 +2210,16 @@ textarea:required:valid {
 
     .tab-btn { padding: 12px 2px; }
 
+    .view-tabs { flex-wrap: wrap; }
+
+    .view-tab-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 10px 12px;
+        white-space: normal;
+        text-align: center;
+    }
+
     /* Header chrome is secondary — comfortable, but it must not dominate. */
     .lang-switcher button,
     .logout-btn {
@@ -2255,8 +2265,7 @@ textarea:required:valid {
     .header-user { padding: 4px 10px 4px 4px; }
     .header-user-avatar { width: 28px; height: 28px; font-size: 14px; }
     .header-user-name { font-size: 12px; }
-    .logout-btn { padding: 8px 11px; }
-    .logout-btn > span:not(.ic) { display: none; }
+    .logout-btn { padding: 8px 12px; gap: 7px; }
 
     /* ---- Stats: one compact strip, not three stacked cards --------------- */
     .stats-grid {
@@ -2282,20 +2291,42 @@ textarea:required:valid {
     .stat-info p { font-size: 9px; letter-spacing: .06em; }
 
     /* ---- Month strip: one scrollable line, never three wrapped rows ------ */
+    /* ---- Month strip -----------------------------------------------
+       The label ate a third of the width, leaving room for barely two
+       months, so it moves to a line of its own. justify-content must be
+       start here: a centred flex container puts its overflow out of the
+       scroll range, which is what hid the newest month. */
     #monthPagination {
+        flex-direction: column;
+        align-items: stretch !important;
         flex-wrap: nowrap !important;
-        overflow-x: auto;
-        justify-content: flex-start;
-        padding: 10px 14px;
-        gap: 6px;
+        overflow: visible;
+        gap: 9px;
+        padding: 11px 0 12px;
+    }
+
+    #monthPagination > span:first-child {
+        flex: none;
+        margin: 0 !important;
+        padding-inline: 14px;
     }
 
     #monthPagination > div {
         flex-wrap: nowrap !important;
-        overflow: visible;
+        justify-content: flex-start !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-inline: 14px;
+        padding-bottom: 2px;
+        scroll-padding-inline: 14px;
+        -webkit-overflow-scrolling: touch;
     }
 
-    #monthPagination > span:first-child { flex: none; }
+    #monthPagination > div > button {
+        flex: none;
+        min-height: 40px;
+        padding-inline: 10px !important;
+    }
 
     /* ---- Report rows become cards ---------------------------------------
        Eight columns cannot fit 375px: the two record columns and the details
@@ -2347,38 +2378,87 @@ textarea:required:valid {
     #loadingsTableBody tr td:nth-child(4) { grid-area: 2 / 1 / 3 / 4; font-size: 12px; color: var(--text-secondary); }
     #loadingsTableBody tr td:nth-child(2) { grid-area: 3 / 1 / 4 / 2; font-size: 12px; color: var(--text-muted); }
     #loadingsTableBody tr td:nth-child(5) { grid-area: 3 / 2 / 4 / 4; font-size: 12px; }
-    #loadingsTableBody tr td:nth-child(6) { grid-area: 5 / 1 / 6 / 2; }
-    #loadingsTableBody tr td:nth-child(7) { grid-area: 5 / 2 / 6 / 3; }
-    #loadingsTableBody tr td:nth-child(8) { grid-area: 5 / 3 / 6 / 4; justify-self: end; }
+    #loadingsTableBody tr td:nth-child(6) { grid-area: 5 / 1 / 6 / 3; }
+    #loadingsTableBody tr td:nth-child(7) { grid-area: 5 / 3 / 6 / 4; }
+    #loadingsTableBody tr td:nth-child(8) { grid-area: 6 / 1 / 7 / 4; }
 
     /* Loader history has no date column: customer | plate | destination | entry | Fayik | Pinar | actions */
     #historyTableBody tr td:nth-child(1) { grid-area: 1 / 1 / 2 / 4; font-size: 15px; font-weight: 700; }
     #historyTableBody tr td:nth-child(3) { grid-area: 2 / 1 / 3 / 4; font-size: 12px; color: var(--text-secondary); }
     #historyTableBody tr td:nth-child(2) { grid-area: 3 / 1 / 4 / 2; font-size: 12px; color: var(--text-muted); }
     #historyTableBody tr td:nth-child(4) { grid-area: 3 / 2 / 4 / 4; font-size: 12px; }
-    #historyTableBody tr td:nth-child(5) { grid-area: 5 / 1 / 6 / 2; }
-    #historyTableBody tr td:nth-child(6) { grid-area: 5 / 2 / 6 / 3; }
-    #historyTableBody tr td:nth-child(7) { grid-area: 5 / 3 / 6 / 4; justify-self: end; }
+    #historyTableBody tr td:nth-child(5) { grid-area: 5 / 1 / 6 / 3; }
+    #historyTableBody tr td:nth-child(6) { grid-area: 5 / 3 / 6 / 4; }
+    #historyTableBody tr td:nth-child(7) { grid-area: 6 / 1 / 7 / 4; }
 
     /* The "who entered it" cell stacks on desktop; inline reads better here.
        nowrap matters: the timestamp was wrapping to two lines and adding 23px
        to every card. */
     .loadings-table tbody td > div[style*="flex-direction: column"] {
         flex-direction: row !important;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 8px !important;
+        gap: 3px 8px !important;
         white-space: nowrap;
     }
 
     .loadings-table tbody td > div[style*="flex-direction: column"] > span {
         white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    /* The actions cell stacks its badge above the button on desktop. */
+    /* 14px here is the widest thing in the row and the least important; a
+       point smaller keeps it whole on a 320px screen. */
+    .loadings-table tbody td > div[style*="flex-direction: column"] > span:first-child {
+        font-size: 12px !important;
+    }
+
+    /* ---- Who recorded what ------------------------------------------
+       The table head is hidden here, so a bare "recorded / waiting" chip
+       said nothing about WHOSE record it was. Each chip carries the name
+       above it; data-cell is inert everywhere else. */
+    .loadings-table tbody td[data-cell] {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2px 6px;
+        min-width: 0;
+    }
+
+    .loadings-table tbody td[data-cell]::before {
+        content: attr(data-cell);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    .loadings-table tbody td[data-cell] .status-badge {
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ---- The action row ---------------------------------------------
+       The details button used to share a line with both chips; at 390px
+       the three overlapped. It gets the full width of the card, which is
+       also the size a thumb wants. */
     .loadings-table tbody td:last-child > div {
         flex-direction: row !important;
-        align-items: center;
-        gap: 8px;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 10px !important;
+        width: 100%;
+    }
+
+    .loadings-table tbody td:last-child .view-btn {
+        flex: 1;
+        min-height: 40px;
     }
 
     .empty-state { padding: 48px 20px; }
@@ -2547,6 +2627,29 @@ textarea:required:valid {
 /* ============================================================================
    PRINT — the report is a document; keep it plain and high-contrast.
    ============================================================================ */
+
+/* ============================================================================
+   NARROW PHONES (up to 400px — which is most of them)
+   The plate number must never be shortened, so it fixes the width of the
+   left column; what is left has to hold the entry time and the longest
+   status label. Reclaiming a few pixels from the card's own margin and
+   padding is enough to keep both on one line down to about 360px, and to
+   keep them from being cut off at all down to 320px.
+   ============================================================================ */
+
+@media (max-width: 400px) {
+
+    .main-content {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .loadings-table tbody tr {
+        margin-inline: 8px;
+        padding-inline: 10px;
+        gap: 2px 8px;
+    }
+}
 
 @media print {
 

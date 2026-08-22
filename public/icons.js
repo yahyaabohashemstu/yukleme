@@ -304,8 +304,11 @@
             }
             if (queue.length && !scheduled) {
                 scheduled = true;
-                if (window.requestAnimationFrame) window.requestAnimationFrame(flush);
-                else setTimeout(flush, 0);
+                // setTimeout, NOT requestAnimationFrame: rAF callbacks do not run
+                // while the tab is hidden or otherwise not compositing, which
+                // would leave `scheduled` stuck true and stall the queue for
+                // good — anything rendered in a background tab kept its emoji.
+                setTimeout(flush, 0);
             }
         }).observe(document.body, {
             childList: true,

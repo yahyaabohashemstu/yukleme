@@ -362,6 +362,9 @@
         // Turkish → Arabic product-name map (manager-only display preference)
         // The DB stores Turkish names (loaders enter Turkish); we only translate at render time.
         let productTrToAr = {};
+        // turkish name -> where its Arabic came from: the factory catalogue,
+        // the model picking a catalogue line, or the model translating it.
+        let productNameSource = {};
 
         async function loadProductTranslations() {
             try {
@@ -450,6 +453,73 @@
             const lang = (window.i18n && window.i18n.getLang) ? window.i18n.getLang() : 'tr';
             if (lang !== 'ar') return turkishName;
             return resolveArabicName(turkishName) || turkishName;
+        }
+
+        // Names a loader typed that the catalogue has never seen. The server
+        // decides those — it either recognises which catalogue line the name is,
+        // or writes the Arabic in the catalogue's style — and remembers the answer,
+        // so a given spelling is asked about once and then costs nothing.
+        //
+        // This runs AFTER the table is on screen. If the server is slow, or the
+        // model is unavailable, or the request fails outright, those names simply
+        // stay Turkish — which is exactly what they did before this existed.
+        // Nothing waits on it.
+        const _askedProductNames = new Set();
+        let _productAskRounds = 0;
+
+        async function fillMissingProductNames() {
+            if (currentUsername !== 'manager') return;
+            const lang = (window.i18n && window.i18n.getLang) ? window.i18n.getLang() : 'tr';
+            if (lang !== 'ar') return;              // only the Arabic page shows Arabic names
+            if (_productAskRounds >= 6) return;      // a hard stop, whatever happens
+
+            const missing = [];
+            for (const l of (loadingsData || [])) {
+                for (const p of (l.products || [])) {
+                    const n = String((p && p.name) || '').trim();
+                    if (!n || _askedProductNames.has(n)) continue;
+                    if (resolveArabicName(n)) continue;   // the catalogue already knows it
+                    _askedProductNames.add(n);
+                    missing.push(n);
+                }
+            }
+            if (!missing.length) return;
+            _productAskRounds++;
+
+            try {
+                const res = await fetch('/api/product-translations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ names: missing }),
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const resolved = (data && data.resolved) || {};
+
+                let added = 0;
+                for (const [turkish, info] of Object.entries(resolved)) {
+                    if (!info || typeof info.ar !== 'string' || !info.ar.trim()) continue;
+                    if (productTrToAr[turkish]) continue;
+                    productTrToAr[turkish] = info.ar;
+                    productNameSource[turkish] = info.source || 'ai';
+                    added++;
+                }
+                if (added) {
+                    _invalidateProductIndex();
+                    if (typeof applyAllFilters === 'function') applyAllFilters();
+                }
+                // The server answers a bounded number per request so one page load
+                // cannot become a hundred calls. Come back for the rest — but only
+                // while the answers are actually arriving. A round that adds nothing
+                // means the model is unavailable or has nothing to say, and asking
+                // the same question again on the same page load changes neither.
+                if (added && data && data.remaining > 0) {
+                    _askedProductNames.clear();          // the answered ones now resolve anyway
+                    setTimeout(fillMissingProductNames, 1200);
+                }
+            } catch (e) {
+                console.warn('[products] could not reach the translation service:', e && e.message);
+            }
         }
 
         // For the SEARCH index only: the Arabic reading whatever the interface
@@ -590,6 +660,9 @@
 
         // Re-render dynamic JS-built content whenever the language changes
         document.addEventListener('i18n:changed', () => {
+            // Switching to Arabic is the first moment these names matter.
+            fillMissingProductNames();
+
             // Re-apply filters so the loadings table and filter chip update
             if (typeof applyAllFilters === 'function') {
                 applyAllFilters();
@@ -631,6 +704,8 @@
                     populateYearOptions();
                     applyAllFilters(); // Respect any active filters when re-rendering
                     updateStats(data); // Stats always reflect full unfiltered set
+                    // after the page is drawn, never before it
+                    fillMissingProductNames();
                 } else {
                     console.error('Error loading data:', data.error);
                 }

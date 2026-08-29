@@ -16,6 +16,7 @@ const { serialize, deserializeRow } = require('./lib/supabase-sqlite');
 const { sendNotification } = require('./utils/telegramBot');
 const { extractReportFields, extractFromAnswers } = require('./utils/geminiExtract');
 const { ttsSpeak, sttTranscribe } = require('./utils/geminiVoice');
+const productTranslate = require('./utils/productTranslate');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -954,6 +955,28 @@ app.patch('/api/loadings/:id/paper-confirmed', requireManager, async (req, res) 
 });
 
 // Send improvement alert (manager only)
+// Arabic for product names a loader typed by hand. The catalogue answers most
+// of them for nothing; the rest go to the model, which either picks the
+// catalogue line this is or writes the Arabic itself. Answers are cached by
+// the exact spelling, so a name is asked about once. See utils/productTranslate.js.
+//
+// The manager panel calls this AFTER it has drawn the page, so a slow or
+// unavailable model delays nothing — those names simply stay Turkish, which
+// is what they were before this existed.
+app.post('/api/product-translations', requireManager, async (req, res) => {
+    try {
+        const names = Array.isArray(req.body && req.body.names) ? req.body.names : null;
+        if (!names) return res.status(400).json({ error: 'names must be an array' });
+        if (names.length > 200) return res.status(400).json({ error: 'too many names in one request' });
+
+        const { resolved, remaining } = await productTranslate.translateMany(db, names);
+        res.json({ resolved, remaining });
+    } catch (err) {
+        console.error('product translation error:', err);
+        res.status(500).json({ error: 'ترجمة أسماء المنتجات غير متاحة حاليًا' });
+    }
+});
+
 app.post('/api/loadings/:id/improvement-alert', requireManager, async (req, res) => {
     try {
         const { section, field, comment } = req.body;

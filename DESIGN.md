@@ -34,7 +34,7 @@ archive/theme-classic.css
 لا شيء ضاع. أمامك طريقان:
 
 ```bash
-git checkout migrate/sqlite2
+git checkout cf5b8b0
 ```
 
 يُرجع كل الملفات إلى ما كانت عليه قبل التصميم الجديد كله. فرع `migrate/sqlite2`

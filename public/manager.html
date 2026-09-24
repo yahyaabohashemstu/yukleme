@@ -350,6 +350,19 @@
         <img id="imageModalContent" src="" style="max-width: 90%; max-height: 90vh; object-fit: contain;">
     </div>
 
+    <!-- "Who filled this" note — opened by the ! beside the weight / the photos.
+         Above the image modal (2000) so it is reachable from anywhere inside
+         the report. -->
+    <div class="modal-overlay" id="fillNoteModal" style="z-index: 2200;">
+        <div class="modal" style="max-width: 460px;">
+            <div class="modal-header">
+                <h2 data-i18n="fill.note_title">Bu raporu kim doldurdu?</h2>
+                <button class="modal-close" id="closeFillNote">✕</button>
+            </div>
+            <div class="modal-body" id="fillNoteBody"></div>
+        </div>
+    </div>
+
     <script>
         let loadingsData = [];
         let isArchiveView = false; // State for active tab
@@ -1290,6 +1303,51 @@
             });
         }
 
+
+        // ---- "who filled this" note ---------------------------------------
+        // Opened by the ! beside the weight or the photos. It always states all
+        // three facts together — who created the report, who wrote the weight,
+        // who added the photos — because answering only the field that was
+        // tapped is the kind of half-answer that leaves the question open.
+        //
+        // Labels go in as data-i18n and are translated by the observer in
+        // i18n.js; T() is deliberately NOT used here, because it is a local
+        // const in some functions of this page and undefined in others.
+        function fillNoteRow(labelKey, labelFallback, name, when) {
+            const known = !!name;
+            const value = known
+                ? `<span class="fill-note-value">${escapeHtml(name)}</span>`
+                : '<span class="fill-note-value is-unknown" data-i18n="fill.not_recorded">Kaydedilmemiş</span>';
+            const time = known && when
+                ? `<span class="fill-note-time">${escapeHtml(formatDateTime(when))}</span>`
+                : '';
+            return `
+                <div class="fill-note-row">
+                    <span class="fill-note-label" data-i18n="${labelKey}">${escapeHtml(labelFallback)}</span>
+                    ${value}
+                    ${time}
+                </div>`;
+        }
+
+        function openFillNote() {
+            const l = currentLoading;
+            if (!l) return;
+            document.getElementById('fillNoteBody').innerHTML =
+                fillNoteRow('fill.created_by', 'Raporu oluşturan', l.users && l.users.username, l.created_at) +
+                fillNoteRow('fill.weight_by', 'Ağırlığı yazan', l.weight_filled_by, l.weight_filled_at) +
+                fillNoteRow('fill.photos_by', 'Fotoğrafları ekleyen', l.photos_filled_by, l.photos_filled_at);
+            document.getElementById('fillNoteModal').classList.add('show');
+        }
+
+        function closeFillNote() {
+            document.getElementById('fillNoteModal').classList.remove('show');
+        }
+
+        document.getElementById('closeFillNote').addEventListener('click', closeFillNote);
+        document.getElementById('fillNoteModal').addEventListener('click', (e) => {
+            if (e.target.id === 'fillNoteModal') closeFillNote();
+        });
+
         function formatDateTime(dateStr) {
             if (!dateStr) return '-';
             const date = new Date(dateStr);
@@ -1477,6 +1535,20 @@
             // Shorthand translator usable in template literals throughout this function
             const T = (k, f) => (window.i18n ? window.i18n.t(k, f) : f);
 
+            // The ! beside the weight and the photos. It appears ONLY when
+            // somebody other than the report's author filled that field in —
+            // the hand-off worth noticing. A report one person did end to end
+            // stays clean, and an old report from before this was recorded has
+            // nothing to show, so it stays clean too.
+            const reportAuthor = (loading.users && loading.users.username) || null;
+            const fillMark = (filledBy) => {
+                if (!isCurrentVersion || !filledBy || !reportAuthor) return '';
+                if (filledBy === reportAuthor) return '';
+                return '<button type="button" class="fill-mark" onclick="openFillNote()"' +
+                       ' data-i18n-title="fill.badge_title" title="Bu alanı kim doldurdu?"' +
+                       ' data-i18n-aria-label="fill.badge_title" aria-label="Bu alanı kim doldurdu?">!</button>';
+            };
+
             let products = loading.products || [];
             if (!Array.isArray(products)) {
                 try { products = JSON.parse(products); } catch (e) { products = []; }
@@ -1504,7 +1576,7 @@
             // Generate Photos HTML
             const photosHtml = loading.loaded_vehicle_photos && loading.loaded_vehicle_photos.length > 0 ? `
                 <div class="detail-section">
-                    <h3>${T('manager.section_photos', '📷 Yükleme Fotoğrafları')}</h3>
+                    <h3>${T('manager.section_photos', '📷 Yükleme Fotoğrafları')}${fillMark(loading.photos_filled_by)}</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 15px;">
                         ${loading.loaded_vehicle_photos.map(url => `
                             <div style="position: relative; aspect-ratio: 1; border-radius: var(--r, 8px); overflow: hidden; border: 1px solid #eee; box-shadow: var(--sh-inline, 0 1px 3px rgba(0,0,0,0.1));">
@@ -1571,7 +1643,7 @@
                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
                             <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                                 <label>${T('manager.total_weight', 'Toplam Yük Ağırlığı ⚖️')}</label>
-                                <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${escapeHtml(loading.vehicle_weight_after || '-')}${copyBtn(loading.vehicle_weight_after)}</span>
+                                <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${escapeHtml(loading.vehicle_weight_after || '-')}${copyBtn(loading.vehicle_weight_after)}${fillMark(loading.weight_filled_by)}</span>
                             </div>
                         </div>
                     </div>
@@ -1725,7 +1797,7 @@
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
                         <div class="detail-item ${isCurrentVersion ? getChangedClass(loading, previousData, 'vehicle_weight_after') : ''}">
                             <label data-i18n="manager.total_weight">Toplam Yük Ağırlığı ⚖️</label>
-                            <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${escapeHtml(loading.vehicle_weight_after || '-')}${copyBtn(loading.vehicle_weight_after)}</span>
+                            <span style="font-weight: 600; font-size: 1.1em; color: var(--primary);">${escapeHtml(loading.vehicle_weight_after || '-')}${copyBtn(loading.vehicle_weight_after)}${fillMark(loading.weight_filled_by)}</span>
                         </div>
                         ${products.length > 0 ? (() => {
                             const totalPallets = products.reduce((sum, p) => sum + (parseInt(p.pallets) || 0), 0);

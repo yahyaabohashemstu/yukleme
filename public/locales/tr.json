@@ -343,5 +343,11 @@
   "loader.version_current": "Mevcut (Güncel)",
   "loader.section_vehicle_photos": "📷 Yüklenen Araç Fotoğrafları",
   "loader.recorded_by_manager": "✓ Bu rapor yönetici tarafından kayıt altına alındı.",
-  "loader.paper_confirmed_by_manager": "Müdür tarafından teyit edildi"
+  "loader.paper_confirmed_by_manager": "Müdür tarafından teyit edildi",
+  "fill.badge_title": "Bu alanı kim doldurdu?",
+  "fill.note_title": "Bu raporu kim doldurdu?",
+  "fill.created_by": "Raporu oluşturan",
+  "fill.weight_by": "Ağırlığı yazan",
+  "fill.photos_by": "Fotoğrafları ekleyen",
+  "fill.not_recorded": "Kaydedilmemiş (bu özellikten önceki rapor)"
 }

@@ -343,5 +343,11 @@
   "loader.version_current": "Current",
   "loader.section_vehicle_photos": "📷 Loaded vehicle photos",
   "loader.recorded_by_manager": "✓ This report has been recorded by the manager.",
-  "loader.paper_confirmed_by_manager": "Confirmed by the manager"
+  "loader.paper_confirmed_by_manager": "Confirmed by the manager",
+  "fill.badge_title": "Who filled this field in?",
+  "fill.note_title": "Who filled this report in?",
+  "fill.created_by": "Report created by",
+  "fill.weight_by": "Weight written by",
+  "fill.photos_by": "Photos added by",
+  "fill.not_recorded": "Not recorded (report predates this)"
 }

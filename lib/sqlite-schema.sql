@@ -91,6 +91,16 @@ CREATE TABLE IF NOT EXISTS loadings (
     needs_improvement_by     TEXT,
     needs_improvement_reason TEXT,
 
+    -- Who filled the two hand-off fields. Whoever starts a report does not
+    -- always finish it: the weight and the photos are often added afterwards,
+    -- sometimes by the other loader. These say WHO wrote the value the row
+    -- holds right now, so the report can state it instead of being guessed at.
+    -- Usernames, not ids: an audit trail should keep the name as it was used.
+    weight_filled_by         TEXT,
+    weight_filled_at         TEXT,
+    photos_filled_by         TEXT,
+    photos_filled_at         TEXT,
+
     -- Metadata
     created_by               TEXT,
     created_at               TEXT

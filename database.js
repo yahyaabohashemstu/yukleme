@@ -39,6 +39,31 @@ db.pragma('temp_store = MEMORY'); // keep temp tables/indexes in RAM
 const schema = fs.readFileSync(path.join(__dirname, 'lib', 'sqlite-schema.sql'), 'utf8');
 db.exec(schema);
 
+// ---- Columns added after the first release -------------------------------
+// The schema above is all CREATE TABLE IF NOT EXISTS, which does nothing at
+// all to a table that already exists — so a database created before a column
+// was introduced would never receive it. Adding one is purely additive: every
+// existing row simply reads NULL for it, and no existing byte is rewritten.
+// Each ADD is skipped when the column is already present, so this is safe to
+// run on every single start, forever.
+const ADDED_COLUMNS = {
+    loadings: {
+        weight_filled_by: 'TEXT',
+        weight_filled_at: 'TEXT',
+        photos_filled_by: 'TEXT',
+        photos_filled_at: 'TEXT',
+    },
+};
+for (const [table, cols] of Object.entries(ADDED_COLUMNS)) {
+    const present = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const [name, type] of Object.entries(cols)) {
+        if (!present.has(name)) {
+            db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
+            console.log(`Added column ${table}.${name}`);
+        }
+    }
+}
+
 // ---- The Supabase-compatible adapter ----
 const supabase = createClient(db);
 

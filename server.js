@@ -421,6 +421,15 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
             products = [];
         }
 
+        // Who filled the weight and the photos. At creation that can only be
+        // the person filling the form — but it is recorded only for a field
+        // they really did fill, so an empty one stays unclaimed until someone
+        // comes back and fills it.
+        const filledBy = req.session.user.username;
+        const filledAt = new Date().toISOString();
+        const weightGiven = String(req.body.vehicle_weight_after || '').trim() !== '';
+        const photosGiven = uploadedUrls.length > 0;
+
         const loadingData = {
             // Team info
             manager: req.body.manager || null,
@@ -462,6 +471,12 @@ app.post('/api/loadings', requireLoader, upload.array('photos'), async (req, res
 
             // Comments
             comments: req.body.comments || null,
+
+            // Hand-off attribution (see the PUT route for the rule)
+            weight_filled_by: weightGiven ? filledBy : null,
+            weight_filled_at: weightGiven ? filledAt : null,
+            photos_filled_by: photosGiven ? filledBy : null,
+            photos_filled_at: photosGiven ? filledAt : null,
 
             // Metadata
             created_by: req.session.user.id,
@@ -652,6 +667,42 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             products = req.body.products || [];
         }
 
+        // ---- Who filled the weight and the photos -------------------------
+        // These two are the hand-off in this workshop: the loader who starts a
+        // report is often not the one who finally weighs the truck and
+        // photographs it. The rule the report states is "whoever wrote the
+        // value that is in it now" — so an attribution MOVES to whoever
+        // changes a value, STAYS PUT when a save leaves the value alone (every
+        // edit re-sends all the fields, so unchanged must not look like work),
+        // and is CLEARED when a value is emptied, because then nobody filled it.
+        const claim = (changed, stillFilled, prevBy, prevAt) => {
+            if (!stillFilled) return { by: null, at: null };
+            if (!changed) return { by: prevBy || null, at: prevAt || null };
+            return { by: currentUser.username, at: new Date().toISOString() };
+        };
+
+        // Compare on the trimmed text: re-saving "12000" as " 12000 " is not a
+        // change anybody should be credited with.
+        const newWeight = String(req.body.vehicle_weight_after ?? '').trim();
+        const oldWeight = String(current.vehicle_weight_after ?? '').trim();
+        const weightBy = claim(
+            newWeight !== oldWeight,
+            newWeight !== '',
+            current.weight_filled_by,
+            current.weight_filled_at
+        );
+
+        const oldPhotos = Array.isArray(current.loaded_vehicle_photos) ? current.loaded_vehicle_photos : [];
+        const photosChanged =
+            finalPhotos.length !== oldPhotos.length ||
+            finalPhotos.some((url, i) => url !== oldPhotos[i]);
+        const photosBy = claim(
+            photosChanged,
+            finalPhotos.length > 0,
+            current.photos_filled_by,
+            current.photos_filled_at
+        );
+
         // 4. Prepare new data
         const managerEditNote = 'Bu rapor yönetici tarafından düzenlenmiştir.';
 
@@ -694,6 +745,10 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             damaged_goods_photos: [], // Reserved
             scale_receipt_photo: null, // Reserved
             loaded_vehicle_photos: finalPhotos, // All photos go here
+            weight_filled_by: weightBy.by,
+            weight_filled_at: weightBy.at,
+            photos_filled_by: photosBy.by,
+            photos_filled_at: photosBy.at,
             entry_time: req.body.entry_time === '' ? null : req.body.entry_time,
             exit_time: req.body.exit_time === '' ? null : req.body.exit_time,
             comments,

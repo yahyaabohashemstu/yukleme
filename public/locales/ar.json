@@ -343,5 +343,11 @@
   "loader.version_current": "النسخة الحالية",
   "loader.section_vehicle_photos": "📷 صور المركبة المُحمَّلة",
   "loader.recorded_by_manager": "✓ سجّل المديرُ هذا التقرير.",
-  "loader.paper_confirmed_by_manager": "أكّده المدير"
+  "loader.paper_confirmed_by_manager": "أكّده المدير",
+  "fill.badge_title": "من عبّأ هذه الخانة؟",
+  "fill.note_title": "من عبّأ هذا التقرير؟",
+  "fill.created_by": "أنشأ التقرير",
+  "fill.weight_by": "كتب الوزن",
+  "fill.photos_by": "أضاف الصور",
+  "fill.not_recorded": "غير مسجَّل (تقرير أقدم من هذه الميزة)"
 }

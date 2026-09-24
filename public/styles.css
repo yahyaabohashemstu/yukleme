@@ -2869,6 +2869,15 @@ textarea:required:valid {
 
     thead { display: table-header-group; }
     tr { break-inside: avoid; }
+
+    /* The "who filled this" button cannot be tapped on paper, and the note it
+       opens is a screen affordance — neither belongs on a printed report. The
+       note overlay is hidden by id so it beats the rule above that turns every
+       .modal-overlay into a printable block. */
+    .fill-mark,
+    #fillNoteModal {
+        display: none !important;
+    }
 }
 
 /* ============================================================================
@@ -3092,4 +3101,102 @@ textarea:required:valid {
 #confirm-ok-btn.ok-success:hover {
     background: var(--success-dark);
     border-color: var(--success-dark);
+}
+
+
+/* ==========================================================================
+   "Who filled this" — the ! beside the weight and the photos
+   ==========================================================================
+   Whoever starts a loading report often is not the one who ends up weighing
+   the truck and photographing it. When those two fields were filled by
+   SOMEBODY ELSE, a ! appears next to them; tapping it opens a note naming
+   the report's author and the person who filled each field. When one person
+   did the whole report there is nothing to flag and nothing is shown. */
+
+.fill-mark {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 19px;
+    height: 19px;
+    padding: 0;
+    margin-inline-start: 7px;
+    vertical-align: middle;
+    border: 1px solid var(--warning, #8a5d0b);
+    border-radius: var(--r-sm, 2px);
+    background: var(--draft-bg, #fbf1dd);
+    color: var(--warning, #8a5d0b);
+    font-size: var(--fs-13, 14px);
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition, 160ms ease);
+}
+
+/* A 19px square is a fine target for a mouse and a poor one for a thumb.
+   This grows what the finger hits to about 39px without changing what the
+   eye sees — the phone is where this is actually read. */
+.fill-mark::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+}
+
+.fill-mark:hover,
+.fill-mark:focus-visible {
+    background: var(--warning, #8a5d0b);
+    color: #fff;
+}
+
+.fill-mark:focus-visible {
+    outline: 2px solid var(--accent, #e8a33d);
+    outline-offset: 2px;
+}
+
+/* ---- the note the ! opens ---------------------------------------------- */
+
+.fill-note-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-color, #cfd4da);
+}
+
+.fill-note-row:first-child {
+    padding-top: 0;
+}
+
+.fill-note-row:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.fill-note-label {
+    font-size: var(--fs-11, 12px);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary, #4b535c);
+}
+
+.fill-note-value {
+    font-size: var(--fs-16, 17px);
+    font-weight: 700;
+    color: var(--text-primary, #16191d);
+}
+
+.fill-note-value.is-unknown {
+    font-size: var(--fs-14, 15px);
+    font-weight: 500;
+    font-style: italic;
+    color: var(--text-secondary, #4b535c);
+}
+
+.fill-note-time {
+    font-size: var(--fs-12, 13px);
+    color: var(--text-secondary, #4b535c);
+    font-variant-numeric: tabular-nums;
 }

@@ -78,7 +78,7 @@
   "loader.field_plate2": "Araç Plakası 2",
   "loader.field_plate2_placeholder": "İkinci plaka numarası",
   "loader.field_container": "Konteyner Numarası",
-  "loader.field_container_placeholder": "Konteyner numarası",
+  "loader.field_container_placeholder": "Konteyner numarası (varsa)",
   "loader.field_date": "Tarih",
   "loader.section_destination": "Varış Bilgileri",
   "loader.field_destination_company": "Şirket",

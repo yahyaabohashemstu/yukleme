@@ -231,8 +231,7 @@
                         </div>
                         <div class="form-group">
                             <label for="container_no" data-i18n="loader.field_container">Konteyner Numarası</label>
-                            <input type="text" id="container_no" name="container_no" data-i18n-placeholder="loader.field_container_placeholder" placeholder="Konteyner numarası"
-                                required>
+                            <input type="text" id="container_no" name="container_no" data-i18n-placeholder="loader.field_container_placeholder" placeholder="Konteyner numarası (varsa)">
                         </div>
                         <div class="form-group">
                             <label for="loading_date" data-i18n="loader.field_date">Tarih</label>
@@ -2173,7 +2172,7 @@
                                 <div class="form-grid form-grid-3">
                                     ${input('Araç Plakası 1', 'plate1', loading.plate1, 'text', true)}
                                     ${input('Araç Plakası 2', 'plate2', loading.plate2, 'text', true)}
-                                    ${input('Konteyner Numarası', 'container_no', loading.container_no, 'text', true)}
+                                    ${input('Konteyner Numarası', 'container_no', loading.container_no, 'text')}
                                     ${input('Tarih', 'loading_date', loading.loading_date, 'date', true)}
                                 </div>
                             </div>

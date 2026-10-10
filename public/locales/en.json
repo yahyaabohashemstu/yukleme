@@ -78,7 +78,7 @@
   "loader.field_plate2": "Plate 2",
   "loader.field_plate2_placeholder": "Plate number 2",
   "loader.field_container": "Container Number",
-  "loader.field_container_placeholder": "Container number",
+  "loader.field_container_placeholder": "Container number (if any)",
   "loader.field_date": "Date",
   "loader.section_destination": "Destination Information",
   "loader.field_destination_company": "Company",

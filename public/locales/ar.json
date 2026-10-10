@@ -78,7 +78,7 @@
   "loader.field_plate2": "لوحة المركبة 2",
   "loader.field_plate2_placeholder": "رقم اللوحة الثانية",
   "loader.field_container": "رقم الحاوية",
-  "loader.field_container_placeholder": "رقم الحاوية",
+  "loader.field_container_placeholder": "رقم الحاوية (إن وُجد)",
   "loader.field_date": "التاريخ",
   "loader.section_destination": "معلومات الوجهة",
   "loader.field_destination_company": "الشركة",

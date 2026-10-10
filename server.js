@@ -606,6 +606,21 @@ app.get('/api/loadings/:id/versions', requireAuth, async (req, res) => {
     }
 });
 
+// Every report column an edit form may change — listed once, here. The PUT
+// below writes a column ONLY when the request actually carries it, so a column
+// the forms do not send keeps its stored value instead of being wiped.
+// (container_no used to be missing from the hand-written list inside the
+// route, so no edit of it was ever saved; product_weight was on that list
+// although no form sends it, so every edit set it to NULL.)
+const EDITABLE_FIELDS = [
+    'manager', 'worker1', 'worker2', 'worker3', 'worker4',
+    'plate1', 'plate2', 'container_no', 'loading_date',
+    'product_weight', 'vehicle_weight_after',
+    'destination_company', 'destination_country', 'destination_customer',
+    'driver_name', 'driver_phone', 'forklift_operator',
+    'entry_time', 'exit_time',
+];
+
 // Update loading (loader or manager) - Archives old version
 app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, res) => {
     try {
@@ -653,17 +668,22 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
         // Combine
         const finalPhotos = [...preservedPhotos, ...newUploadedUrls];
 
+        // A field is written only when the request carries it (see
+        // EDITABLE_FIELDS). multer builds req.body without a prototype, hence
+        // the borrowed hasOwnProperty.
+        const sent = (field) => Object.prototype.hasOwnProperty.call(req.body, field);
 
         // 4. Prepare new data
-        // Parse products if sent as string (Multipart form data sends JSON as string)
-        let products = [];
+        // Parse products if sent as string (Multipart form data sends JSON as string).
+        // Not sent at all -> the report keeps its products.
+        let products = current.products;
         if (typeof req.body.products === 'string') {
             try {
                 products = JSON.parse(req.body.products);
             } catch (e) {
                 products = [];
             }
-        } else {
+        } else if (sent('products')) {
             products = req.body.products || [];
         }
 
@@ -682,8 +702,10 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
         };
 
         // Compare on the trimmed text: re-saving "12000" as " 12000 " is not a
-        // change anybody should be credited with.
-        const newWeight = String(req.body.vehicle_weight_after ?? '').trim();
+        // change anybody should be credited with. A request that does not carry
+        // the weight leaves it as it is, so compare the value that will be stored.
+        const weightNow = sent('vehicle_weight_after') ? req.body.vehicle_weight_after : current.vehicle_weight_after;
+        const newWeight = String(weightNow ?? '').trim();
         const oldWeight = String(current.vehicle_weight_after ?? '').trim();
         const weightBy = claim(
             newWeight !== oldWeight,
@@ -723,23 +745,20 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             comments = existingComments.replace(managerEditNote, '').trim();
         }
 
+        // The form fields: only those the request carries. This is what makes
+        // container_no editable (it was simply missing from the old hand-made
+        // list) and what stops product_weight — no form sends it — from being
+        // wiped to NULL by every edit.
+        const formFields = {};
+        for (const field of EDITABLE_FIELDS) {
+            if (!sent(field)) continue;
+            const value = req.body[field];
+            // The time pickers post '' when no time is chosen: store that as "no time".
+            formFields[field] = (field === 'entry_time' || field === 'exit_time') && value === '' ? null : value;
+        }
+
         const updateData = {
-            manager: req.body.manager,
-            worker1: req.body.worker1,
-            worker2: req.body.worker2,
-            worker3: req.body.worker3,
-            worker4: req.body.worker4,
-            plate1: req.body.plate1,
-            plate2: req.body.plate2,
-            loading_date: req.body.loading_date,
-            product_weight: req.body.product_weight,
-            vehicle_weight_after: req.body.vehicle_weight_after,
-            destination_company: req.body.destination_company,
-            destination_country: req.body.destination_country,
-            destination_customer: req.body.destination_customer,
-            driver_name: req.body.driver_name,
-            driver_phone: req.body.driver_phone,
-            forklift_operator: req.body.forklift_operator,
+            ...formFields,
             products: products,
             goods_photos: [], // Reserved for future use if needed, currently unused in UI
             damaged_goods_photos: [], // Reserved
@@ -749,8 +768,6 @@ app.put('/api/loadings/:id', requireAuth, upload.array('photos'), async (req, re
             weight_filled_at: weightBy.at,
             photos_filled_by: photosBy.by,
             photos_filled_at: photosBy.at,
-            entry_time: req.body.entry_time === '' ? null : req.body.entry_time,
-            exit_time: req.body.exit_time === '' ? null : req.body.exit_time,
             comments,
             // Reset recorded status on edit
             is_recorded: false,

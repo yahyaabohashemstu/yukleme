@@ -3,8 +3,9 @@
 //
 // Three steps, in this order, and it stops at the first that answers:
 //
-//   1. THE CATALOGUE, verbatim. products_tr_to_ar.json holds 1665 pairs, 801
-//      of them joined to the warehouse's own Arabic by Odoo product id. An
+//   1. THE CATALOGUE, verbatim. products_tr_to_ar.json holds every product
+//      in the warehouse's sheets, joined to its own Arabic by Odoo product id
+//      (scripts/sync_catalogue.js), plus the names loaders typed before. An
 //      exact or normalised hit here is not a translation at all — it is the
 //      factory's own record, and it costs nothing.
 //

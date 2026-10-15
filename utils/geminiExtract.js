@@ -66,8 +66,9 @@ const REPORT_SCHEMA = {
 
 function catalogText() {
     // Compact "TR => AR" list so Gemini can match Arabic speech to the exact TR name.
+    // A name the warehouse writes the same in both languages is listed once.
     return Object.entries(CATALOG)
-        .map(([tr, ar]) => `${tr} => ${ar}`)
+        .map(([tr, ar]) => ar === tr ? tr : `${tr} => ${ar}`)
         .join('\n');
 }
 

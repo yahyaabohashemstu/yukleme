@@ -595,18 +595,39 @@
         function thumbOf(u){ return (typeof u==='string' && u.indexOf('/uploads/')===0 && u.indexOf('/uploads/thumbs/')!==0) ? u.replace('/uploads/','/uploads/thumbs/') : u; }
         function jsStr(v){ return JSON.stringify(String(v==null?'':v)); }
 
-        // Load products for dropdown
+        // Load products for dropdown. In the Arabic interface each line also
+        // carries the warehouse's Arabic name, so typing either language finds
+        // the product; what goes into the field, and into the report, is always
+        // the Turkish name.
+        let productNames = [];
+        let productArabic = null;
+        const arabicUi = () => !!(window.i18n && window.i18n.getLang && window.i18n.getLang() === 'ar');
+
         async function loadProducts() {
             try {
                 const response = await fetch('/products.json');
                 if (!response.ok) throw new Error('Failed to load products');
-                const products = await response.json();
-
-                const dataList = document.getElementById('productList');
-                dataList.innerHTML = products.map(p => `<option value="${escapeHtml(p)}">`).join('');
+                productNames = await response.json();
+                await renderProductList();
             } catch (error) {
                 console.error('Error loading products:', error);
             }
+        }
+
+        async function renderProductList() {
+            if (arabicUi() && !productArabic) {
+                try {
+                    const response = await fetch('/products_tr_to_ar.json');
+                    productArabic = response.ok ? await response.json() : {};
+                } catch (error) {
+                    productArabic = {};
+                }
+            }
+            // Asked again after the wait: the language may have changed meanwhile.
+            const arabic = arabicUi() && productArabic;
+            const label = p => (arabic && arabic[p] && arabic[p] !== p) ? ` label="${escapeHtml(arabic[p])}"` : '';
+            document.getElementById('productList').innerHTML =
+                productNames.map(p => `<option value="${escapeHtml(p)}"${label(p)}>`).join('');
         }
         loadProducts();
 
@@ -649,6 +670,7 @@
             if (typeof updateFilterChip === 'function') {
                 updateFilterChip();
             }
+            renderProductList();
         });
 
         // Logout
